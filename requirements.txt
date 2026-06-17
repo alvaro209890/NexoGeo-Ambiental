@@ -1,0 +1,21 @@
+# Backend / núcleo (Python 3.11)
+# Geo + documentos (já presentes no Python do projeto)
+pyshp
+shapely
+pyproj
+openpyxl
+python-docx
+requests
+pymupdf
+matplotlib
+
+# Backend web (Fase 4) — instalar:  pip install fastapi "uvicorn[standard]" pydantic
+fastapi
+uvicorn[standard]
+pydantic
+
+# Shell desktop (Fase 4/7)
+pywebview
+
+# Empacotamento (Fase 7)
+pyinstaller

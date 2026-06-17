@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Segredos (nunca versionar)
+secrets.local.json
+**/secrets.local.json
+
+# Front-end (Fase 4)
+node_modules/
+dist/
+build/
+
+# Empacotamento
+*.spec

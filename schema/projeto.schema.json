@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://analise-de-area/schema/projeto.schema.json",
+  "title": "Projeto de Análise de Área",
+  "description": "Configuração de UMA análise de imóvel. Tudo que muda entre análises vive aqui; o código das automações nunca tem fazenda/CAR escrito dentro.",
+  "type": "object",
+  "required": ["versao_schema", "imovel", "municipio", "raiz_dados", "fazendas"],
+  "additionalProperties": true,
+  "properties": {
+    "versao_schema": { "type": "integer", "const": 1, "description": "Versão do esquema (atual: 1)." },
+    "imovel": { "type": "string", "description": "Nome do imóvel/conjunto de fazendas." },
+    "cliente": { "type": "string", "description": "Cliente da análise (opcional)." },
+    "municipio": {
+      "type": "object",
+      "required": ["nome", "uf", "ibge"],
+      "properties": {
+        "nome": { "type": "string" },
+        "uf": { "type": "string", "minLength": 2, "maxLength": 2 },
+        "ibge": { "type": "string", "description": "Código IBGE do município." }
+      }
+    },
+    "crs": {
+      "type": "object",
+      "description": "Sistemas de referência. 'utm' é o destino dos cálculos de área (fuso da região).",
+      "properties": {
+        "utm": { "type": "integer", "description": "EPSG do UTM de destino (ex.: 31982 = SIRGAS2000 / UTM 22S)." },
+        "geografico": { "type": "integer", "default": 4674, "description": "EPSG geográfico de referência." }
+      }
+    },
+    "data_consulta": {
+      "type": "string",
+      "default": "auto",
+      "description": "'auto' usa a data de execução; ou data fixa 'DD/MM/AAAA'."
+    },
+    "raiz_dados": {
+      "type": "string",
+      "description": "Pasta-raiz dos dados da análise. Absoluta, ou relativa ao próprio projeto.json (use '.' quando o projeto.json fica na raiz da análise)."
+    },
+    "pastas": {
+      "type": "object",
+      "description": "Subpastas (relativas a raiz_dados).",
+      "properties": {
+        "shapes": { "type": "string", "default": "Shapes" },
+        "car": { "type": "string", "default": "Shapes/CAR" },
+        "consultas": { "type": "string", "default": "Consultas_Publicas" },
+        "resultados": { "type": "string", "default": "Automacoes/Resultados" }
+      }
+    },
+    "mapa_campos": {
+      "type": "object",
+      "description": "Nome lógico -> coluna real no .dbf do CAR (permite shapes de origens diferentes).",
+      "additionalProperties": { "type": "string" }
+    },
+    "fazendas": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "nome", "shape_car"],
+        "properties": {
+          "id": { "type": "string", "description": "Identificador único e estável da fazenda." },
+          "nome": { "type": "string", "description": "Nome de exibição." },
+          "shape_car": { "type": "string", "description": "Pasta do shapefile do CAR (contendo CAR_ATP.shp)." },
+          "car_federal": { "type": "string" },
+          "car_estadual": { "type": "string" },
+          "recibo_pdf": { "type": "string", "description": "Nome do recibo PDF do CAR em <consultas>/CAR/." }
+        }
+      },
+      "description": "Fazendas na visão ESPACIAL/ambiental (1 por CAR). Para quantitativos, contexto ambiental e fundiário."
+    },
+    "area_total": {
+      "type": "object",
+      "description": "Visão de REGISTRO (matrícula), independente dos CARs. Fonte da automação 'área total' (certificação × matrícula). Pode conter entidades que não são CAR (ex.: uma fazenda só com matrícula).",
+      "properties": {
+        "itens": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["nome", "certificacao_ha", "matricula_ha"],
+            "properties": {
+              "nome": { "type": "string" },
+              "tipo": { "type": "string", "enum": ["SIGEF", "SNCI"], "description": "Origem da certificação." },
+              "certificacao_ha": { "type": "number" },
+              "matricula_ha": { "type": "number" },
+              "matriculas": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "quantitativos": {
+      "type": "object",
+      "description": "Shapes temáticos (nomes de arquivo, sem extensão) e ajustes da automação de quantitativos.",
+      "properties": {
+        "shapes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "pef_total_forcado": {
+          "type": "number",
+          "description": "OPCIONAL. Se presente, força o total reescalando o PEF (ajuste manual herdado). Omitir para usar o quantitativo espacial real."
+        }
+      }
+    },
+    "automacoes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Automações a rodar.",
+      "examples": [["quantitativos", "ctx_ambiental", "ctx_fundiario", "area_total", "apf"]]
+    }
+  }
+}

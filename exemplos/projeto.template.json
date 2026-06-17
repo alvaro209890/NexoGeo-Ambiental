@@ -1,0 +1,57 @@
+{
+  "_comentario": "TEMPLATE genérico — copie para a raiz da SUA análise como 'projeto.json' e preencha. NÃO contém dados reais de nenhuma fazenda. Schema: ../schema/projeto.schema.json",
+
+  "versao_schema": 1,
+  "imovel": "<nome do imóvel>",
+  "cliente": "<cliente (opcional)>",
+  "municipio": { "nome": "<município>", "uf": "<UF>", "ibge": "<código IBGE>" },
+  "crs": { "utm": 31982, "geografico": 4674 },
+  "data_consulta": "auto",
+
+  "raiz_dados": ".",
+  "pastas": {
+    "shapes": "Shapes",
+    "car": "Shapes/CAR",
+    "consultas": "Consultas_Publicas",
+    "resultados": "Automacoes/Resultados"
+  },
+
+  "mapa_campos": {
+    "area_ha": "AREA_HA",
+    "codigo": "CODIGO",
+    "num_estadual": "NUMEROESTA",
+    "car_federal": "CAR_FEDERA",
+    "situacao": "SITUACAO_C",
+    "modulos": "MODULOS_FI",
+    "proprietarios": "NOMESPROPR"
+  },
+
+  "fazendas": [
+    {
+      "id": "<id-unico-da-fazenda>",
+      "nome": "<Nome da Fazenda>",
+      "shape_car": "<pasta do CAR, ex.: CAR_ATP (1)>",
+      "car_federal": "<MT-...>",
+      "car_estadual": "<MT.../ano>",
+      "recibo_pdf": "<nome do recibo PDF em Consultas_Publicas/CAR/>"
+    }
+  ],
+
+  "area_total": {
+    "_comentario": "Visão de registro (matrícula), independente dos CARs. Fonte da automação 'área total'.",
+    "itens": [
+      { "nome": "<Fazenda/Matrícula>", "tipo": "SIGEF", "certificacao_ha": 0.0, "matricula_ha": 0.0, "matriculas": ["<nº>"] }
+    ]
+  },
+
+  "quantitativos": {
+    "shapes": {
+      "cultivavel": "Area_Cultivavel",
+      "cultivavel_com_estrada": "Area_cultivavel_com_estrada",
+      "auas": "AUAS_Cultivaveis",
+      "pef": "Area_do_PEF"
+    }
+  },
+
+  "automacoes": ["quantitativos", "ctx_ambiental", "ctx_fundiario", "area_total", "apf"]
+}
