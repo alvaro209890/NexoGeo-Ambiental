@@ -7,21 +7,21 @@
 }
 
 :root {
-  color-scheme: light;
-  --bg: #f4f7f5;
-  --panel: #ffffff;
-  --panel-soft: #f8faf9;
-  --border: #dce5df;
-  --border-strong: #c3d2c9;
-  --ink: #16211d;
-  --muted: #617068;
-  --soft: #eef4f0;
-  --brand: #14543f;
-  --brand-dark: #0d3b2c;
-  --teal: #0f766e;
-  --amber: #b7791f;
-  --danger: #b42318;
-  --shadow: 0 18px 48px rgba(20, 84, 63, 0.08);
+  color-scheme: dark;
+  --bg: #0B0D12;
+  --panel: #13151A;
+  --panel-soft: #1B1E25;
+  --border: #2A2E39;
+  --border-strong: #3F4554;
+  --ink: #E2E8F0;
+  --muted: #8292A6;
+  --soft: #1D252E;
+  --brand: #2CC984;
+  --brand-dark: #22A068;
+  --teal: #38E5CD;
+  --amber: #F6AD55;
+  --danger: #FC8181;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -75,7 +75,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 30px;
-  background: #fbfdfc;
+  background: var(--panel-soft);
   border-right: 1px solid var(--border);
   padding: 24px 18px;
   position: sticky;
@@ -101,7 +101,7 @@ button:disabled {
   flex: 0 0 auto;
   color: var(--brand);
   background: var(--soft);
-  border: 1px solid #d4e4da;
+  border: 1px solid var(--border);
 }
 
 .brand-mark {
@@ -147,17 +147,17 @@ button:disabled {
   border-radius: 8px;
   padding: 9px 10px;
   background: transparent;
-  color: #34433c;
+  color: var(--ink);
   text-align: left;
 }
 
 .nav-list button:hover {
-  background: #f1f6f3;
+  background: #252A36;
 }
 
 .nav-list button.active {
-  background: #eaf5ef;
-  border-color: #cce0d2;
+  background: #1C332A;
+  border-color: #2CC984;
   color: var(--brand);
   font-weight: 700;
 }
@@ -169,7 +169,7 @@ button:disabled {
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #f8fbf9;
+  background: #171A21;
   min-width: 0;
 }
 
@@ -202,7 +202,7 @@ button:disabled {
   align-items: center;
   gap: 14px;
   padding: 16px 22px;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(19, 21, 26, 0.86);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -264,8 +264,8 @@ button:disabled {
 
 .project-command input:focus,
 .field-input:focus-within {
-  border-color: #94b8a2;
-  box-shadow: 0 0 0 3px rgba(20, 84, 63, 0.1);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(44, 201, 132, 0.2);
 }
 
 .content-surface {
@@ -295,8 +295,8 @@ button:disabled {
   border: 1px solid var(--border);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(20, 84, 63, 0.09), rgba(15, 118, 110, 0.05)),
-    #f9fcfa;
+    linear-gradient(135deg, rgba(44, 201, 132, 0.09), rgba(56, 229, 205, 0.05)),
+    #13151A;
   box-shadow: var(--shadow);
 }
 
@@ -304,8 +304,8 @@ button:disabled {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(20, 84, 63, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(20, 84, 63, 0.08) 1px, transparent 1px);
+    linear-gradient(rgba(44, 201, 132, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(44, 201, 132, 0.08) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.2));
 }
@@ -316,14 +316,14 @@ button:disabled {
   width: min(52vw, 500px);
   height: 235px;
   max-width: calc(100% - 70px);
-  fill: rgba(20, 84, 63, 0.12);
+  fill: rgba(44, 201, 132, 0.12);
   stroke: var(--brand);
   stroke-width: 4;
 }
 
 .polygon-sketch circle {
   fill: var(--teal);
-  stroke: #ffffff;
+  stroke: var(--panel);
   stroke-width: 2;
 }
 
@@ -492,14 +492,14 @@ p {
 .primary-button {
   padding: 0 14px;
   min-width: 150px;
-  background: #eef6f1;
+  background: #1C332A;
   color: var(--brand);
-  border-color: #cfe1d5;
+  border-color: #264A3B;
   font-weight: 800;
 }
 
 .primary-button:hover {
-  background: #e3f0e8;
+  background: #234535;
 }
 
 .primary-button.solid {
@@ -521,8 +521,8 @@ p {
 }
 
 .icon-button.soft {
-  background: #eef6f1;
-  border-color: #cfe1d5;
+  background: #1C332A;
+  border-color: #264A3B;
 }
 
 .status-badge {
@@ -533,7 +533,7 @@ p {
   border-radius: 8px;
   border: 1px solid var(--border);
   padding: 5px 9px;
-  color: #44534c;
+  color: var(--ink);
   background: #f8faf9;
   font-size: 12px;
   font-weight: 800;
@@ -543,20 +543,20 @@ p {
 .status-ok,
 .status-done {
   color: var(--brand);
-  background: #eaf5ef;
-  border-color: #cfe1d5;
+  background: #1C332A;
+  border-color: #264A3B;
 }
 
 .status-started {
   color: var(--teal);
-  background: #e9f6f5;
-  border-color: #c7e4e1;
+  background: rgba(56, 229, 205, 0.15);
+  border-color: rgba(56, 229, 205, 0.3);
 }
 
 .status-error {
   color: var(--danger);
-  background: #fff0ed;
-  border-color: #f3c6bd;
+  background: rgba(252, 129, 129, 0.15);
+  border-color: rgba(252, 129, 129, 0.3);
 }
 
 .timeline {
@@ -583,22 +583,22 @@ p {
   height: 26px;
   border-radius: 8px;
   color: var(--muted);
-  background: #f2f5f3;
+  background: #252A36;
 }
 
 .timeline-row.done .timeline-dot {
   color: var(--brand);
-  background: #e7f3ec;
+  background: rgba(44, 201, 132, 0.2);
 }
 
 .timeline-row.started .timeline-dot {
   color: var(--teal);
-  background: #e6f4f3;
+  background: rgba(56, 229, 205, 0.2);
 }
 
 .timeline-row.error .timeline-dot {
   color: var(--danger);
-  background: #fff0ed;
+  background: rgba(252, 129, 129, 0.15);
 }
 
 .timeline-row strong,
@@ -743,8 +743,8 @@ p {
 }
 
 .automation-card.selected {
-  border-color: #9abda7;
-  background: #f4faf6;
+  border-color: var(--brand);
+  background: rgba(44, 201, 132, 0.05);
 }
 
 .automation-card input {
@@ -863,7 +863,7 @@ p {
 .manual-section ul {
   margin: 14px 0 0;
   padding-left: 20px;
-  color: #33443d;
+  color: var(--ink);
   line-height: 1.55;
 }
 
@@ -876,9 +876,9 @@ p {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  border: 1px solid #f3c6bd;
+  border: 1px solid rgba(252, 129, 129, 0.3);
   border-radius: 8px;
-  background: #fff0ed;
+  background: rgba(252, 129, 129, 0.15);
   color: var(--danger);
   padding: 11px 12px;
   font-weight: 700;
@@ -1025,4 +1025,28 @@ p {
   .action-row .primary-button {
     width: 100%;
   }
+}
+
+
+::selection {
+  background: rgba(44, 201, 132, 0.3);
+  color: var(--ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
