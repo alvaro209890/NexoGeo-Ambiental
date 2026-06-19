@@ -22,6 +22,12 @@ import {
   ShieldCheck,
   UploadCloud,
   XCircle,
+  ChevronDown,
+  ChevronUp,
+  Network,
+  FileDown,
+  Plus,
+  ArrowLeft,
 } from 'lucide-react'
 import './index.css'
 
@@ -115,15 +121,22 @@ function PrimaryButton({ children, onClick, disabled, tone = 'primary' }) {
   )
 }
 
-function Field({ label, value, onChange, icon: Icon, placeholder }) {
+function Field({ label, value, onChange, icon: Icon, placeholder, onBrowse }) {
   return (
-    <label className="field">
+    <div className="field">
       <span>{label}</span>
-      <div className="field-input">
-        {Icon ? <Icon size={17} /> : null}
-        <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
+      <div className="field-group">
+        <div className="field-input">
+          {Icon ? <Icon size={17} /> : null}
+          <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
+        </div>
+        {onBrowse && (
+          <IconButton onClick={(e) => { e.preventDefault(); onBrowse(); }} title="Selecionar" kind="soft">
+            <FolderOpen size={18} />
+          </IconButton>
+        )}
       </div>
-    </label>
+    </div>
   )
 }
 
@@ -328,8 +341,26 @@ function PreAnalysisView({
           </div>
 
           <div className="analysis-grid">
-            <Field label="Shapefile compactado (.zip)" value={preShape} onChange={setPreShape} icon={UploadCloud} />
-            <Field label="Pasta de saída" value={preOut} onChange={setPreOut} icon={FolderOpen} />
+            <Field 
+              label="Shapefile compactado (.zip)" 
+              value={preShape} 
+              onChange={setPreShape} 
+              icon={UploadCloud} 
+              onBrowse={async () => {
+                const res = await jget('/api/dialog/file')
+                if (res.path) setPreShape(res.path)
+              }} 
+            />
+            <Field 
+              label="Pasta de saída" 
+              value={preOut} 
+              onChange={setPreOut} 
+              icon={FolderOpen} 
+              onBrowse={async () => {
+                const res = await jget('/api/dialog/folder')
+                if (res.path) setPreOut(res.path)
+              }} 
+            />
           </div>
 
           <div className="action-row">
@@ -368,6 +399,7 @@ function PreAnalysisView({
 }
 
 function AutomationGrid({ autos, selected, setSelected, progress, running, onRun }) {
+  const [expanded, setExpanded] = useState({})
   const selectedCount = Object.values(selected).filter(Boolean).length
   return (
     <section className="view-stack">
@@ -385,26 +417,57 @@ function AutomationGrid({ autos, selected, setSelected, progress, running, onRun
       <div className="automation-grid">
         {autos.map((auto) => {
           const state = progress[auto.id]?.status
+          const isSelected = !!selected[auto.id]
+          const isExpanded = !!expanded[auto.id]
+          
           return (
-            <label className={`automation-card ${selected[auto.id] ? 'selected' : ''}`} key={auto.id}>
-              <input
-                type="checkbox"
-                checked={!!selected[auto.id]}
-                onChange={(event) => setSelected((old) => ({ ...old, [auto.id]: event.target.checked }))}
-              />
-              <div className="automation-card-body">
-                <div className="automation-icon">
-                  <ClipboardList size={20} />
+            <div className={`automation-card ${isSelected ? 'selected' : ''}`} key={auto.id}>
+              <div 
+                className="automation-card-header" 
+                onClick={() => setSelected((old) => ({ ...old, [auto.id]: !isSelected }))}
+              >
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => {}}
+                />
+                <div className="automation-card-body">
+                  <div className="automation-icon">
+                    <ClipboardList size={20} />
+                  </div>
+                  <div>
+                    <strong>{auto.label}</strong>
+                    <span>{auto.id}</span>
+                  </div>
                 </div>
-                <div>
-                  <strong>{auto.label}</strong>
-                  <span>{auto.id}</span>
+                <div className="automation-card-actions">
+                  <StatusBadge state={state === 'done' ? 'done' : state === 'error' ? 'error' : state === 'started' ? 'started' : 'idle'}>
+                    {statusCopy(state)}
+                  </StatusBadge>
+                  <button 
+                    type="button" 
+                    className="expand-button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setExpanded((old) => ({ ...old, [auto.id]: !isExpanded }))
+                    }}
+                    title={isExpanded ? "Ocultar detalhes" : "Mostrar detalhes"}
+                  >
+                    {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  </button>
                 </div>
               </div>
-              <StatusBadge state={state === 'done' ? 'done' : state === 'error' ? 'error' : state === 'started' ? 'started' : 'idle'}>
-                {statusCopy(state)}
-              </StatusBadge>
-            </label>
+              
+              {isExpanded && (
+                <div className="automation-card-details">
+                  <p>{auto.desc}</p>
+                  <div className="detail-tags">
+                    <span className="detail-tag"><FileDown size={14} /> Saída: .{auto.saida}</span>
+                    {auto.rede && <span className="detail-tag warn"><Network size={14} /> Requer Internet</span>}
+                  </div>
+                </div>
+              )}
+            </div>
           )
         })}
       </div>
@@ -524,24 +587,94 @@ function ManualView() {
   )
 }
 
-function ProjectEmpty({ onLoad, busy, erro }) {
+function NewProjectForm({ onCancel, onCreate }) {
+  const [nome, setNome] = useState('')
+  const [cliente, setCliente] = useState('')
+  const [destino, setDestino] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [erro, setErro] = useState('')
+
+  const handleCreate = async () => {
+    if (!nome || !destino) {
+      setErro('Nome e Destino são obrigatórios')
+      return
+    }
+    setBusy(true)
+    try {
+      const res = await jpost('/api/projeto/novo', { nome, cliente, destino })
+      if (res.path) {
+        onCreate(res.path)
+      }
+    } catch (e) {
+      setErro(cleanError(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
-    <div className="project-empty">
-      <div className="brand-mark large">
-        <Globe2 size={34} />
+    <div className="new-project-modal">
+      <div className="modal-content">
+        <h2>Criar Novo Projeto</h2>
+        <Field label="Nome do Imóvel/Projeto" value={nome} onChange={setNome} placeholder="Ex: Fazenda Boa Esperança" />
+        <Field label="Cliente (opcional)" value={cliente} onChange={setCliente} placeholder="Nome do Produtor" />
+        <Field 
+          label="Pasta de Destino (Onde salvar)" 
+          value={destino} 
+          onChange={setDestino} 
+          icon={FolderOpen} 
+          onBrowse={async () => {
+            const res = await jget('/api/dialog/folder')
+            if (res.path) setDestino(res.path)
+          }} 
+        />
+        {erro && <div className="error-box inline">{erro}</div>}
+        <div className="modal-actions">
+          <button className="btn-cancel" onClick={onCancel} disabled={busy}>Cancelar</button>
+          <PrimaryButton onClick={handleCreate} disabled={busy} tone="solid">
+            {busy ? <Loader2 size={18} className="spin" /> : 'Criar e Abrir'}
+          </PrimaryButton>
+        </div>
       </div>
-      <h1>NexoGeo Ambiental</h1>
-      <p>Carregue o projeto para liberar automações, pré-análise e resultados.</p>
-      <PrimaryButton onClick={onLoad} disabled={busy} tone="solid">
-        {busy ? <Loader2 size={18} className="spin" /> : <FolderOpen size={18} />}
-        Carregar projeto padrão
-      </PrimaryButton>
-      {erro ? <div className="error-box inline">{erro}</div> : null}
+    </div>
+  )
+}
+
+function ProjectsLobby({ recentes, onOpen, onNew }) {
+  return (
+    <div className="projects-lobby">
+      <div className="lobby-header">
+        <div className="brand-mark large">
+          <Globe2 size={34} />
+        </div>
+        <h1>Meus Projetos</h1>
+        <p>Selecione um projeto recente ou crie uma nova análise estruturada.</p>
+      </div>
+      
+      <div className="recent-grid">
+        <div className="recent-card new-card" onClick={onNew}>
+          <Plus size={28} />
+          <strong>Criar Novo Projeto</strong>
+        </div>
+        {recentes.map(p => (
+          <div className="recent-card" key={p.path} onClick={() => onOpen(p.path)}>
+            <FolderOpen size={24} className="folder-icon" />
+            <div className="rc-content">
+              <strong>{p.nome}</strong>
+              <span>{p.path}</span>
+            </div>
+            <ChevronRight size={20} className="arrow-icon" />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
 export default function App() {
+  const [appView, setAppView] = useState('lobby')
+  const [recentes, setRecentes] = useState([])
+  const [showNewForm, setShowNewForm] = useState(false)
   const [path, setPath] = useState(DEFAULT_PROJECT)
   const [proj, setProj] = useState(null)
   const [autos, setAutos] = useState([])
@@ -559,20 +692,33 @@ export default function App() {
 
   const selectedCount = useMemo(() => Object.values(selected).filter(Boolean).length, [selected])
 
-  async function carregar() {
+  async function carregarRecentes() {
+    try {
+      const cfg = await jget('/api/config')
+      if (cfg.recentes) setRecentes(cfg.recentes)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  async function carregar(projetoPath) {
     setBusy(true)
     setErro('')
     try {
       const [project, automationList] = await Promise.all([
-        jpost('/api/projeto/validar', { path }),
+        jpost('/api/projeto/validar', { path: projetoPath }),
         jget('/api/automacoes'),
       ])
-      const resultList = await jget(`/api/resultados?path=${encodeURIComponent(path)}`).catch(() => [])
+      const resultList = await jget(`/api/resultados?path=${encodeURIComponent(projetoPath)}`).catch(() => [])
       setProj(project)
+      setPath(projetoPath)
       setAutos(automationList)
       setResults(resultList)
       setSelected(Object.fromEntries(automationList.map((auto) => [auto.id, false])))
       setActiveView('pre')
+      setAppView('project')
+      setShowNewForm(false)
+      carregarRecentes()
     } catch (error) {
       setErro(cleanError(error))
     } finally {
@@ -668,10 +814,25 @@ export default function App() {
   }
 
   useEffect(() => {
-    carregar()
+    carregarRecentes()
   }, [])
 
   const ActiveIcon = NAV.find((item) => item.id === activeView)?.icon || MapPin
+
+  if (appView === 'lobby') {
+    return (
+      <div className="app-shell lobby-shell">
+        <main className="main-surface" style={{ border: 'none', borderRadius: 0, height: '100vh', display: 'flex', flexDirection: 'column' }}>
+          {showNewForm ? (
+            <NewProjectForm onCancel={() => setShowNewForm(false)} onCreate={carregar} />
+          ) : (
+            <ProjectsLobby recentes={recentes} onOpen={carregar} onNew={() => setShowNewForm(true)} />
+          )}
+          {erro && <div className="floating-error"><AlertTriangle size={18} /><span>{erro}</span></div>}
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="app-shell">
@@ -723,9 +884,16 @@ export default function App() {
             </div>
           </div>
 
-          <div className="project-command">
-            <input value={path} onChange={(event) => setPath(event.target.value)} aria-label="Caminho do projeto.json" />
-            <IconButton title="Carregar projeto" onClick={carregar} disabled={busy} kind="soft">
+          <div className="project-command breadcrumb-command" style={{ gridTemplateColumns: '42px minmax(0, 1fr) 42px' }}>
+            <IconButton title="Voltar ao Início" onClick={() => setAppView('lobby')} kind="soft">
+              <ArrowLeft size={18} />
+            </IconButton>
+            <div className="breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 12px', background: 'var(--panel)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--muted)', fontSize: '13px' }}>Projetos</span>
+              <ChevronRight size={14} style={{ color: 'var(--muted)' }} />
+              <strong style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{proj?.imovel}</strong>
+            </div>
+            <IconButton title="Recarregar projeto" onClick={() => carregar(path)} disabled={busy} kind="soft">
               {busy ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
             </IconButton>
           </div>
@@ -734,51 +902,48 @@ export default function App() {
         </header>
 
         <div className="content-surface">
-          {!proj ? (
-            <ProjectEmpty onLoad={carregar} busy={busy} erro={erro} />
-          ) : (
-            <>
-              {activeView === 'pre' ? (
-                <PreAnalysisView
-                  proj={proj}
-                  resumo={resumo}
-                  preShape={preShape}
-                  setPreShape={setPreShape}
-                  preOut={preOut}
-                  setPreOut={setPreOut}
-                  preStatus={preStatus}
-                  running={running}
-                  erro={erro}
-                  onPreview={conferirGeometria}
-                  onRun={rodarPreAnalise}
-                  results={results}
-                />
-              ) : null}
+          <>
+            {activeView === 'pre' ? (
+              <PreAnalysisView
+                proj={proj}
+                resumo={resumo}
+                preShape={preShape}
+                setPreShape={setPreShape}
+                preOut={preOut}
+                setPreOut={setPreOut}
+                preStatus={preStatus}
+                running={running}
+                erro={erro}
+                onPreview={conferirGeometria}
+                onRun={rodarPreAnalise}
+                results={results}
+              />
+            ) : null}
 
-              {activeView === 'automations' ? (
-                <AutomationGrid
-                  autos={autos}
-                  selected={selected}
-                  setSelected={setSelected}
-                  progress={progress}
-                  running={running}
-                  onRun={runStream}
-                />
-              ) : null}
+            {activeView === 'automations' ? (
+              <AutomationGrid
+                autos={autos}
+                selected={selected}
+                setSelected={setSelected}
+                progress={progress}
+                running={running}
+                onRun={runStream}
+              />
+            ) : null}
 
-              {activeView === 'results' ? <ResultsView results={results} onRefresh={atualizarResultados} /> : null}
-              {activeView === 'manual' ? <ManualView /> : null}
+            {activeView === 'results' ? <ResultsView results={results} onRefresh={atualizarResultados} /> : null}
+            {activeView === 'manual' ? <ManualView /> : null}
 
-              {erro && activeView !== 'pre' ? (
-                <div className="floating-error">
-                  <AlertTriangle size={18} />
-                  <span>{erro}</span>
-                </div>
-              ) : null}
-            </>
-          )}
+            {erro && activeView !== 'pre' ? (
+              <div className="floating-error">
+                <AlertTriangle size={18} />
+                <span>{erro}</span>
+              </div>
+            ) : null}
+          </>
         </div>
       </main>
     </div>
   )
 }
+

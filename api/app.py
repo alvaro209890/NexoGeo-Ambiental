@@ -18,8 +18,8 @@ import asyncio
 import json
 import os
 import sys
-
-# garante que core/ e automations/ sejam importáveis ao rodar via uvicorn de qualquer cwd
+import tkinter as tk
+from tkinter import filedialog
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException
@@ -58,6 +58,35 @@ class PreAnaliseBody(BaseModel):
     destino: str | None = None
     saida_dir: str | None = None
     usar_ia: bool = True
+
+
+class NovoProjetoBody(BaseModel):
+    nome: str
+    cliente: str
+    destino: str
+
+
+# ----------------------------- config global -----------------------------
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_config.json")
+
+def load_app_config():
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    return {"recentes": []}
+
+def save_app_config(cfg):
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+def add_recent(nome, path):
+    cfg = load_app_config()
+    cfg["recentes"] = [p for p in cfg.get("recentes", []) if p["path"] != path]
+    cfg["recentes"].insert(0, {"nome": nome, "path": path})
+    save_app_config(cfg)
 
 
 # ----------------------------- helpers -----------------------------
@@ -116,9 +145,16 @@ def health():
     return {"ok": True}
 
 
+@app.get("/api/config")
+def get_config():
+    return load_app_config()
+
+
 @app.post("/api/projeto/validar")
 def validar(body: CaminhoBody):
-    return _resumo(_carregar(body.path))
+    proj = _carregar(body.path)
+    add_recent(proj.imovel, proj._arquivo)
+    return _resumo(proj)
 
 
 @app.get("/api/automacoes")
@@ -175,6 +211,58 @@ def abrir(body: AbrirBody):
     except AttributeError:
         raise HTTPException(status_code=501, detail="abrir só é suportado no Windows")
     return {"ok": True}
+
+
+@app.post("/api/projeto/novo")
+def novo_projeto(body: NovoProjetoBody):
+    if not os.path.isdir(body.destino):
+        raise HTTPException(400, "Pasta de destino não existe")
+    
+    proj_dir = os.path.join(body.destino, body.nome)
+    os.makedirs(proj_dir, exist_ok=True)
+    
+    os.makedirs(os.path.join(proj_dir, "Shapes", "CAR"), exist_ok=True)
+    os.makedirs(os.path.join(proj_dir, "Consultas_Publicas"), exist_ok=True)
+    os.makedirs(os.path.join(proj_dir, "Automacoes", "Resultados"), exist_ok=True)
+    
+    template = {
+        "versao_schema": 1,
+        "imovel": body.nome,
+        "cliente": body.cliente,
+        "municipio": {"nome": "", "uf": "", "ibge": ""},
+        "crs_utm": 0,
+        "raiz_dados": ".",
+        "fazendas": [
+            {
+                "id": "fz_1",
+                "nome": "Fazenda Principal",
+                "shape_car": "CAR"
+            }
+        ]
+    }
+    
+    proj_file = os.path.join(proj_dir, "projeto.json")
+    with open(proj_file, "w", encoding="utf-8") as f:
+        json.dump(template, f, indent=2, ensure_ascii=False)
+        
+    add_recent(body.nome, proj_file)
+    return {"ok": True, "path": proj_file}
+
+
+import subprocess
+
+@app.get("/api/dialog/file")
+def ask_file():
+    code = "import tkinter as tk; from tkinter import filedialog; root = tk.Tk(); root.attributes('-topmost', True); root.withdraw(); print(filedialog.askopenfilename(), end='')"
+    res = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    return {"path": res.stdout.strip()}
+
+
+@app.get("/api/dialog/folder")
+def ask_folder():
+    code = "import tkinter as tk; from tkinter import filedialog; root = tk.Tk(); root.attributes('-topmost', True); root.withdraw(); print(filedialog.askdirectory(), end='')"
+    res = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    return {"path": res.stdout.strip()}
 
 
 # ----------------------------- UI estática -----------------------------
