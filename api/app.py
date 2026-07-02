@@ -42,6 +42,7 @@ from core.nexomap_catalog import load_layer_catalog, load_template_manifest
 from core.nexomap_ai import spec_from_prompt
 from core.nexomap_geo import summarize_area
 from core import arcgis_bridge
+from core import matriculas
 from core import nexomap_generator
 from core import secrets as secrets_loader
 
@@ -70,6 +71,7 @@ class PreAnaliseBody(BaseModel):
     shapefile_zip: str | None = None
     destino: str | None = None
     saida_dir: str | None = None
+    # DEPRECATED: a IA é obrigatória (decisão §0.1 do PLANO_MELHORIAS); campo ignorado.
     usar_ia: bool = True
 
 
@@ -77,6 +79,17 @@ class NovoProjetoBody(BaseModel):
     nome: str
     cliente: str
     destino: str
+
+
+class MatriculasExtrairBody(BaseModel):
+    path: str                 # projeto.json da análise
+    pdfs: list[str]           # caminhos locais dos PDFs de matrícula
+
+
+class DominialidadeSalvarBody(BaseModel):
+    path: str                 # projeto.json da análise
+    registro: dict = {}
+    matriculas: list[dict]    # linhas CONFERIDAS na grade da UI
 
 
 class NexoMapChatBody(BaseModel):
@@ -162,6 +175,14 @@ def _resumo(proj: Projeto) -> dict:
         "crs_utm": proj.crs_utm, "data_consulta": proj.data_consulta_efetiva(),
         "raiz": proj.raiz_abs(), "pastas": pastas,
         "fazendas": fazendas, "automacoes": proj.automacoes,
+        "dominialidade": {
+            "registro": {"cri": proj.dominialidade.cri, "cns": proj.dominialidade.cns},
+            "matriculas": [
+                {"numero": m.numero, "denominacao": m.denominacao, "proprietario": m.proprietario,
+                 "cpf_cnpj": m.cpf_cnpj, "area_ha": m.area_ha}
+                for m in proj.dominialidade.matriculas
+            ],
+        },
     }
 
 
@@ -242,8 +263,30 @@ def pre_analise_resumo(body: PreAnaliseBody):
 @app.post("/api/pre-analise/run")
 def pre_analise_run(body: PreAnaliseBody):
     proj = _carregar(body.path)
-    out = pre_analise.gerar(proj, body.shapefile_zip, body.destino, usar_ia=body.usar_ia, saida_dir=body.saida_dir)
+    out = pre_analise.gerar(proj, body.shapefile_zip, body.destino, saida_dir=body.saida_dir)
     return {"ok": True, "arquivo": out, "nome": os.path.basename(out)}
+
+
+@app.post("/api/matriculas/extrair")
+def matriculas_extrair(body: MatriculasExtrairBody):
+    """Extrai matrículas de PDFs por IA. A resposta alimenta a grade de conferência
+    OBRIGATÓRIA da UI; nada é gravado no projeto aqui."""
+    proj = _carregar(body.path)
+    try:
+        return matriculas.extrair_de_pdfs(proj, body.pdfs)
+    except matriculas.MatriculasError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/dominialidade/salvar")
+def dominialidade_salvar(body: DominialidadeSalvarBody):
+    """Grava a dominialidade conferida/corrigida pelo analista no projeto.json."""
+    _carregar(body.path)  # valida o projeto antes de reescrever
+    try:
+        matriculas.salvar_dominialidade(body.path, body.registro, body.matriculas)
+    except matriculas.MatriculasError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True, "path": body.path}
 
 
 @app.post("/api/abrir")

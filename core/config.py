@@ -5,7 +5,7 @@ Um "projeto" = uma análise de um imóvel. Tudo que muda entre análises vive aq
 o código das automações nunca tem fazenda/CAR escrito dentro.
 
 Uso (a partir da pasta software/):
-    python -m core.config projetos/querencia/projeto.json
+    python -m core.config <caminho-da-analise>/projeto.json
 """
 from __future__ import annotations
 import json
@@ -33,6 +33,28 @@ class Municipio:
 class Matricula:
     numero: str
     area_ha: Optional[float] = None
+
+
+@dataclass
+class MatriculaDominial:
+    """Uma linha da tabela de Dominialidade (Seção 1 da pré-análise).
+
+    Preenchida pela extração IA dos PDFs de matrícula + conferência do analista
+    (grade da UI), ou manualmente no projeto.json.
+    """
+    numero: str
+    denominacao: str = ""
+    proprietario: str = ""
+    cpf_cnpj: str = ""
+    area_ha: Optional[float] = None
+
+
+@dataclass
+class Dominialidade:
+    """Registro cartorial do imóvel: CRI/CNS + matrículas."""
+    cri: str = ""          # comarca do Cartório de Registro de Imóveis (ex.: "Vila Rica/MT")
+    cns: str = ""          # nº CNS do cartório
+    matriculas: list[MatriculaDominial] = field(default_factory=list)
 
 
 @dataclass
@@ -70,6 +92,7 @@ class Projeto:
     cliente: str = ""
     quantitativos: dict[str, Any] = field(default_factory=dict)
     area_total: list[dict] = field(default_factory=list)   # visão de registro (matrícula)
+    dominialidade: Dominialidade = field(default_factory=Dominialidade)
     _arquivo: str = ""          # caminho absoluto do projeto.json carregado
 
     # ---- derivados ----
@@ -117,14 +140,21 @@ def load_projeto(path: str) -> Projeto:
     municipio = Municipio(
         _req(m, "nome", "municipio"), _req(m, "uf", "municipio"), str(_req(m, "ibge", "municipio"))
     )
+    if municipio.uf.strip().upper() != "MT":
+        raise ProjetoError(
+            f"município '{municipio.nome}' tem uf='{municipio.uf}': esta versão suporta apenas "
+            "imóveis em Mato Grosso (MT) — decisão §0.1 do PLANO_MELHORIAS"
+        )
 
     crs = d.get("crs", {})
     crs_utm = int(crs.get("utm") if crs.get("utm") is not None else _req(d, "crs_utm", "projeto"))
     crs_geo = int(crs.get("geografico", 4674))
 
+    # fazendas é OPCIONAL: sem ela o projeto roda em "modo só shape" (a pré-análise
+    # descobre os CARs pela camada SEMA MVW_REQUERIMENTO_ATP a partir do zip).
     fazendas: list[Fazenda] = []
     ids: set[str] = set()
-    for i, fz in enumerate(_req(d, "fazendas", "projeto")):
+    for i, fz in enumerate(d.get("fazendas", [])):
         ctx = f"fazendas[{i}]"
         fid = str(_req(fz, "id", ctx))
         if fid in ids:
@@ -137,8 +167,22 @@ def load_projeto(path: str) -> Projeto:
             car_federal=fz.get("car_federal", ""), car_estadual=fz.get("car_estadual", ""),
             recibo_pdf=fz.get("recibo_pdf", ""), matriculas=mats,
         ))
-    if not fazendas:
-        raise ProjetoError("projeto sem fazendas")
+    dom = d.get("dominialidade", {}) or {}
+    reg = dom.get("registro", {}) or {}
+    dominialidade = Dominialidade(
+        cri=str(reg.get("cri", "")),
+        cns=str(reg.get("cns", "")),
+        matriculas=[
+            MatriculaDominial(
+                numero=str(mt.get("numero", "")),
+                denominacao=str(mt.get("denominacao", "")),
+                proprietario=str(mt.get("proprietario", "")),
+                cpf_cnpj=str(mt.get("cpf_cnpj", "")),
+                area_ha=(float(mt["area_ha"]) if mt.get("area_ha") not in (None, "") else None),
+            )
+            for mt in dom.get("matriculas", [])
+        ],
+    )
 
     at = d.get("area_total", {})
     area_total = at.get("itens", []) if isinstance(at, dict) else (at or [])
@@ -165,6 +209,7 @@ def load_projeto(path: str) -> Projeto:
         automacoes=d.get("automacoes", []),
         quantitativos=d.get("quantitativos", {}),
         area_total=area_total,
+        dominialidade=dominialidade,
         _arquivo=os.path.abspath(path),
     )
 
@@ -183,6 +228,11 @@ def _main(argv: list[str]) -> int:
         p = proj.caminho(chave)
         print(f"  {chave:11s}: {p}  [{'ok' if os.path.exists(p) else 'FALTA'}]")
     print(f"Automações   : {', '.join(proj.automacoes) or '—'}")
+    dom = proj.dominialidade
+    print(f"Dominialidade: {len(dom.matriculas)} matrícula(s)"
+          + (f" | CRI {dom.cri} (CNS: {dom.cns})" if dom.cri else " | registro não informado"))
+    if not proj.fazendas:
+        print("Fazendas     : nenhuma no projeto (modo só shape: CARs descobertos pela SEMA)")
     print(f"Fazendas ({len(proj.fazendas)}):")
     for fz in proj.fazendas:
         amat = sum(mt.area_ha or 0 for mt in fz.matriculas)

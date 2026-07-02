@@ -274,18 +274,19 @@ o `.git` interno não é afetado pelo rename da pasta). Passos para publicar:
 - [x] Tag `m0`
 
 ### M1 — Generalizar a pré-análise (Frente A → mata P1/P2)
-- [ ] Bloco `dominialidade` no `schema/projeto.schema.json` + `core/config.py` (dataclasses)
-- [ ] `exemplos/projeto.template.json` atualizado com `dominialidade` (placeholders)
-- [ ] `pre_analise.py`: remover `DOMINIALIDADE_PADRAO` → ler de `projeto.dominialidade`
-- [ ] `pre_analise.py`: remover `ORDEM_CAR` → ordem de `fazendas[]` (fallback: área desc.)
-- [ ] `pre_analise.py`: remover `NOME_PADRAO`/`ZIP_PADRAO` → derivar de `projeto.imovel` / upload
-- [ ] Modo "só shape": projeto mínimo sem `fazendas[]` roda descobrindo CARs pela SEMA
-- [ ] Extração de matrícula: `core/llm/deepseek.py` ganha `extrair_matricula(texto_pdf)` → JSON (nº, denominação, proprietário, CPF/CNPJ, área, CRI/CNS) com validação de CPF/CNPJ e área numérica
-- [ ] Endpoint `/api/matriculas/extrair` (upload de 1+ PDFs → texto fitz + OCR fallback → IA → lista p/ conferência)
-- [ ] IA obrigatória (§0.1): sem `deepseek_api_key` no `secrets.local.json`, pré-análise falha rápido com mensagem clara (nada de degradação silenciosa)
-- [ ] Validação de escopo: `municipio.uf` ≠ "MT" → erro claro na carga do projeto (decisão §0.1)
-- [ ] **Verificação:** `git grep -i "sao judas\|esp_santo\|gabriela\|fazendas_unidas" automations core` → vazio
-- [ ] **Aceite M1:** pré-análise da Harmonia (zip ATP + matrículas) confere com `Análise_de_area_Fazenda_Harmonia.docx` seções 1-3; tag `m1`
+> Em execução na branch `m1-dominialidade` (02/07/2026).
+- [x] Bloco `dominialidade` no `schema/projeto.schema.json` + `core/config.py` (dataclasses) — verificado por `tests/test_matriculas.py`
+- [x] `exemplos/projeto.template.json` atualizado com `dominialidade` (placeholders)
+- [x] `pre_analise.py`: remover `DOMINIALIDADE_PADRAO` → ler de `projeto.dominialidade` (seção reescrita, com avisos quando faltam matrículas/CRI)
+- [x] `pre_analise.py`: remover `ORDEM_CAR` → ordem de `fazendas[]`; removidos também os hacks Querência de `_coletar_fundiario`, `_coletar_alertas` (alerta fixo Gabriela III), `_legal` (ordem desembargos), `_areas_protegidas` ("QUEL") e a seção SIGA com anos fixos
+- [x] `pre_analise.py`: remover `NOME_PADRAO`/`ZIP_PADRAO` → `Pre_Analise_<imovel>.docx`; zip = único `.zip` em `shapes/` (erro claro se 0 ou 2+)
+- [ ] Modo "só shape": código pronto (`_fazendas_via_sema` via `MVW_REQUERIMENTO_ATP`, ordem = interseção desc.) — **falta validar contra o WFS real** (nomes de campos do imóvel)
+- [x] Extração de matrícula: `core/llm/deepseek.py` ganha `extrair_matricula()` (JSON com nº/denominação/proprietário/CPF-CNPJ/área/CRI/CNS + `confianca` por campo); validadores `validar_cpf/cnpj/cpf_cnpj` e `numero_br` em `core/normalize.py` com testes
+- [x] Endpoints `/api/matriculas/extrair` (PDFs → fitz + OCR fallback → IA → lista p/ grade, com `conferir[]` por item) e `/api/dominialidade/salvar` (grava o conferido no projeto.json com validações duras) — `core/matriculas.py`
+- [x] IA obrigatória (§0.1): `gerar()` falha rápido sem `deepseek_api_key`/`DEEPSEEK_API_KEY` com mensagem apontando a tela Config; `--sem-ia` removido do CLI; `usar_ia` da API ignorado (deprecated)
+- [x] Validação de escopo: `municipio.uf` ≠ "MT" → `ProjetoError` claro na carga (teste unitário)
+- [x] **Verificação:** `git grep -iE "sao judas|esp_santo|gabriela|fazendas_unidas" automations core api` → vazio (inclusive docstrings com CNPJ real removidas de `normalize.py`)
+- [ ] **Aceite M1:** pré-análise da Harmonia (zip ATP + matrículas) confere com `Análise_de_area_Fazenda_Harmonia.docx` seções 1-3 — requer `projeto.json` da Harmonia + chaves reais (DeepSeek/SEMA); rodar com o usuário; tag `m1` no aceite
 
 ### M2 — Ponte ArcGIS + templates MXD (Frente B.1-B.2 → mata P9, prepara P3)
 > Base já existente (NexoMap AI, 02/07): `core/arcgis_bridge.py` (subprocess + JSON UTF-8 via

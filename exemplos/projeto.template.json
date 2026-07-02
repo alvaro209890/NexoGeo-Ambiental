@@ -4,7 +4,7 @@
   "versao_schema": 1,
   "imovel": "<nome do imóvel>",
   "cliente": "<cliente (opcional)>",
-  "municipio": { "nome": "<município>", "uf": "<UF>", "ibge": "<código IBGE>" },
+  "municipio": { "nome": "<município>", "uf": "MT", "ibge": "<código IBGE>" },
   "crs": { "utm": 31982, "geografico": 4674 },
   "data_consulta": "auto",
 
@@ -24,6 +24,20 @@
     "situacao": "SITUACAO_C",
     "modulos": "MODULOS_FI",
     "proprietarios": "NOMESPROPR"
+  },
+
+  "dominialidade": {
+    "_comentario": "Seção 1 (Dominialidade). Preenchida pela extração IA dos PDFs de matrícula + conferência na grade da UI, ou manualmente. 'fazendas' abaixo é OPCIONAL (sem ela, modo só-shape: CARs descobertos pela SEMA).",
+    "registro": { "cri": "<comarca do CRI, ex.: Vila Rica/MT>", "cns": "<nº CNS do cartório>" },
+    "matriculas": [
+      {
+        "numero": "<nº da matrícula>",
+        "denominacao": "<denominação do imóvel>",
+        "proprietario": "<proprietário(a)>",
+        "cpf_cnpj": "<CPF/CNPJ>",
+        "area_ha": 0.0
+      }
+    ]
   },
 
   "fazendas": [

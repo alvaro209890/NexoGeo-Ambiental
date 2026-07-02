@@ -117,6 +117,66 @@ TEXTO:
         return LLMResult(ok=False, model=MODEL_FLASH, error=str(e))
 
 
+def extrair_matricula(texto: str, nome_arquivo: str, timeout: int = 180,
+                      api_key: str | None = None, api_url: str | None = None) -> LLMResult:
+    """Extrai os campos de uma matrícula de imóvel (CRI) com DeepSeek v4 Flash.
+
+    Alimenta a grade de conferência da Dominialidade — a resposta traz um bloco
+    ``confianca`` por campo para a UI destacar o que precisa de atenção do analista.
+    """
+    prompt = f"""
+Voce recebera o texto bruto/OCR de uma MATRICULA DE IMOVEL RURAL emitida por um
+Cartorio de Registro de Imoveis (CRI) brasileiro.
+Arquivo: {nome_arquivo}
+
+Retorne somente JSON valido, sem markdown, com esta forma:
+{{
+  "arquivo": "...",
+  "numero": "...",
+  "denominacao": "...",
+  "proprietario": "...",
+  "cpf_cnpj": "...",
+  "area_ha": 0.0,
+  "cri": "...",
+  "cns": "...",
+  "confianca": {{
+    "numero": 1.0, "denominacao": 1.0, "proprietario": 1.0,
+    "cpf_cnpj": 1.0, "area_ha": 1.0, "cri": 1.0, "cns": 1.0
+  }},
+  "observacoes": []
+}}
+
+Regras:
+- "numero" e o numero da matricula como grafado (ex.: "7.569").
+- "proprietario" e o proprietario ATUAL: o do ultimo registro/averbacao de
+  transmissao de dominio (R-N mais recente), nao o primeiro da cadeia.
+- "area_ha" e a area do imovel em hectares, como numero com ponto decimal.
+- "cri" e a comarca do cartorio (ex.: "Vila Rica/MT"); "cns" o codigo CNS se constar.
+- "confianca" por campo, de 0.0 a 1.0 (1.0 = literal e inequivoco no texto).
+- Use null quando o dado nao estiver no texto. Nao invente dados.
+
+TEXTO:
+{texto[:120000]}
+""".strip()
+    payload = {
+        "model": MODEL_FLASH,
+        "messages": [
+            {"role": "system", "content": "Voce extrai dados de matriculas de imoveis em JSON estrito."},
+            {"role": "user", "content": prompt},
+        ],
+        "response_format": {"type": "json_object"},
+        "thinking": {"type": "disabled"},
+        "temperature": 0,
+        "max_tokens": 2048,
+    }
+    try:
+        resp = _post(payload, timeout=timeout, api_key=api_key, api_url=api_url)
+        content = _content(resp)
+        return LLMResult(ok=True, model=MODEL_FLASH, content=content, data=_json_from_text(content))
+    except Exception as e:
+        return LLMResult(ok=False, model=MODEL_FLASH, error=str(e))
+
+
 def resumir_juridico(texto: str, timeout: int = 240, api_key: str | None = None,
                      api_url: str | None = None) -> LLMResult:
     """Resume embargos/autos/desembargos com DeepSeek v4 Pro."""

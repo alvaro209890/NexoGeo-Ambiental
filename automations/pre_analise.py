@@ -21,9 +21,6 @@ from core import overlay
 from core.clients import funai, ibama, mapbiomas, sccon, sema, simcar_api
 from core.llm import deepseek
 
-NOME_PADRAO = "Pre_Analise_Fazendas_Unidas.docx"
-ZIP_PADRAO = "fazendas_unidas.zip"
-
 SIT_MAP = {
     "AGUARDANDO_ANALISE": "Aguardando análise",
     "AGUARDANDO_ENVIO_PRA": "Aguardando análise",
@@ -32,19 +29,40 @@ SIT_MAP = {
     "ANALISADO": "Analisado",
 }
 
-ORDEM_CAR = ["esp_santo", "gabriela_v_vi", "gabriela_iii", "gabriela_ii_iii", "gabriela_ii"]
 
-DOMINIALIDADE_PADRAO = [
-    ("5.298", "Fazenda Espírito Santo - Gleba A", "Agrícola São Judas Ltda", "05.750.296/0001-81", ""),
-    ("5.299", "Fazenda Espírito Santo - Gleba B", "Agrícola São Judas Ltda", "05.750.296/0001-81", ""),
-    ("5.300", "Fazenda Espírito Santo", "Agrícola São Judas Ltda", "05.750.296/0001-81", ""),
-    ("6.350", "Fazenda Gabriela I", "Agrícola São Judas Ltda", "05.750.296/0001-81", ""),
-    ("6.482", "Fazenda Gabriela V", "Agrícola São Judas Ltda", "05.750.296/0001-81", ""),
-    ("6.483", "Fazenda Gabriela VI", "Agrícola São Judas Ltda", "05.750.296/0001-81", ""),
-    ("6.503", "Fazenda Gabriela III", "Agrícola São Judas Ltda", "05.750.296/0001-81", ""),
-    ("7.932", "Fazenda Gabriela II e III", "Agrícola São Judas Ltda", "05.750.296/0001-81", ""),
-    ("7.933", "Fazenda Gabriela II e III", "Agrícola São Judas Ltda", "05.750.296/0001-81", ""),
-]
+def _slug_arquivo(s: str) -> str:
+    s = re.sub(r"\s+", "_", _limpo(s))
+    s = re.sub(r"[^\w\-.]", "", s)
+    return s or "Imovel"
+
+
+def _nome_saida(projeto) -> str:
+    return f"Pre_Analise_{_slug_arquivo(projeto.imovel)}.docx"
+
+
+def _zip_entrada(projeto) -> str:
+    """Sem zip explícito, aceita exatamente UM .zip na pasta de shapes do projeto."""
+    shapes_dir = projeto.caminho("shapes")
+    zips = sorted(
+        os.path.join(shapes_dir, n) for n in os.listdir(shapes_dir)
+        if n.lower().endswith(".zip")
+    ) if os.path.isdir(shapes_dir) else []
+    if len(zips) == 1:
+        return zips[0]
+    if not zips:
+        raise RuntimeError(
+            f"nenhum shapefile .zip informado e nenhum encontrado em {shapes_dir}; "
+            "envie o zip da área pela UI ou informe o caminho na chamada"
+        )
+    raise RuntimeError(
+        f"nenhum shapefile .zip informado e há {len(zips)} candidatos em {shapes_dir}; "
+        "informe qual usar: " + ", ".join(os.path.basename(z) for z in zips)
+    )
+
+
+def _deepseek_key(projeto) -> str:
+    sec = secrets.load_secrets(projeto)
+    return _limpo(sec.get("deepseek_api_key") or os.environ.get("DEEPSEEK_API_KEY", ""))
 
 
 def _fmt_area(v: float, dec: int = 4) -> str:
@@ -144,13 +162,13 @@ def _areas_from_ai(data: dict | None):
     return []
 
 
-def _extrair_recibo(pdf_path: str, usar_ia: bool, avisos: list[str]):
+def _extrair_recibo(pdf_path: str, api_key: str, avisos: list[str]):
     texto = _pdf_text(pdf_path)
     llm = None
     areas_parser = recibo.areas_imoveis(pdf_path)
     areas = []
-    if usar_ia and texto:
-        llm = deepseek.extrair_documento_pdf(texto, os.path.basename(pdf_path), "recibo_car")
+    if texto:
+        llm = deepseek.extrair_documento_pdf(texto, os.path.basename(pdf_path), "recibo_car", api_key=api_key)
         if llm.ok:
             areas = _areas_from_ai(llm.data)
         else:
@@ -220,23 +238,71 @@ def _garantir_apfs(projeto, avisos: list[str], apf_saida_dir: str | None = None)
     return xlsx
 
 
-def _fazendas_intersectadas(projeto, area_zip):
-    cars = geo.carregar_cars(projeto)
-    by_id = {c.id: c for c in cars}
-    ids = []
-    for car in cars:
-        inter = car.geom.intersection(area_zip.union_utm)
-        if not inter.is_empty and inter.area > 1000:
-            ids.append(car.id)
-    ordem = {fid: i for i, fid in enumerate(ORDEM_CAR)}
-    fazendas = [fz for fz in projeto.fazendas if fz.id in ids]
-    fazendas.sort(key=lambda fz: ordem.get(fz.id, 999))
+def _fazendas_intersectadas(projeto, area_zip, authkey: str | None = None,
+                            avisos: list[str] | None = None):
+    """Fazendas (CARs) que intersectam a área do zip.
+
+    Com ``fazendas[]`` no projeto: usa os shapes locais, na ORDEM do projeto.
+    Sem ``fazendas[]`` (modo só-shape): descobre os CARs pela camada SEMA
+    ``MVW_REQUERIMENTO_ATP`` no bbox do zip, ordenados por área de interseção desc.
+    """
+    if projeto.fazendas:
+        cars = geo.carregar_cars(projeto)
+        by_id = {c.id: c for c in cars}
+        ids = []
+        for car in cars:
+            inter = car.geom.intersection(area_zip.union_utm)
+            if not inter.is_empty and inter.area > 1000:
+                ids.append(car.id)
+        ordem = {fz.id: i for i, fz in enumerate(projeto.fazendas)}
+        fazendas = [fz for fz in projeto.fazendas if fz.id in ids]
+        fazendas.sort(key=lambda fz: ordem.get(fz.id, 999))
+        return fazendas, by_id
+    return _fazendas_via_sema(projeto, area_zip, authkey, avisos if avisos is not None else [])
+
+
+def _fazendas_via_sema(projeto, area_zip, authkey: str | None, avisos: list[str]):
+    """Modo só-shape: cria as fazendas dinamicamente a partir dos CARs da SEMA."""
+    from core.config import Fazenda
+
+    if not authkey:
+        avisos.append("Modo só-shape sem authkey SEMA: não foi possível descobrir os CARs da área.")
+        return [], {}
+    try:
+        data = sema.get_features(sema.LAYER_CAR, authkey, bounds=area_zip.bbox_geo, count=200)
+    except Exception as e:
+        avisos.append(f"Descoberta de CARs pela SEMA falhou: {e}")
+        return [], {}
+    feats = overlay.features_de_geojson(data, "SEMA-MT", sema.LAYER_CAR, dst_epsg=projeto.crs_utm)
+    melhores: dict[str, tuple[float, object, float]] = {}
+    for feat in feats:
+        num = _limpo(feat.props.get("NUMEROESTADUAL"))
+        if not num:
+            continue
+        inter = feat.geom.intersection(area_zip.union_utm)
+        if inter.is_empty or inter.area <= 1000:
+            continue
+        req_id = float(feat.props.get("REQUERIMENTO_ID") or 0)
+        atual = melhores.get(num)
+        if atual is None or req_id > atual[0]:
+            melhores[num] = (req_id, feat, inter.area)
+    fazendas, by_id = [], {}
+    for num, (_req_id, feat, _ainter) in sorted(melhores.items(), key=lambda kv: -kv[1][2]):
+        nome = _limpo(
+            feat.props.get("NOMEIMOVELRURAL") or feat.props.get("NOME_IMOVEL")
+            or feat.props.get("NOMEIMOVEL") or feat.props.get("DENOMINACAO") or ""
+        ) or f"CAR {num}"
+        fid = re.sub(r"\W+", "_", num).strip("_").lower() or f"car_{len(fazendas) + 1}"
+        fazendas.append(Fazenda(id=fid, nome=nome, shape_car="", car_estadual=num))
+        by_id[fid] = geo.Car(fid, nome, feat.geom, dict(feat.props))
+    if not fazendas:
+        avisos.append("Modo só-shape: nenhum CAR da SEMA intersecta a área enviada.")
     return fazendas, by_id
 
 
-def _coletar_car(projeto, area_zip, authkey: str | None, usar_ia: bool, avisos: list[str],
+def _coletar_car(projeto, area_zip, authkey: str | None, api_key: str, avisos: list[str],
                  car_saida_dir: str | None = None, apf_saida_dir: str | None = None):
-    fazendas, cars_by_id = _fazendas_intersectadas(projeto, area_zip)
+    fazendas, cars_by_id = _fazendas_intersectadas(projeto, area_zip, authkey, avisos)
     apf_xlsx = _garantir_apfs(projeto, avisos, apf_saida_dir)
     car_dir = io.garantir_dir(car_saida_dir or io.caminho_consulta(projeto, "CAR"))
     dados = []
@@ -274,7 +340,7 @@ def _coletar_car(projeto, area_zip, authkey: str | None, usar_ia: bool, avisos: 
                 else:
                     recibo_pdf = cand
 
-        areas, texto_recibo, llm = _extrair_recibo(recibo_pdf, usar_ia, avisos) if recibo_pdf else ([], "", None)
+        areas, texto_recibo, llm = _extrair_recibo(recibo_pdf, api_key, avisos) if recibo_pdf else ([], "", None)
         if llm:
             llm_docs.append({"arquivo": os.path.basename(recibo_pdf), "ok": llm.ok, "modelo": llm.model, "erro": llm.error})
 
@@ -282,10 +348,10 @@ def _coletar_car(projeto, area_zip, authkey: str | None, usar_ia: bool, avisos: 
         apf_ai = None
         apf_base = apf_saida_dir or io.caminho_consulta(projeto, "APF")
         apf_pdf = _apf_pdf_em_dir(apf_base, apf_reg[0] if apf_reg else None)
-        if usar_ia and apf_pdf:
+        if apf_pdf:
             texto_apf = _pdf_text(apf_pdf)
             if texto_apf:
-                apf_ai = deepseek.extrair_documento_pdf(texto_apf, os.path.basename(apf_pdf), "apf")
+                apf_ai = deepseek.extrair_documento_pdf(texto_apf, os.path.basename(apf_pdf), "apf", api_key=api_key)
                 llm_docs.append({"arquivo": os.path.basename(apf_pdf), "ok": apf_ai.ok, "modelo": apf_ai.model, "erro": apf_ai.error})
                 if not apf_ai.ok:
                     avisos.append(f"DeepSeek Flash falhou em {os.path.basename(apf_pdf)}: {apf_ai.error}")
@@ -316,8 +382,6 @@ def _coletar_fundiario(projeto, avisos: list[str]):
         for item in projeto.area_total:
             nome = _limpo(item.get("nome"))
             fid = next((fz.id for fz in projeto.fazendas if fz.nome in nome or nome in fz.nome), None)
-            if not fid and "Gabriela V" in nome:
-                fid = "gabriela_v_vi"
             if fid:
                 por[fid].append({
                     "sistema": item.get("tipo", ""),
@@ -355,7 +419,7 @@ def _hit_com_fazenda(hit, feat, cars):
     return overlay.atribuir_fazenda(hit, feat.geom, cars)
 
 
-def _coletar_legal(projeto, area_zip, authkey: str | None, cars_by_id, avisos: list[str], usar_ia: bool):
+def _coletar_legal(projeto, area_zip, authkey: str | None, cars_by_id, avisos: list[str], api_key: str):
     cars = list(cars_by_id.values())
     legal = {"ibama": [], "sema_embargos": [], "sema_desembargos": [], "resumo_llm": None}
     try:
@@ -387,8 +451,8 @@ def _coletar_legal(projeto, area_zip, authkey: str | None, cars_by_id, avisos: l
         "sema_embargos": [h.props for h in legal["sema_embargos"]],
         "sema_desembargos": [h.props for h in legal["sema_desembargos"]],
     }
-    if usar_ia and any(registros.values()):
-        llm = deepseek.resumir_juridico(json.dumps(registros, ensure_ascii=False, indent=2))
+    if any(registros.values()):
+        llm = deepseek.resumir_juridico(json.dumps(registros, ensure_ascii=False, indent=2), api_key=api_key)
         legal["resumo_llm"] = llm
         if not llm.ok:
             avisos.append(f"DeepSeek Pro falhou na seção jurídica: {llm.error}")
@@ -405,17 +469,6 @@ def _coletar_alertas(projeto, area_zip, avisos: list[str]):
             alertas.append(h)
     except Exception as e:
         avisos.append(f"MapBiomas indisponível: {e}")
-    if not alertas and projeto.municipio.ibge == "5107065":
-        # O WFS publico atual nao retorna o alerta historico do modelo por bbox,
-        # mas o item consta no documento de referencia da analise ja feita.
-        alertas.append({
-            "codigo": "337628",
-            "ano": "2021",
-            "area": "99.3268",
-            "fazenda": "Fazenda Gabriela III",
-            "observacao": "O alerta refere-se a área licenciada para desmate.",
-            "fonte": "referência local da análise existente; requer conferência no MapBiomas",
-        })
     return alertas
 
 
@@ -558,37 +611,47 @@ def _add_label_value(doc, label: str, value, level=1, num_id=77, suffix: str = "
     return p
 
 
-def _dominialidade(doc, projeto, num_id):
+def _dominialidade(doc, projeto, num_id, avisos: list[str]):
+    dom = projeto.dominialidade
     db.cabecalho_secao(doc, "DOMINIALIDADE", db.PRETO)
-    doc.add_paragraph(
-        "Empreendimentos: Fazenda Espírito Santo - Gleba A, Fazenda Espírito Santo - Gleba B, "
-        "Fazenda Espírito Santo, Fazenda Gabriela I, Fazenda Gabriela II e III, Fazenda Gabriela III, "
-        "Fazenda Gabriela VI e Fazenda Gabriela V."
-    )
+
+    denominacoes = list(dict.fromkeys(m.denominacao for m in dom.matriculas if m.denominacao))
+    empreendimentos = denominacoes or [fz.nome for fz in projeto.fazendas] or [projeto.imovel]
+    rotulo = "Empreendimentos" if len(empreendimentos) > 1 else "Empreendimento"
+    doc.add_paragraph(f"{rotulo}: " + ", ".join(empreendimentos) + ".")
     doc.add_paragraph(f"Município: {projeto.municipio.nome} ({projeto.municipio.uf})")
     doc.add_paragraph("Proprietários(as), conforme as matrículas dos imóveis:")
     table = doc.add_table(rows=1, cols=5)
     table.style = "Table Grid"
     for i, h in enumerate(["Matrícula", "Propriedade", "Proprietário(a)", "CPF/CNPJ", "Área (ha)"]):
         table.rows[0].cells[i].text = h
-    for row in DOMINIALIDADE_PADRAO:
+    if dom.matriculas:
+        for m in dom.matriculas:
+            cells = table.add_row().cells
+            for i, val in enumerate([
+                m.numero, m.denominacao, m.proprietario, m.cpf_cnpj,
+                _fmt_area(m.area_ha) if m.area_ha else "",
+            ]):
+                cells[i].text = _limpo(val)
+    else:
+        avisos.append(
+            "Dominialidade sem matrículas: envie os PDFs das matrículas pela UI "
+            "(extração IA + grade de conferência) ou preencha 'dominialidade.matriculas' no projeto.json."
+        )
         cells = table.add_row().cells
-        for i, val in enumerate(row):
-            cells[i].text = val
+        cells[0].text = "não informado"
+
     doc.add_paragraph("Registro:")
-    registros = [
-        "Fazenda Espírito Santo - Gleba A - Matrícula Nº. 5.298 do C.R.I de Querência/MT (CNS: 06.420-4)",
-        "Fazenda Espírito Santo - Gleba B - Matrícula Nº. 5.299 do C.R.I de Querência/MT (CNS: 06.420-4)",
-        "Fazenda Espírito Santo - Matrícula Nº. 5.300 do C.R.I de Querência/MT (CNS: 06.420-4)",
-        "Fazenda Gabriela I - Matrícula Nº. 6.350 do C.R.I de Querência/MT (CNS: 06.420-4)",
-        "Fazenda Gabriela V - Matrícula Nº. 6.482 do C.R.I de Querência/MT (CNS: 06.420-4)",
-        "Fazenda Gabriela VI - Matrícula Nº. 6.483 do C.R.I de Querência/MT (CNS: 06.420-4)",
-        "Fazenda Gabriela III - Matrícula Nº. 6.503 do C.R.I de Querência/MT (CNS: 06.420-4)",
-        "Fazenda Gabriela II e III - Matrícula Nº. 7.932 do C.R.I de Querência/MT (CNS: 06.420-4)",
-        "Fazenda Gabriela II e III - Matrícula Nº. 7.933 do C.R.I de Querência/MT (CNS: 06.420-4)",
-    ]
-    for r in registros:
-        _add_bullet(doc, r, 0, num_id)
+    if dom.matriculas and dom.cri:
+        sufixo_reg = f" do C.R.I de {dom.cri}" + (f" (CNS: {dom.cns})" if dom.cns else "")
+        for m in dom.matriculas:
+            nome_reg = m.denominacao or projeto.imovel
+            _add_bullet(doc, f"{nome_reg} - Matrícula Nº. {m.numero}{sufixo_reg}", 0, num_id)
+    else:
+        _add_bullet(doc, "Registro cartorial não informado; requer conferência.", 0, num_id)
+        if dom.matriculas and not dom.cri:
+            avisos.append("Dominialidade sem CRI/CNS ('dominialidade.registro'): seção Registro incompleta.")
+
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(8)
     p.add_run("Área total:").font.bold = True
@@ -596,11 +659,13 @@ def _dominialidade(doc, projeto, num_id):
         cert = float(it.get("certificacao_ha") or 0)
         matr = float(it.get("matricula_ha") or 0)
         nome = it.get("nome")
-        if nome == "Fazenda Gabriela II":
-            nome = "Fazenda Gabriela I"
         _add_bullet(doc, f"{nome}: {_fmt_area(cert)} ha ({it.get('tipo')})", 0, num_id)
         label = "Área equivalente" if abs(cert - matr) < 0.0001 else "Divergência"
         _add_bullet(doc, f"{label}: {_fmt_area(matr, nz.casas_decimais(matr))} ha (Matrícula)", 1, num_id)
+    if not projeto.area_total and dom.matriculas:
+        total = sum(m.area_ha or 0 for m in dom.matriculas)
+        if total:
+            _add_bullet(doc, f"{projeto.imovel}: {_fmt_area(total)} ha (soma das matrículas)", 0, num_id)
 
 
 def _contexto_fundiario(doc, projeto, dados_fundiarios, num_id):
@@ -612,8 +677,7 @@ def _contexto_fundiario(doc, projeto, dados_fundiarios, num_id):
         doc.add_paragraph(f"Possui {sigef} certificações no INCRA SIGEF e {snci} certificações no INCRA SNCI N°.:")
     else:
         doc.add_paragraph(f"Possui {total} certificações no INCRA (SIGEF e SNCI) N°.:")
-    ordem = {fid: i for i, fid in enumerate(ORDEM_CAR)}
-    for fz in sorted(projeto.fazendas, key=lambda item: ordem.get(item.id, 999)):
+    for fz in projeto.fazendas:
         certs = por.get(fz.id, [])
         if not certs:
             continue
@@ -675,8 +739,7 @@ def _areas_protegidas(doc, protegidas, num_id):
         _add_bullet(doc, "Não foram identificadas Terras Indígenas sobrepostas ou em divisa nas fontes consultadas.", 0, num_id)
     if protegidas["uc"]:
         uc = (
-            next((h for h in protegidas["uc"] if "QUEL" in _limpo(h.props.get("NOME")).upper()), None)
-            or next((h for h in protegidas["uc"] if _limpo(h.props.get("CATEGORIA")).upper() not in ("RPPN", "REBIO")), None)
+            next((h for h in protegidas["uc"] if _limpo(h.props.get("CATEGORIA")).upper() not in ("RPPN", "REBIO")), None)
             or protegidas["uc"][0]
         )
         nome = uc.props.get("NOME") or "unidade de conservação não informada"
@@ -727,8 +790,7 @@ def _legal(doc, legal, num_id, projeto):
 
     if legal["sema_desembargos"]:
         _add_bullet(doc, "Desembargos:", 0, num_id)
-        ordem_des = {"FAZENDA GABRIELA III": 0, "FAZENDA GABRIELA V E VI": 1}
-        desembargos = sorted(legal["sema_desembargos"], key=lambda h: ordem_des.get(_limpo(h.props.get("PROPRIEDAD")).upper(), 99))
+        desembargos = sorted(legal["sema_desembargos"], key=lambda h: _limpo(h.props.get("PROPRIEDAD")).upper())
         for idx, h in enumerate(desembargos, start=1):
             p = h.props
             _add_bullet(doc, f"Desembargo {idx}", 0, num_id)
@@ -754,7 +816,7 @@ def _legal(doc, legal, num_id, projeto):
     )
 
 
-def _alertas(doc, alertas, sccon_data, num_id):
+def _alertas(doc, alertas, sccon_data, num_id, projeto):
     db.cabecalho_secao(doc, "ALERTAS", db.PRETO)
     doc.add_paragraph("MapBiomas Alertas:")
     if alertas:
@@ -811,16 +873,13 @@ def _alertas(doc, alertas, sccon_data, num_id):
         _add_bullet(doc, "Nada consta no SCCON Alertas para a geometria e período consultados, ou a fonte não respondeu no momento da execução.", 0, num_id)
 
     doc.add_paragraph("ALERTAS - SIGA - SEMA/MT")
-    for ano, fazenda, figs in [
-        ("2020", "Fazenda Gabriela III", 2),
-        ("2021", "Fazenda Gabriela III", 3),
-        ("2022", "Fazenda Gabriela II e III / Fazenda Espírito Santo", 3),
-        ("2025", "Fazenda Gabriela II e III", 1),
-    ]:
-        doc.add_paragraph(f"Alertas em {ano}:")
-        _add_bullet(doc, f"{fazenda}:", 0, num_id)
-        for _ in range(figs):
-            doc.add_paragraph("Figura N.")
+    _add_bullet(
+        doc,
+        "Os alertas do SIGA/SEMA-MT não possuem serviço público consultável por geometria: "
+        f"conferência manual obrigatória no painel do SIGA em {projeto.data_consulta_efetiva()}. "
+        "Inserir aqui os prints/figuras por ano quando houver ocorrências.",
+        0, num_id,
+    )
 
 
 def _avisos(doc, avisos, llm_docs, area_zip):
@@ -843,45 +902,54 @@ def _montar_doc(projeto, area_zip, car_dados, fundiario, protegidas, legal, aler
     db.configurar_paginas(doc)
     num_id = db.setup_bullets(doc)
     db.titulo_principal(doc, "ANÁLISE DE ÁREA")
-    _dominialidade(doc, projeto, num_id)
+    _dominialidade(doc, projeto, num_id, avisos)
     _contexto_fundiario(doc, projeto, fundiario, num_id)
     _contexto_ambiental(doc, car_dados, projeto, num_id)
     _areas_protegidas(doc, protegidas, num_id)
     _legal(doc, legal, num_id, projeto)
-    _alertas(doc, alertas, sccon_data, num_id)
+    _alertas(doc, alertas, sccon_data, num_id, projeto)
     return doc
 
 
 def gerar(projeto, shapefile_zip: str | None = None, destino: str | None = None,
-          usar_ia: bool = True, saida_dir: str | None = None) -> str:
+          saida_dir: str | None = None) -> str:
     avisos: list[str] = []
-    zip_path = shapefile_zip or os.path.join(projeto.caminho("shapes"), ZIP_PADRAO)
+    # IA obrigatória (decisão §0.1 do PLANO_MELHORIAS): sem chave, falha rápido.
+    api_key = _deepseek_key(projeto)
+    if not api_key:
+        raise RuntimeError(
+            "Chave DeepSeek ausente: a pré-análise exige IA para extração de PDFs e resumo "
+            "jurídico. Configure 'deepseek_api_key' no secrets.local.json da análise "
+            "(ou a variável DEEPSEEK_API_KEY) na tela Config e rode novamente."
+        )
+    zip_path = shapefile_zip or _zip_entrada(projeto)
+    nome_saida = _nome_saida(projeto)
     car_saida_dir = apf_saida_dir = None
     sccon_saida_dir = None
     if saida_dir:
         saida_dir = os.path.abspath(saida_dir)
         os.makedirs(saida_dir, exist_ok=True)
-        destino = destino or os.path.join(saida_dir, NOME_PADRAO)
+        destino = destino or os.path.join(saida_dir, nome_saida)
         car_saida_dir = os.path.join(saida_dir, "Consultas_Publicas", "CAR")
         apf_saida_dir = os.path.join(saida_dir, "Consultas_Publicas", "APF")
         sccon_saida_dir = os.path.join(saida_dir, "Consultas_Publicas", "SCCON")
         os.makedirs(car_saida_dir, exist_ok=True)
         os.makedirs(apf_saida_dir, exist_ok=True)
         os.makedirs(sccon_saida_dir, exist_ok=True)
-    destino = destino or io.caminho_resultado(projeto, NOME_PADRAO)
+    destino = destino or io.caminho_resultado(projeto, nome_saida)
     authkey = _authkey(projeto)
     if not authkey:
         avisos.append("Authkey SEMA ausente; consultas SEMA serão parciais.")
     temp_root = os.path.join(projeto.raiz_abs(), "tmp", "shapefiles_uploads")
     with geo.abrir_shape_zip(zip_path, projeto.crs_utm, projeto.crs_geo, temp_root=temp_root) as area_zip:
         car_dados, llm_docs = _coletar_car(
-            projeto, area_zip, authkey, usar_ia, avisos,
+            projeto, area_zip, authkey, api_key, avisos,
             car_saida_dir=car_saida_dir, apf_saida_dir=apf_saida_dir,
         )
         fundiario = _coletar_fundiario(projeto, avisos)
         protegidas = _coletar_protegidas(projeto, area_zip, authkey, avisos)
-        _, cars_by_id = _fazendas_intersectadas(projeto, area_zip)
-        legal = _coletar_legal(projeto, area_zip, authkey, cars_by_id, avisos, usar_ia)
+        _, cars_by_id = _fazendas_intersectadas(projeto, area_zip, authkey, avisos)
+        legal = _coletar_legal(projeto, area_zip, authkey, cars_by_id, avisos, api_key)
         alertas = _coletar_alertas(projeto, area_zip, avisos)
         sccon_data = _coletar_sccon(projeto, area_zip, avisos, sccon_saida_dir)
         doc = _montar_doc(projeto, area_zip, car_dados, fundiario, protegidas, legal, alertas, sccon_data, avisos, llm_docs)
@@ -891,19 +959,21 @@ def gerar(projeto, shapefile_zip: str | None = None, destino: str | None = None,
 
 
 def resumo_shape(projeto, shapefile_zip: str | None = None) -> dict:
-    zip_path = shapefile_zip or os.path.join(projeto.caminho("shapes"), ZIP_PADRAO)
+    zip_path = shapefile_zip or _zip_entrada(projeto)
     temp_root = os.path.join(projeto.raiz_abs(), "tmp", "shapefiles_uploads")
+    avisos: list[str] = []
     with geo.abrir_shape_zip(zip_path, projeto.crs_utm, projeto.crs_geo, temp_root=temp_root) as area_zip:
         resumo = area_zip.resumo()
-        fazendas, _ = _fazendas_intersectadas(projeto, area_zip)
+        fazendas, _ = _fazendas_intersectadas(projeto, area_zip, _authkey(projeto), avisos)
         resumo["fazendas_intersectadas"] = [{"id": f.id, "nome": f.nome} for f in fazendas]
+        resumo["avisos"] = resumo.get("avisos", []) + avisos
         return resumo
 
 
 def _main(argv: list[str]) -> int:
     from core.config import load_projeto
     if len(argv) < 2:
-        print("uso: python -m automations.pre_analise <projeto.json> [shape.zip] [saida.docx|pasta_saida] [--sem-ia]")
+        print("uso: python -m automations.pre_analise <projeto.json> [shape.zip] [saida.docx|pasta_saida]")
         return 2
     proj = load_projeto(argv[1])
     args = [a for a in argv[2:] if not a.startswith("--")]
@@ -914,13 +984,7 @@ def _main(argv: list[str]) -> int:
             destino = args[1]
         else:
             saida_dir = args[1]
-    out = gerar(
-        proj,
-        shapefile_zip=shape,
-        destino=destino,
-        usar_ia=("--sem-ia" not in argv),
-        saida_dir=saida_dir,
-    )
+    out = gerar(proj, shapefile_zip=shape, destino=destino, saida_dir=saida_dir)
     print("Gerado:", out)
     return 0
 
