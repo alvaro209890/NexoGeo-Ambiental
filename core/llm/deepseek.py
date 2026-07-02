@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 
 import requests
 
-API_KEY = "sk-80fc19858a3c421aa50fbb0e142e3def"
 API_URL = "https://api.deepseek.com/chat/completions"
 MODEL_FLASH = "deepseek-v4-flash"
 MODEL_PRO = "deepseek-v4-pro"
@@ -27,13 +27,20 @@ class LLMResult:
     error: str = ""
 
 
-def _post(payload: dict, timeout: int = 180) -> dict:
+def _api_key(explicit: str | None = None) -> str:
+    key = explicit or os.environ.get("DEEPSEEK_API_KEY", "")
+    if not key:
+        raise DeepSeekError("DeepSeek API key ausente. Configure DEEPSEEK_API_KEY ou secrets.local.json.")
+    return key
+
+
+def _post(payload: dict, timeout: int = 180, api_key: str | None = None, api_url: str | None = None) -> dict:
     headers = {
-        "Authorization": f"Bearer {API_KEY}",
+        "Authorization": f"Bearer {_api_key(api_key)}",
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
-    r = requests.post(API_URL, headers=headers, json=payload, timeout=timeout)
+    r = requests.post(api_url or API_URL, headers=headers, json=payload, timeout=timeout)
     if not r.ok:
         raise DeepSeekError(f"DeepSeek HTTP {r.status_code}: {r.text[:300]}")
     return r.json()
@@ -60,7 +67,8 @@ def _json_from_text(text: str) -> dict:
 
 
 def extrair_documento_pdf(texto: str, nome_arquivo: str, tipo_documento: str,
-                          timeout: int = 180) -> LLMResult:
+                          timeout: int = 180, api_key: str | None = None,
+                          api_url: str | None = None) -> LLMResult:
     """Extrai dados estruturados de recibos CAR e APFs com DeepSeek v4 Flash."""
     prompt = f"""
 Voce recebera texto bruto/OCR de um PDF publico ambiental brasileiro.
@@ -102,14 +110,15 @@ TEXTO:
         "max_tokens": 4096,
     }
     try:
-        resp = _post(payload, timeout=timeout)
+        resp = _post(payload, timeout=timeout, api_key=api_key, api_url=api_url)
         content = _content(resp)
         return LLMResult(ok=True, model=MODEL_FLASH, content=content, data=_json_from_text(content))
     except Exception as e:
         return LLMResult(ok=False, model=MODEL_FLASH, error=str(e))
 
 
-def resumir_juridico(texto: str, timeout: int = 240) -> LLMResult:
+def resumir_juridico(texto: str, timeout: int = 240, api_key: str | None = None,
+                     api_url: str | None = None) -> LLMResult:
     """Resume embargos/autos/desembargos com DeepSeek v4 Pro."""
     prompt = f"""
 Analise os registros oficiais abaixo para uma pre-analise juridico-ambiental.
@@ -133,7 +142,7 @@ REGISTROS:
         "max_tokens": 4096,
     }
     try:
-        resp = _post(payload, timeout=timeout)
+        resp = _post(payload, timeout=timeout, api_key=api_key, api_url=api_url)
         return LLMResult(ok=True, model=MODEL_PRO, content=_content(resp))
     except Exception as e:
         return LLMResult(ok=False, model=MODEL_PRO, error=str(e))

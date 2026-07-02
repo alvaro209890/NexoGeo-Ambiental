@@ -1,0 +1,23 @@
+{
+  "_descricao": "Manifesto de templates MXD do NexoMap AI. A v1 aceita ArcMap/ArcPy quando os arquivos .mxd reais forem adicionados.",
+  "templates": [
+    {
+      "id": "tematico_a3_retrato",
+      "nome": "Mapa tematico A3 retrato",
+      "formato": "A3",
+      "orientacao": "retrato",
+      "mxd": "templates/mxd/tematico_a3_retrato.mxd",
+      "elementos": ["titulo", "legenda", "escala", "norte", "grade", "minimapa", "metadados"],
+      "status": "aguardando_template_real"
+    },
+    {
+      "id": "dinamica_a3_paisagem",
+      "nome": "Dinamica temporal A3 paisagem",
+      "formato": "A3",
+      "orientacao": "paisagem",
+      "mxd": "templates/mxd/dinamica_a3_paisagem.mxd",
+      "elementos": ["titulo", "legenda", "escala", "norte", "grade", "minimapa", "metadados"],
+      "status": "aguardando_template_real"
+    }
+  ]
+}

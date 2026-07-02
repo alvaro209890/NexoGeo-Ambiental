@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nexomap.ai/schema/projeto.schema.json",
+  "title": "Projeto NexoMap AI",
+  "type": "object",
+  "required": ["versao_schema", "nome", "municipio", "crs", "raiz_dados", "area_base"],
+  "additionalProperties": true,
+  "properties": {
+    "versao_schema": { "type": "integer", "const": 1 },
+    "nome": { "type": "string" },
+    "cliente": { "type": "string" },
+    "municipio": {
+      "type": "object",
+      "required": ["nome", "uf", "ibge"],
+      "properties": {
+        "nome": { "type": "string" },
+        "uf": { "type": "string", "minLength": 2, "maxLength": 2 },
+        "ibge": { "type": "string" }
+      }
+    },
+    "crs": {
+      "type": "object",
+      "required": ["utm"],
+      "properties": {
+        "utm": { "type": "integer" },
+        "geografico": { "type": "integer", "default": 4674 }
+      }
+    },
+    "raiz_dados": { "type": "string" },
+    "pastas": {
+      "type": "object",
+      "properties": {
+        "shapes": { "type": "string", "default": "Shapes" },
+        "resultados": { "type": "string", "default": "Resultados" },
+        "mapas": { "type": "string", "default": "Resultados/Mapas" }
+      }
+    },
+    "area_base": {
+      "type": "object",
+      "required": ["tipo", "path"],
+      "properties": {
+        "tipo": { "type": "string", "enum": ["shapefile_zip"] },
+        "path": { "type": "string" }
+      }
+    },
+    "catalogo_camadas": { "type": "string", "default": "catalogo/camadas.json" },
+    "templates_mxd": { "type": "string", "default": "templates/mxd/MANIFEST.json" }
+  }
+}

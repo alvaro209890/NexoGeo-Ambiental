@@ -1,0 +1,77 @@
+{
+  "_descricao": "Catalogo NexoMap AI. Nao contem credenciais; segredos ficam em secrets.local.json.",
+  "camadas": [
+    {
+      "id": "car_sema",
+      "nome": "CAR SEMA-MT",
+      "tema": "car",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:MVW_REQUERIMENTO_ATP",
+      "auth": "sema_authkey"
+    },
+    {
+      "id": "embargos_sema",
+      "nome": "Embargos SEMA/SIGA",
+      "tema": "embargos",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:AREAS_EMBARGADAS_SEMA",
+      "auth": "sema_authkey"
+    },
+    {
+      "id": "embargos_ibama",
+      "nome": "Embargos IBAMA",
+      "tema": "embargos",
+      "tipo": "wms",
+      "endpoint": "http://siscom.ibama.gov.br/geoserver/publica/wms",
+      "layer": "publica:vw_brasil_adm_embargo_a",
+      "auth": null
+    },
+    {
+      "id": "terras_indigenas_funai",
+      "nome": "Terras Indigenas FUNAI",
+      "tema": "areas_protegidas",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geoserver.funai.gov.br/geoserver/ows",
+      "layer": "Funai:tis_poligonais",
+      "auth": null
+    },
+    {
+      "id": "unidades_conservacao",
+      "nome": "Unidades de Conservacao",
+      "tema": "areas_protegidas",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:UNIDADES_CONSERVACAO",
+      "auth": "sema_authkey"
+    },
+    {
+      "id": "alertas_mapbiomas",
+      "nome": "Alertas MapBiomas",
+      "tema": "desmatamento",
+      "tipo": "wms_wfs",
+      "endpoint": "https://production.alerta.mapbiomas.org/geoserver/ows",
+      "layer": "mapbiomas-alertas:v_alerts_last_status",
+      "auth": null
+    },
+    {
+      "id": "prodes_inpe",
+      "nome": "PRODES INPE",
+      "tema": "desmatamento",
+      "tipo": "wms_wfs",
+      "endpoint": "http://terrabrasilis.dpi.inpe.br/geoserver/prodes-legal-amz/wms",
+      "layer": "prodes-legal-amz",
+      "auth": null
+    },
+    {
+      "id": "tipologia_sema",
+      "nome": "Tipologia SEMA-MT",
+      "tema": "tipologia",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:TIPOLOGIA",
+      "auth": "sema_authkey"
+    }
+  ]
+}

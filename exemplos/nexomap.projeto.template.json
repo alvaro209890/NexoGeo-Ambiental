@@ -1,0 +1,20 @@
+{
+  "versao_schema": 1,
+  "nome": "Fazenda Exemplo",
+  "cliente": "Cliente X",
+  "municipio": { "nome": "Vila Rica", "uf": "MT", "ibge": "5108601" },
+  "crs": { "utm": 31982, "geografico": 4674 },
+  "data_consulta": "auto",
+  "raiz_dados": ".",
+  "pastas": {
+    "shapes": "Shapes",
+    "resultados": "Resultados",
+    "mapas": "Resultados/Mapas"
+  },
+  "area_base": {
+    "tipo": "shapefile_zip",
+    "path": "Shapes/area.zip"
+  },
+  "catalogo_camadas": "catalogo/camadas.json",
+  "templates_mxd": "templates/mxd/MANIFEST.json"
+}

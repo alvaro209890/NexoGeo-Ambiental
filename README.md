@@ -9,6 +9,8 @@ análise (não dentro deste repositório).
 > Diário de desenvolvimento: [`DESENVOLVIMENTO.md`](DESENVOLVIMENTO.md).
 > **Melhorias em execução** (SHP + matrículas → Word + MXD + PDFs) com checklist:
 > [`PLANO_MELHORIAS.md`](PLANO_MELHORIAS.md).
+> **Mapas IA**: a geracao por chat agora e uma aba dentro do app de analise. Handoff para
+> continuidade: [`docs/NEXOMAP_AGENT_HANDOFF.md`](docs/NEXOMAP_AGENT_HANDOFF.md).
 
 ## Princípio: software genérico, dados externos
 
@@ -120,6 +122,23 @@ python app.py                       # abre a janela do programa
 ```
 
 Sem `pywebview`, o `app.py` mantém o servidor no ar e você abre `http://127.0.0.1:8000`.
+
+## Aba Mapas IA
+
+A aba **Mapas IA** fica dentro do app de analise. Ela usa o `projeto.json` normal e cria,
+automaticamente, um contrato interno em `<raiz da analise>/.nexomap/projeto.nexomap.json`.
+
+Fluxo operacional:
+
+1. Abra o projeto normal da analise.
+2. Na aba **Pre-Analise**, selecione o ZIP da area.
+3. Abra **Mapas IA**, clique em **Preparar aba** e descreva o mapa.
+4. O sistema gera `MapSpec`, `mapa.pdf`, `png_validacao.png`, `validacao.json` e, quando
+   ArcMap/templates reais existirem, `mapa.mxd`.
+
+As saidas ficam em `<Resultados>/Mapas_IA/<job_id>/`.
+
+Para continuar o desenvolvimento com outro agente, use [`docs/NEXOMAP_AGENT_HANDOFF.md`](docs/NEXOMAP_AGENT_HANDOFF.md).
 
 ## Criar uma nova análise
 

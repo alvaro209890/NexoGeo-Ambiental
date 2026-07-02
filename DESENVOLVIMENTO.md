@@ -143,6 +143,18 @@ servindo o index buildado e o bundle JS (200).
 
 ---
 
+## 2026-07-02 - Mapas IA integrado como aba
+
+- O NexoMap AI deixou de ser tratado como app separado e passou a ser a aba **Mapas IA**
+  dentro do NexoGeo Ambiental.
+- O projeto aberto pelo usuario continua sendo o `projeto.json` normal da analise; a aba cria
+  automaticamente `<raiz da analise>/.nexomap/projeto.nexomap.json` por meio de
+  `core.nexomap_project.ensure_project_from_analysis()`.
+- Saidas de mapa ficam em `<Resultados>/Mapas_IA/<job_id>/` com `mapspec.json`, `mapa.pdf`,
+  `png_validacao.png`, `validacao.json` e `resultado.json`; `mapa.mxd` depende de ArcMap e
+  templates reais.
+- Handoff para continuidade por outro agente: `docs/NEXOMAP_AGENT_HANDOFF.md`.
+
 ## Pendências/decisões registradas
 
 - **Matrícula 6350 (817,0640 ha)** — **Resolvido (2026-06-17):** é da *Fazenda Gabriela II*

@@ -24,13 +24,26 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from core.config import load_projeto, ProjetoError, Projeto
 from api import registry
 from automations import pre_analise
+from core.nexomap_project import (
+    NexoMapError,
+    create_project_template as create_nexomap_project_template,
+    ensure_project_from_analysis,
+    load_nexomap_project,
+    resumo_project as resumo_nexomap_project,
+)
+from core.nexomap_catalog import load_layer_catalog, load_template_manifest
+from core.nexomap_ai import spec_from_prompt
+from core.nexomap_geo import summarize_area
+from core import arcgis_bridge
+from core import nexomap_generator
+from core import secrets as secrets_loader
 
 app = FastAPI(title="Análise de Área", version="0.1.0")
 app.add_middleware(
@@ -66,6 +79,29 @@ class NovoProjetoBody(BaseModel):
     destino: str
 
 
+class NexoMapChatBody(BaseModel):
+    path: str
+    prompt: str
+    allow_local_fallback: bool = True
+
+
+class NexoMapGenerateBody(BaseModel):
+    path: str
+    prompt: str | None = None
+    mapspec: dict | None = None
+    strict_mxd: bool = False
+
+
+class NexoMapAreaBaseBody(BaseModel):
+    path: str
+    area_path: str
+
+
+class NexoMapFromAnalysisBody(BaseModel):
+    analysis_path: str
+    area_path: str | None = None
+
+
 # ----------------------------- config global -----------------------------
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_config.json")
 
@@ -94,6 +130,15 @@ def _carregar(path: str) -> Projeto:
     try:
         return load_projeto(path)
     except ProjetoError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+def _carregar_nexomap(path: str):
+    try:
+        return load_nexomap_project(path)
+    except NexoMapError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -247,6 +292,131 @@ def novo_projeto(body: NovoProjetoBody):
         
     add_recent(body.nome, proj_file)
     return {"ok": True, "path": proj_file}
+
+
+# ----------------------------- NexoMap AI -----------------------------
+@app.post("/api/nexomap/projeto/validar")
+def nexomap_validar(body: CaminhoBody):
+    proj = _carregar_nexomap(body.path)
+    resumo = resumo_nexomap_project(proj)
+    add_recent(proj.nome, proj._arquivo)
+    if resumo["area_base"]["exists"]:
+        try:
+            resumo["area"] = summarize_area(proj).to_dict()
+        except Exception as e:
+            resumo["area_error"] = str(e)
+    else:
+        resumo["area"] = None
+        resumo["area_error"] = "area_base ainda nao encontrada"
+    return resumo
+
+
+@app.post("/api/nexomap/projeto/novo")
+def nexomap_novo_projeto(body: NovoProjetoBody):
+    try:
+        path = create_nexomap_project_template(body.nome, body.cliente, body.destino)
+    except NexoMapError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    add_recent(body.nome, path)
+    return {"ok": True, "path": path}
+
+
+@app.post("/api/nexomap/from-analysis")
+def nexomap_from_analysis(body: NexoMapFromAnalysisBody):
+    analysis = _carregar(body.analysis_path)
+    try:
+        nexomap_path = ensure_project_from_analysis(analysis, body.area_path)
+        proj = load_nexomap_project(nexomap_path)
+        resumo = resumo_nexomap_project(proj)
+        if resumo["area_base"]["exists"]:
+            try:
+                resumo["area"] = summarize_area(proj).to_dict()
+            except Exception as e:
+                resumo["area_error"] = str(e)
+        else:
+            resumo["area"] = None
+            resumo["area_error"] = "area_base ainda nao encontrada"
+        return {"ok": True, "path": nexomap_path, "project": resumo}
+    except NexoMapError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/nexomap/projeto/area-base")
+def nexomap_area_base(body: NexoMapAreaBaseBody):
+    proj = _carregar_nexomap(body.path)
+    if not os.path.exists(body.area_path):
+        raise HTTPException(status_code=404, detail=f"shapefile zip nao encontrado: {body.area_path}")
+    try:
+        with open(proj._arquivo, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        root = proj.raiz_abs()
+        area_abs = os.path.abspath(body.area_path)
+        try:
+            rel = os.path.relpath(area_abs, root)
+            stored = rel if not rel.startswith("..") else area_abs
+        except ValueError:
+            stored = area_abs
+        data.setdefault("area_base", {})["tipo"] = "shapefile_zip"
+        data["area_base"]["path"] = stored
+        with open(proj._arquivo, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        return {"ok": True, "path": proj._arquivo, "area_path": stored}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/nexomap/chat")
+def nexomap_chat(body: NexoMapChatBody):
+    proj = _carregar_nexomap(body.path)
+    try:
+        catalog = load_layer_catalog(proj.catalog_path())
+        manifest = load_template_manifest(proj.template_manifest_path())
+        sec = secrets_loader.load_secrets(proj)
+        result = spec_from_prompt(body.prompt, proj, catalog, manifest, sec,
+                                  allow_local_fallback=body.allow_local_fallback)
+        return result.to_dict()
+    except NexoMapError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/nexomap/generate")
+async def nexomap_generate(body: NexoMapGenerateBody):
+    async def stream():
+        for event in nexomap_generator.generate_stream(
+            body.path, prompt=body.prompt, mapspec=body.mapspec, strict_mxd=body.strict_mxd
+        ):
+            yield _sse(event)
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+@app.get("/api/nexomap/resultados")
+def nexomap_resultados(path: str):
+    try:
+        return nexomap_generator.list_results(path)
+    except NexoMapError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/nexomap/file")
+def nexomap_file(path: str):
+    if not os.path.exists(path) or not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="arquivo nao encontrado")
+    return FileResponse(path)
+
+
+@app.get("/api/nexomap/doctor")
+def nexomap_doctor(path: str | None = None):
+    proj = None
+    sec = {}
+    if path:
+        proj = _carregar_nexomap(path)
+        sec = secrets_loader.load_secrets(proj)
+    return {
+        "arcgis": arcgis_bridge.doctor(proj, sec).to_dict(),
+        "python": sys.executable,
+        "ui_dist": os.path.isdir(_DIST) if "_DIST" in globals() else False,
+    }
 
 
 import subprocess

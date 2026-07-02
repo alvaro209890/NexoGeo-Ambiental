@@ -3,49 +3,53 @@ import {
   Activity,
   AlertTriangle,
   Archive,
+  ArrowLeft,
   BookOpen,
+  Bot,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
-  Database,
-  ExternalLink,
+  Cpu,
+  FileJson,
   FileText,
   FolderOpen,
   Gauge,
   Globe2,
+  Image as ImageIcon,
   Layers,
   Loader2,
+  Map,
   MapPin,
+  MessageSquareText,
+  MonitorCog,
   Play,
+  Plus,
   RefreshCw,
-  Settings,
+  Save,
   ShieldCheck,
+  Sparkles,
+  TerminalSquare,
   UploadCloud,
   XCircle,
-  ChevronDown,
-  ChevronUp,
-  Network,
-  FileDown,
-  Plus,
-  ArrowLeft,
 } from 'lucide-react'
 import './index.css'
 
 const API = ''
 
 const NAV = [
-  { id: 'pre', label: 'Pré-Análise', icon: MapPin },
-  { id: 'automations', label: 'Automações', icon: Activity },
+  { id: 'pre', label: 'Pre-Analise', icon: MapPin },
+  { id: 'maps_ai', label: 'Mapas IA', icon: MessageSquareText },
+  { id: 'automations', label: 'Automacoes', icon: Activity },
   { id: 'results', label: 'Resultados', icon: Archive },
+  { id: 'doctor', label: 'Doctor', icon: MonitorCog },
   { id: 'manual', label: 'Manual', icon: BookOpen },
 ]
 
-const DEFAULT_PROJECT =
-  'C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Analise_1\\projeto.json'
-const DEFAULT_SHAPE =
-  'C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Analise_1\\Shapes\\fazendas_unidas.zip'
-const DEFAULT_OUT =
-  'C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Analise_1\\Automacoes\\Resultados\\Pre_Analise_Final'
+const DEFAULT_PROMPTS = [
+  'Gere um mapa com imagem de satelite, perimetro, CAR e embargos ambientais',
+  'Monte um mapa de alertas MapBiomas e desmatamento PRODES',
+  'Gere um mapa de terras indigenas e unidades de conservacao proximas',
+]
 
 async function jget(url) {
   const response = await fetch(API + url)
@@ -63,8 +67,18 @@ async function jpost(url, body) {
   return response.json()
 }
 
+function cleanError(error) {
+  const raw = error?.message || String(error)
+  try {
+    const parsed = JSON.parse(raw)
+    return parsed.detail || raw
+  } catch {
+    return raw
+  }
+}
+
 function fileName(path) {
-  if (!path) return ''
+  if (!path) return '-'
   const parts = String(path).split(/[\\/]/)
   return parts[parts.length - 1] || path
 }
@@ -76,36 +90,32 @@ function formatBytes(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-function cleanError(error) {
-  const raw = error?.message || String(error)
-  try {
-    const parsed = JSON.parse(raw)
-    if (parsed.detail) return parsed.detail
-  } catch {
-    return raw
-  }
-  return raw
+function formatHa(value) {
+  if (!Number.isFinite(Number(value))) return '-'
+  return `${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} ha`
 }
 
 function statusCopy(status) {
-  if (!status) return 'Aguardando'
-  if (status === 'done') return 'Concluído'
-  if (status === 'error') return 'Erro'
-  if (status === 'started') return 'Rodando'
-  return status
+  if (status === 'done' || status === true || status === 'ok') return 'OK'
+  if (status === 'error' || status === false) return 'Erro'
+  if (status === 'started' || status === 'progress') return 'Rodando'
+  return status || 'Aguardando'
 }
 
 function StatusBadge({ state = 'idle', children }) {
-  const Icon = state === 'ok' || state === 'done' ? CheckCircle2 : state === 'error' ? XCircle : Activity
+  const ok = state === true || state === 'ok' || state === 'done'
+  const error = state === false || state === 'error'
+  const active = state === 'started' || state === 'progress'
+  const Icon = ok ? CheckCircle2 : error ? XCircle : active ? Loader2 : Gauge
   return (
-    <span className={`status-badge status-${state}`}>
-      <Icon size={15} strokeWidth={2.3} />
-      {children}
+    <span className={`status-badge ${ok ? 'status-ok' : error ? 'status-error' : active ? 'status-started' : ''}`}>
+      <Icon size={15} className={active ? 'spin' : ''} />
+      {children || statusCopy(state)}
     </span>
   )
 }
 
-function IconButton({ children, title, onClick, disabled, kind = 'ghost' }) {
+function IconButton({ title, onClick, disabled, children, kind = 'soft' }) {
   return (
     <button className={`icon-button ${kind}`} type="button" title={title} onClick={onClick} disabled={disabled}>
       {children}
@@ -121,26 +131,26 @@ function PrimaryButton({ children, onClick, disabled, tone = 'primary' }) {
   )
 }
 
-function Field({ label, value, onChange, icon: Icon, placeholder, onBrowse }) {
+function Field({ label, value, onChange, icon: Icon, onBrowse, placeholder, readOnly }) {
   return (
-    <div className="field">
+    <label className="field">
       <span>{label}</span>
       <div className="field-group">
         <div className="field-input">
           {Icon ? <Icon size={17} /> : null}
-          <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
+          <input value={value || ''} onChange={(event) => onChange?.(event.target.value)} placeholder={placeholder} readOnly={readOnly} />
         </div>
-        {onBrowse && (
-          <IconButton onClick={(e) => { e.preventDefault(); onBrowse(); }} title="Selecionar" kind="soft">
+        {onBrowse ? (
+          <IconButton title="Selecionar" onClick={onBrowse}>
             <FolderOpen size={18} />
           </IconButton>
-        )}
+        ) : null}
       </div>
-    </div>
+    </label>
   )
 }
 
-function MiniStat({ label, value, icon: Icon }) {
+function MiniStat({ icon: Icon, label, value }) {
   return (
     <div className="mini-stat">
       <div className="mini-stat-icon">{Icon ? <Icon size={18} /> : null}</div>
@@ -152,217 +162,212 @@ function MiniStat({ label, value, icon: Icon }) {
   )
 }
 
-function MapPreview({ proj, resumo }) {
-  const bbox = resumo?.bbox_wgs84 || resumo?.bbox || null
-  const bboxText = bbox
-    ? `${Number(bbox[0]).toFixed(4)}, ${Number(bbox[1]).toFixed(4)} / ${Number(bbox[2]).toFixed(4)}, ${Number(bbox[3]).toFixed(4)}`
-    : 'Bounding box será calculado pelo shapefile'
+function ErrorBox({ children }) {
+  return (
+    <div className="error-box">
+      <AlertTriangle size={18} />
+      <span>{children}</span>
+    </div>
+  )
+}
+
+function NewAnalysisForm({ onCancel, onCreate }) {
+  const [nome, setNome] = useState('')
+  const [cliente, setCliente] = useState('')
+  const [destino, setDestino] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [erro, setErro] = useState('')
+
+  async function create() {
+    if (!nome.trim() || !destino.trim()) {
+      setErro('Informe nome e pasta de destino.')
+      return
+    }
+    setBusy(true)
+    setErro('')
+    try {
+      const result = await jpost('/api/projeto/novo', { nome, cliente, destino })
+      onCreate(result.path)
+    } catch (error) {
+      setErro(cleanError(error))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
-    <section className="map-preview" aria-label="Resumo espacial">
-      <div className="map-grid" />
-      <svg className="polygon-sketch" viewBox="0 0 420 260" role="img" aria-label="Polígono ilustrativo da propriedade">
-        <path d="M82 158 L142 78 L248 52 L337 117 L304 207 L183 226 Z" />
-        <circle cx="142" cy="78" r="4" />
-        <circle cx="248" cy="52" r="4" />
-        <circle cx="337" cy="117" r="4" />
-        <circle cx="304" cy="207" r="4" />
-        <circle cx="183" cy="226" r="4" />
-        <circle cx="82" cy="158" r="4" />
-      </svg>
-      <div className="map-preview-header">
-        <span>Área de trabalho</span>
-        <StatusBadge state={resumo ? 'ok' : 'idle'}>{resumo ? 'Geometria lida' : 'Preparação'}</StatusBadge>
-      </div>
-      <div className="map-preview-footer">
-        <div>
-          <strong>{proj?.imovel || 'Fazendas Unidas'}</strong>
-          <span>
-            {proj?.municipio?.nome || 'Nova Ubiratã'} / {proj?.municipio?.uf || 'MT'}
-          </span>
+    <div className="modal-backdrop">
+      <section className="modal-content">
+        <header>
+          <h2>Novo projeto de analise</h2>
+          <p>Cria a estrutura base do NexoGeo Ambiental.</p>
+        </header>
+        <Field label="Nome do imovel" value={nome} onChange={setNome} placeholder="Fazenda Exemplo" icon={Map} />
+        <Field label="Cliente" value={cliente} onChange={setCliente} placeholder="Cliente" icon={ShieldCheck} />
+        <Field
+          label="Pasta de destino"
+          value={destino}
+          onChange={setDestino}
+          icon={FolderOpen}
+          onBrowse={async () => {
+            const result = await jget('/api/dialog/folder')
+            if (result.path) setDestino(result.path)
+          }}
+        />
+        {erro ? <ErrorBox>{erro}</ErrorBox> : null}
+        <footer className="modal-actions">
+          <button className="btn-cancel" type="button" onClick={onCancel} disabled={busy}>Cancelar</button>
+          <PrimaryButton onClick={create} disabled={busy} tone="solid">
+            {busy ? <Loader2 size={18} className="spin" /> : <Plus size={18} />}
+            Criar
+          </PrimaryButton>
+        </footer>
+      </section>
+    </div>
+  )
+}
+
+function ProjectsLobby({ recentes, onOpen, onNew, erro }) {
+  return (
+    <main className="lobby">
+      <section className="lobby-header">
+        <div className="brand-mark large"><Globe2 size={34} /></div>
+        <h1>NexoGeo Ambiental</h1>
+        <p>Analise fundiaria e ambiental com automacoes, pre-analise e mapas por IA no mesmo projeto.</p>
+      </section>
+      <section className="recent-grid">
+        <button className="recent-card new-card" type="button" onClick={onNew}>
+          <Plus size={28} />
+          <strong>Criar analise</strong>
+        </button>
+        <button className="recent-card" type="button" onClick={async () => {
+          const result = await jget('/api/dialog/file')
+          if (result.path) onOpen(result.path)
+        }}>
+          <FolderOpen size={24} className="folder-icon" />
+          <div className="rc-content">
+            <strong>Abrir projeto.json</strong>
+            <span>Selecionar projeto de analise</span>
+          </div>
+          <ChevronRight size={20} className="arrow-icon" />
+        </button>
+        {recentes.map((item) => (
+          <button className="recent-card" type="button" key={item.path} onClick={() => onOpen(item.path)}>
+            <FileJson size={24} className="folder-icon" />
+            <div className="rc-content">
+              <strong>{item.nome}</strong>
+              <span>{item.path}</span>
+            </div>
+            <ChevronRight size={20} className="arrow-icon" />
+          </button>
+        ))}
+      </section>
+      {erro ? <div className="floating-error"><AlertTriangle size={18} /><span>{erro}</span></div> : null}
+    </main>
+  )
+}
+
+function MapCanvas({ project, result, running }) {
+  const image = result?.outputs?.png_validacao || result?.outputs?.preview_png
+  return (
+    <section className="map-canvas">
+      {image ? (
+        <img src={`/api/nexomap/file?path=${encodeURIComponent(image)}`} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />
+      ) : null}
+      <div className="map-canvas-grid" />
+      <div className="map-canvas-content">
+        <div className="map-canvas-top">
+          <span>{project?.municipio?.nome || 'Projeto'} / {project?.municipio?.uf || 'MT'}</span>
+          <StatusBadge state={running ? 'progress' : result?.ok ? 'ok' : 'idle'}>
+            {running ? 'Gerando' : result?.ok ? 'Validado' : 'Pronto'}
+          </StatusBadge>
         </div>
-        <small>{bboxText}</small>
+        <div className="map-canvas-title">
+          <strong>{result?.mapspec?.titulo || project?.nome || 'Mapas IA'}</strong>
+          <span>{result?.job_id || 'Aguardando prompt cartografico'}</span>
+        </div>
       </div>
     </section>
   )
 }
 
-function StepTimeline({ resumo, preStatus, running, erro }) {
-  const steps = [
-    {
-      label: 'Shapefile',
-      text: resumo ? `${resumo.feature_count || resumo.poligonos || 'OK'} feição(ões) importadas` : 'ZIP aguardando leitura',
-      state: resumo ? 'done' : 'idle',
-    },
-    {
-      label: 'Intersecções',
-      text: resumo ? 'SEMA, CAR, APF, IBAMA, FUNAI e MapBiomas preparados' : 'Bases são consultadas no processamento',
-      state: running ? 'started' : resumo ? 'done' : 'idle',
-    },
-    {
-      label: 'Documentos',
-      text: preStatus?.arquivo ? 'Recibos e APFs organizados em Consultas_Publicas' : 'Downloads automáticos serão salvos por origem',
-      state: preStatus?.arquivo ? 'done' : running ? 'started' : 'idle',
-    },
-    {
-      label: 'Relatório Word',
-      text: preStatus?.nome || 'DOCX final ainda não gerado',
-      state: preStatus?.arquivo ? 'done' : erro ? 'error' : 'idle',
-    },
-  ]
-
+function SpecPanel({ chatResult, result }) {
+  const spec = chatResult?.mapspec || result?.mapspec
+  const warnings = [...(chatResult?.warnings || []), ...(result?.warnings || [])]
   return (
-    <div className="timeline">
-      {steps.map((step) => (
-        <div className={`timeline-row ${step.state}`} key={step.label}>
-          <div className="timeline-dot">
-            {step.state === 'started' ? <Loader2 size={14} className="spin" /> : step.state === 'error' ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
-          </div>
-          <div>
-            <strong>{step.label}</strong>
-            <span>{step.text}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function EvidenceRail({ proj, resumo, results, preStatus }) {
-  const folders = [
-    { label: 'CAR', value: 'Consultas_Publicas/CAR' },
-    { label: 'APF', value: 'Consultas_Publicas/APF' },
-    { label: 'Relatório', value: fileName(preStatus?.arquivo) || 'Aguardando geração' },
-  ]
-
-  return (
-    <aside className="evidence-rail">
-      <div className="rail-section">
-        <div className="section-title">
-          <ShieldCheck size={18} />
-          <span>Contexto do projeto</span>
-        </div>
-        <dl className="detail-list">
-          <div>
-            <dt>Cliente</dt>
-            <dd>{proj?.cliente || '-'}</dd>
-          </div>
-          <div>
-            <dt>Imóvel</dt>
-            <dd>{proj?.imovel || '-'}</dd>
-          </div>
-          <div>
-            <dt>Consulta</dt>
-            <dd>{proj?.data_consulta || '-'}</dd>
-          </div>
-          <div>
-            <dt>CRS</dt>
-            <dd>{proj?.crs_utm || '-'}</dd>
-          </div>
-        </dl>
+    <aside className="spec-panel">
+      <div className="section-title">
+        <FileJson size={18} />
+        <span>MapSpec</span>
       </div>
-
-      <div className="rail-section">
-        <div className="section-title">
-          <Database size={18} />
-          <span>Geografia</span>
-        </div>
-        <div className="metric-stack">
-          <MiniStat label="Área estimada" value={resumo?.area_ha ? `${Number(resumo.area_ha).toLocaleString('pt-BR')} ha` : '-'} icon={Layers} />
-          <MiniStat label="Polígonos" value={resumo?.feature_count || resumo?.poligonos || '-'} icon={MapPin} />
-        </div>
-      </div>
-
-      <div className="rail-section">
-        <div className="section-title">
-          <FolderOpen size={18} />
-          <span>Evidências</span>
-        </div>
-        <div className="folder-list">
-          {folders.map((item) => (
-            <div className="folder-row" key={item.label}>
-              <span>{item.label}</span>
-              <strong title={item.value}>{item.value}</strong>
+      {spec ? (
+        <pre className="json-view">{JSON.stringify(spec, null, 2)}</pre>
+      ) : (
+        <div className="empty-inline"><Bot size={24} /><span>O JSON validado aparece aqui depois do chat.</span></div>
+      )}
+      {warnings.length ? (
+        <div className="warning-list">
+          {warnings.map((warning, index) => (
+            <div key={`${warning}-${index}`}>
+              <AlertTriangle size={15} />
+              <span>{warning}</span>
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="rail-section compact">
-        <div className="section-title">
-          <FileText size={18} />
-          <span>Arquivos recentes</span>
-        </div>
-        {results.length ? (
-          <div className="recent-list">
-            {results.slice(0, 4).map((item) => (
-              <div key={item.path}>
-                <strong>{item.nome}</strong>
-                <span>{formatBytes(item.tamanho)}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="muted">Nenhum resultado listado ainda.</p>
-        )}
-      </div>
+      ) : null}
     </aside>
   )
 }
 
-function PreAnalysisView({
-  proj,
-  resumo,
-  preShape,
-  setPreShape,
-  preOut,
-  setPreOut,
-  preStatus,
-  running,
-  erro,
-  onPreview,
-  onRun,
-  results,
-}) {
+function PreAnalysisView({ project, resumo, preShape, setPreShape, preOut, setPreOut, preStatus, running, erro, onPreview, onRun, results }) {
   return (
-    <div className="workspace-grid">
-      <div className="workspace-main">
-        <MapPreview proj={proj} resumo={resumo} />
-
+    <div className="project-grid">
+      <section className="view-stack">
+        <section className="map-canvas compact-map">
+          <div className="map-canvas-grid" />
+          <div className="map-canvas-content">
+            <div className="map-canvas-top">
+              <span>{project?.municipio?.nome || 'Projeto'} / {project?.municipio?.uf || 'MT'}</span>
+              <StatusBadge state={resumo ? 'ok' : 'idle'}>{resumo ? 'Geometria lida' : 'Aguardando'}</StatusBadge>
+            </div>
+            <div className="map-canvas-title">
+              <strong>{project?.imovel || 'Pre-Analise ambiental'}</strong>
+              <span>{resumo?.bbox_geo ? resumo.bbox_geo.map((n) => Number(n).toFixed(4)).join(' / ') : 'Sem bbox'}</span>
+            </div>
+          </div>
+        </section>
         <section className="work-panel">
           <div className="panel-heading">
             <div>
               <span className="eyebrow">Fluxo principal</span>
-              <h1>Pré-Análise ambiental</h1>
+              <h1>Pre-Analise ambiental</h1>
             </div>
-            <StatusBadge state={running ? 'started' : preStatus?.arquivo ? 'ok' : 'idle'}>
-              {running ? 'Processando' : preStatus?.arquivo ? 'DOCX pronto' : 'Aguardando execução'}
+            <StatusBadge state={running ? 'progress' : preStatus?.arquivo ? 'ok' : 'idle'}>
+              {running ? 'Processando' : preStatus?.arquivo ? 'DOCX pronto' : 'Aguardando'}
             </StatusBadge>
           </div>
-
           <div className="analysis-grid">
-            <Field 
-              label="Shapefile compactado (.zip)" 
-              value={preShape} 
-              onChange={setPreShape} 
-              icon={UploadCloud} 
+            <Field
+              label="Shapefile compactado (.zip)"
+              value={preShape}
+              onChange={setPreShape}
+              icon={UploadCloud}
               onBrowse={async () => {
-                const res = await jget('/api/dialog/file')
-                if (res.path) setPreShape(res.path)
-              }} 
+                const result = await jget('/api/dialog/file')
+                if (result.path) setPreShape(result.path)
+              }}
             />
-            <Field 
-              label="Pasta de saída" 
-              value={preOut} 
-              onChange={setPreOut} 
-              icon={FolderOpen} 
+            <Field
+              label="Pasta de saida"
+              value={preOut}
+              onChange={setPreOut}
+              icon={FolderOpen}
               onBrowse={async () => {
-                const res = await jget('/api/dialog/folder')
-                if (res.path) setPreOut(res.path)
-              }} 
+                const result = await jget('/api/dialog/folder')
+                if (result.path) setPreOut(result.path)
+              }}
             />
           </div>
-
           <div className="action-row">
             <PrimaryButton onClick={onPreview} disabled={running}>
               <Gauge size={18} />
@@ -370,423 +375,97 @@ function PreAnalysisView({
             </PrimaryButton>
             <PrimaryButton onClick={onRun} disabled={running} tone="solid">
               {running ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
-              Gerar relatório Word
+              Gerar Word
             </PrimaryButton>
           </div>
-
-          {erro ? (
-            <div className="error-box">
-              <AlertTriangle size={18} />
-              <span>{erro}</span>
-            </div>
-          ) : null}
+          {erro ? <ErrorBox>{erro}</ErrorBox> : null}
         </section>
-
-        <section className="work-panel">
-          <div className="panel-heading slim">
-            <div>
-              <span className="eyebrow">Rastreamento</span>
-              <h2>Etapas e entregáveis</h2>
+      </section>
+      <aside className="spec-panel">
+        <div className="section-title"><ShieldCheck size={18} /><span>Projeto</span></div>
+        <dl className="detail-list">
+          <div><dt>Cliente</dt><dd>{project?.cliente || '-'}</dd></div>
+          <div><dt>Imovel</dt><dd>{project?.imovel || '-'}</dd></div>
+          <div><dt>Data</dt><dd>{project?.data_consulta || '-'}</dd></div>
+          <div><dt>CRS</dt><dd>{project?.crs_utm || '-'}</dd></div>
+        </dl>
+        <div className="metric-grid">
+          <MiniStat icon={Layers} label="Area" value={formatHa(resumo?.area_ha)} />
+          <MiniStat icon={MapPin} label="Poligonos" value={resumo?.feature_count || resumo?.poligonos || '-'} />
+        </div>
+        <div className="section-title"><FileText size={18} /><span>Recentes</span></div>
+        <div className="folder-list">
+          {results.slice(0, 4).map((item) => (
+            <div className="folder-row" key={item.path}>
+              <span>{item.nome}</span>
+              <strong>{formatBytes(item.tamanho)}</strong>
             </div>
-          </div>
-          <StepTimeline resumo={resumo} preStatus={preStatus} running={running} erro={erro} />
-        </section>
-      </div>
-
-      <EvidenceRail proj={proj} resumo={resumo} results={results} preStatus={preStatus} />
+          ))}
+          {!results.length ? <p className="muted">Nenhum resultado listado.</p> : null}
+        </div>
+      </aside>
     </div>
   )
 }
 
-function AutomationGrid({ autos, selected, setSelected, progress, running, onRun }) {
-  const [expanded, setExpanded] = useState({})
-  const selectedCount = Object.values(selected).filter(Boolean).length
-  return (
-    <section className="view-stack">
-      <div className="section-header">
-        <div>
-          <span className="eyebrow">Execuções auxiliares</span>
-          <h1>Automações do projeto</h1>
-        </div>
-        <PrimaryButton onClick={onRun} disabled={running || selectedCount === 0} tone="solid">
-          {running ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
-          Rodar selecionadas
-        </PrimaryButton>
-      </div>
-
-      <div className="automation-grid">
-        {autos.map((auto) => {
-          const state = progress[auto.id]?.status
-          const isSelected = !!selected[auto.id]
-          const isExpanded = !!expanded[auto.id]
-          
-          return (
-            <div className={`automation-card ${isSelected ? 'selected' : ''}`} key={auto.id}>
-              <div 
-                className="automation-card-header" 
-                onClick={() => setSelected((old) => ({ ...old, [auto.id]: !isSelected }))}
-              >
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => {}}
-                />
-                <div className="automation-card-body">
-                  <div className="automation-icon">
-                    <ClipboardList size={20} />
-                  </div>
-                  <div>
-                    <strong>{auto.label}</strong>
-                    <span>{auto.id}</span>
-                  </div>
-                </div>
-                <div className="automation-card-actions">
-                  <StatusBadge state={state === 'done' ? 'done' : state === 'error' ? 'error' : state === 'started' ? 'started' : 'idle'}>
-                    {statusCopy(state)}
-                  </StatusBadge>
-                  <button 
-                    type="button" 
-                    className="expand-button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setExpanded((old) => ({ ...old, [auto.id]: !isExpanded }))
-                    }}
-                    title={isExpanded ? "Ocultar detalhes" : "Mostrar detalhes"}
-                  >
-                    {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                  </button>
-                </div>
-              </div>
-              
-              {isExpanded && (
-                <div className="automation-card-details">
-                  <p>{auto.desc}</p>
-                  <div className="detail-tags">
-                    <span className="detail-tag"><FileDown size={14} /> Saída: .{auto.saida}</span>
-                    {auto.rede && <span className="detail-tag warn"><Network size={14} /> Requer Internet</span>}
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-function ResultsView({ results, onRefresh }) {
-  return (
-    <section className="view-stack">
-      <div className="section-header">
-        <div>
-          <span className="eyebrow">Arquivos gerados</span>
-          <h1>Resultados</h1>
-        </div>
-        <IconButton title="Atualizar resultados" onClick={onRefresh} kind="soft">
-          <RefreshCw size={18} />
-        </IconButton>
-      </div>
-
-      <div className="results-table">
-        {results.length ? (
-          results.map((item) => (
-            <div className="result-row" key={item.path}>
-              <div className="file-mark">
-                <FileText size={18} />
-              </div>
-              <div className="result-main">
-                <strong>{item.nome}</strong>
-                <span>{item.path}</span>
-              </div>
-              <span>{formatBytes(item.tamanho)}</span>
-              <span className="ext-pill">{item.ext || 'arquivo'}</span>
-            </div>
-          ))
-        ) : (
-          <div className="empty-state">
-            <FileText size={34} />
-            <strong>Nenhum resultado encontrado</strong>
-            <span>Execute a Pré-Análise ou atualize a lista depois de gerar arquivos.</span>
-          </div>
-        )}
-      </div>
-    </section>
-  )
-}
-
-function ManualView() {
-  const sections = [
-    {
-      title: '1. Antes de rodar',
-      items: [
-        'Confirme o projeto.json da pasta raiz do trabalho.',
-        'Use um shapefile compactado em .zip contendo .shp, .shx, .dbf e .prj.',
-        'Mantenha secrets.local.json fora do Git quando houver chaves privadas.',
-      ],
-    },
-    {
-      title: '2. Fluxo da Pré-Análise',
-      items: [
-        'Carregue o projeto no topo da tela.',
-        'Informe o ZIP da propriedade em Shapefile compactado.',
-        'Escolha a pasta de saída e clique em Conferir geometria para validar área, CRS e bounding box.',
-        'Clique em Gerar relatório Word para consultar bases, baixar documentos, processar textos e montar o DOCX.',
-      ],
-    },
-    {
-      title: '3. O que o sistema entrega',
-      items: [
-        'Um arquivo .docx com as seções técnicas e jurídicas da análise.',
-        'Recibos do CAR em Consultas_Publicas/CAR.',
-        'Autorizações Provisórias de Funcionamento em Consultas_Publicas/APF.',
-        'Dados estruturados da IA para áreas, matrículas, posse, status e resumos jurídicos.',
-      ],
-    },
-    {
-      title: '4. Fontes consultadas',
-      items: [
-        'SEMA-MT, SIMCAR, APF Rural, INCRA, FUNAI, IBAMA/PAMGIA e MapBiomas.',
-        'DeepSeek Flash estrutura recibos e APFs a partir de texto bruto.',
-        'DeepSeek Pro resume autos de infração e embargos quando houver cruzamento espacial.',
-      ],
-    },
-    {
-      title: '5. Revisão obrigatória',
-      items: [
-        'Confirme manualmente registros de embargo, infração e sobreposição sensível antes de protocolar.',
-        'Compare nomes, CPF/CNPJ, matrícula e áreas com os documentos públicos baixados.',
-        'Quando uma fonte pública estiver indisponível, registre a indisponibilidade no relatório final.',
-      ],
-    },
-  ]
-
-  return (
-    <section className="manual-layout">
-      <div className="manual-intro">
-        <span className="eyebrow">Manual operacional</span>
-        <h1>NexoGeo Ambiental</h1>
-        <p>
-          Este módulo transforma o ZIP da propriedade em uma pré-análise Word auditável: geometria,
-          consultas públicas, documentos baixados, leitura por IA e texto técnico pronto para revisão.
-        </p>
-      </div>
-      <div className="manual-grid">
-        {sections.map((section) => (
-          <article className="manual-section" key={section.title}>
-            <h2>{section.title}</h2>
-            <ul>
-              {section.items.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </article>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function NewProjectForm({ onCancel, onCreate }) {
-  const [nome, setNome] = useState('')
-  const [cliente, setCliente] = useState('')
-  const [destino, setDestino] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [erro, setErro] = useState('')
-
-  const handleCreate = async () => {
-    if (!nome || !destino) {
-      setErro('Nome e Destino são obrigatórios')
-      return
-    }
-    setBusy(true)
-    try {
-      const res = await jpost('/api/projeto/novo', { nome, cliente, destino })
-      if (res.path) {
-        onCreate(res.path)
-      }
-    } catch (e) {
-      setErro(cleanError(e))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="new-project-modal">
-      <div className="modal-content">
-        <h2>Criar Novo Projeto</h2>
-        <Field label="Nome do Imóvel/Projeto" value={nome} onChange={setNome} placeholder="Ex: Fazenda Boa Esperança" />
-        <Field label="Cliente (opcional)" value={cliente} onChange={setCliente} placeholder="Nome do Produtor" />
-        <Field 
-          label="Pasta de Destino (Onde salvar)" 
-          value={destino} 
-          onChange={setDestino} 
-          icon={FolderOpen} 
-          onBrowse={async () => {
-            const res = await jget('/api/dialog/folder')
-            if (res.path) setDestino(res.path)
-          }} 
-        />
-        {erro && <div className="error-box inline">{erro}</div>}
-        <div className="modal-actions">
-          <button className="btn-cancel" onClick={onCancel} disabled={busy}>Cancelar</button>
-          <PrimaryButton onClick={handleCreate} disabled={busy} tone="solid">
-            {busy ? <Loader2 size={18} className="spin" /> : 'Criar e Abrir'}
-          </PrimaryButton>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ProjectsLobby({ recentes, onOpen, onNew }) {
-  return (
-    <div className="projects-lobby">
-      <div className="lobby-header">
-        <div className="brand-mark large">
-          <Globe2 size={34} />
-        </div>
-        <h1>Meus Projetos</h1>
-        <p>Selecione um projeto recente ou crie uma nova análise estruturada.</p>
-      </div>
-      
-      <div className="recent-grid">
-        <div className="recent-card new-card" onClick={onNew}>
-          <Plus size={28} />
-          <strong>Criar Novo Projeto</strong>
-        </div>
-        {recentes.map(p => (
-          <div className="recent-card" key={p.path} onClick={() => onOpen(p.path)}>
-            <FolderOpen size={24} className="folder-icon" />
-            <div className="rc-content">
-              <strong>{p.nome}</strong>
-              <span>{p.path}</span>
-            </div>
-            <ChevronRight size={20} className="arrow-icon" />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-export default function App() {
-  const [appView, setAppView] = useState('lobby')
-  const [recentes, setRecentes] = useState([])
-  const [showNewForm, setShowNewForm] = useState(false)
-  const [path, setPath] = useState(DEFAULT_PROJECT)
-  const [proj, setProj] = useState(null)
-  const [autos, setAutos] = useState([])
-  const [selected, setSelected] = useState({})
-  const [progress, setProgress] = useState({})
-  const [results, setResults] = useState([])
+function MapsAiView({ analysisPath, preShape, mapProject, setMapProject, chatResult, setChatResult, mapResult, setMapResult, mapResults, setMapResults }) {
+  const [prompt, setPrompt] = useState(DEFAULT_PROMPTS[0])
   const [running, setRunning] = useState(false)
-  const [busy, setBusy] = useState(false)
   const [erro, setErro] = useState('')
-  const [activeView, setActiveView] = useState('pre')
-  const [preShape, setPreShape] = useState(DEFAULT_SHAPE)
-  const [preOut, setPreOut] = useState(DEFAULT_OUT)
-  const [resumo, setResumo] = useState(null)
-  const [preStatus, setPreStatus] = useState(null)
+  const [events, setEvents] = useState([])
 
-  const selectedCount = useMemo(() => Object.values(selected).filter(Boolean).length, [selected])
-
-  async function carregarRecentes() {
-    try {
-      const cfg = await jget('/api/config')
-      if (cfg.recentes) setRecentes(cfg.recentes)
-    } catch (error) {
-      console.error(error)
-    }
-  }
-
-  async function carregar(projetoPath) {
-    setBusy(true)
+  async function prepare() {
+    if (!analysisPath) return null
     setErro('')
     try {
-      const [project, automationList] = await Promise.all([
-        jpost('/api/projeto/validar', { path: projetoPath }),
-        jget('/api/automacoes'),
-      ])
-      const resultList = await jget(`/api/resultados?path=${encodeURIComponent(projetoPath)}`).catch(() => [])
-      setProj(project)
-      setPath(projetoPath)
-      setAutos(automationList)
-      setResults(resultList)
-      setSelected(Object.fromEntries(automationList.map((auto) => [auto.id, false])))
-      setActiveView('pre')
-      setAppView('project')
-      setShowNewForm(false)
-      carregarRecentes()
-    } catch (error) {
-      setErro(cleanError(error))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function atualizarResultados() {
-    if (!proj) return
-    const resultList = await jget(`/api/resultados?path=${encodeURIComponent(path)}`).catch(() => [])
-    setResults(resultList)
-  }
-
-  async function conferirGeometria() {
-    setErro('')
-    try {
-      const shapeResumo = await jpost('/api/pre-analise/resumo', {
-        path,
-        shapefile_zip: preShape,
-        saida_dir: preOut,
-        usar_ia: false,
+      const result = await jpost('/api/nexomap/from-analysis', {
+        analysis_path: analysisPath,
+        area_path: preShape || null,
       })
-      setResumo(shapeResumo)
+      setMapProject(result.project)
+      await refreshResults(result.path)
+      return result.project
+    } catch (error) {
+      setErro(cleanError(error))
+      return null
+    }
+  }
+
+  async function refreshResults(projectPath = mapProject?.arquivo) {
+    if (!projectPath) return
+    const data = await jget(`/api/nexomap/resultados?path=${encodeURIComponent(projectPath)}`).catch(() => [])
+    setMapResults(data)
+  }
+
+  async function interpret() {
+    const project = mapProject || await prepare()
+    if (!project || !prompt.trim()) return
+    setErro('')
+    try {
+      const result = await jpost('/api/nexomap/chat', { path: project.arquivo, prompt, allow_local_fallback: true })
+      setChatResult(result)
+      setEvents((old) => [...old, { status: 'done', stage: 'mapspec', text: `MapSpec criado por ${result.provider}` }])
     } catch (error) {
       setErro(cleanError(error))
     }
   }
 
-  async function rodarPreAnalise() {
+  async function generate() {
+    const project = mapProject || await prepare()
+    if (!project) return
     setRunning(true)
     setErro('')
+    setEvents([])
     try {
-      const shapeResumo = await jpost('/api/pre-analise/resumo', {
-        path,
-        shapefile_zip: preShape,
-        saida_dir: preOut,
-        usar_ia: false,
-      })
-      setResumo(shapeResumo)
-      const output = await jpost('/api/pre-analise/run', {
-        path,
-        shapefile_zip: preShape,
-        saida_dir: preOut,
-        usar_ia: true,
-      })
-      setPreStatus(output)
-      await atualizarResultados()
-    } catch (error) {
-      setErro(cleanError(error))
-    } finally {
-      setRunning(false)
-    }
-  }
-
-  async function runStream() {
-    const ids = autos.filter((auto) => selected[auto.id]).map((auto) => auto.id)
-    if (!ids.length) return
-    setRunning(true)
-    setErro('')
-    setProgress({})
-    try {
-      const response = await fetch(API + '/api/run', {
+      const body = chatResult?.mapspec
+        ? { path: project.arquivo, mapspec: chatResult.mapspec, strict_mxd: false }
+        : { path: project.arquivo, prompt, strict_mxd: false }
+      const response = await fetch(API + '/api/nexomap/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path, ids }),
+        body: JSON.stringify(body),
       })
       if (!response.ok || !response.body) throw new Error(await response.text())
-
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
@@ -800,12 +479,424 @@ export default function App() {
           const line = chunk.split('\n').find((entry) => entry.startsWith('data: '))
           if (!line) continue
           const event = JSON.parse(line.slice(6))
-          if (event.automacao) {
-            setProgress((old) => ({ ...old, [event.automacao]: event }))
+          setEvents((old) => [...old, event])
+          if (event.status === 'done') {
+            setMapResult(event.result)
+            setChatResult({ provider: event.result.provider, warnings: event.result.warnings, mapspec: event.result.mapspec })
           }
+          if (event.status === 'error') setErro(event.erro)
         }
       }
-      await atualizarResultados()
+      await refreshResults(project.arquivo)
+    } catch (error) {
+      setErro(cleanError(error))
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  return (
+    <div className="chat-grid">
+      <div className="chat-main">
+        <MapCanvas project={mapProject} result={mapResult} running={running} />
+        <section className="work-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">Mapas IA</span>
+              <h1>Descreva o mapa</h1>
+            </div>
+            <StatusBadge state={running ? 'progress' : mapResult?.ok ? 'ok' : mapProject?.area_base?.exists ? 'ok' : 'idle'}>
+              {running ? 'Gerando' : mapResult?.ok ? 'Validado' : mapProject?.area_base?.exists ? 'Preparado' : 'Aguardando'}
+            </StatusBadge>
+          </div>
+          <Field label="Area base usada pela aba" value={preShape || mapProject?.area_base?.path || ''} icon={UploadCloud} readOnly />
+          <textarea
+            className="prompt-box"
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            placeholder="Ex: Gere um mapa com imagem de satelite, perimetro, CAR e embargos ambientais."
+          />
+          <div className="example-row">
+            {DEFAULT_PROMPTS.map((example) => (
+              <button type="button" key={example} onClick={() => setPrompt(example)}>{example}</button>
+            ))}
+          </div>
+          <div className="action-row">
+            <PrimaryButton onClick={prepare} disabled={running || !analysisPath}>
+              <Save size={18} />
+              Preparar aba
+            </PrimaryButton>
+            <PrimaryButton onClick={interpret} disabled={running || !analysisPath}>
+              <Sparkles size={18} />
+              Criar MapSpec
+            </PrimaryButton>
+            <PrimaryButton onClick={generate} disabled={running || !analysisPath} tone="solid">
+              {running ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
+              Gerar mapa
+            </PrimaryButton>
+          </div>
+          {erro ? <ErrorBox>{erro}</ErrorBox> : null}
+        </section>
+        <section className="work-panel">
+          <div className="section-title"><TerminalSquare size={18} /><span>Progresso</span></div>
+          <div className="timeline">
+            {events.length ? events.map((event, index) => (
+              <div className={`timeline-row ${event.status === 'error' ? 'error' : event.status === 'done' ? 'done' : 'started'}`} key={`${event.stage}-${index}`}>
+                <div className="timeline-dot">
+                  {event.status === 'error' ? <XCircle size={14} /> : event.status === 'done' ? <CheckCircle2 size={14} /> : <Loader2 size={14} className="spin" />}
+                </div>
+                <div>
+                  <strong>{event.stage || event.status}</strong>
+                  <span>{event.erro || event.text || event.status}</span>
+                </div>
+              </div>
+            )) : (
+              <div className="empty-inline"><Cpu size={22} /><span>Nenhum job rodando.</span></div>
+            )}
+          </div>
+        </section>
+        <MapResultsInline results={mapResults} onRefresh={() => refreshResults()} />
+      </div>
+      <SpecPanel chatResult={chatResult} result={mapResult} />
+    </div>
+  )
+}
+
+function MapResultsInline({ results, onRefresh }) {
+  return (
+    <section className="work-panel">
+      <div className="panel-heading slim">
+        <div className="section-title"><ImageIcon size={18} /><span>Mapas gerados</span></div>
+        <IconButton title="Atualizar mapas" onClick={onRefresh}><RefreshCw size={18} /></IconButton>
+      </div>
+      <div className="results-list compact-results">
+        {results.length ? results.slice(0, 4).map((job) => (
+          <article className="result-card" key={job.job_id}>
+            <div className="file-mark"><FileText size={18} /></div>
+            <div className="result-main">
+              <strong>{job.titulo}</strong>
+              <span>{job.job_dir}</span>
+              {job.warnings?.length ? <small>{job.warnings[0]}</small> : null}
+            </div>
+            <StatusBadge state={job.ok ? 'ok' : 'error'}>{job.ok ? 'Validado' : 'Aviso'}</StatusBadge>
+            <div className="result-actions">
+              {['pdf', 'png_validacao', 'mxd', 'validacao'].map((key) => job.outputs?.[key] ? (
+                <button type="button" key={key} onClick={() => jpost('/api/abrir', { alvo: job.outputs[key] })}>{key}</button>
+              ) : null)}
+              <button type="button" onClick={() => jpost('/api/abrir', { alvo: job.job_dir })}>pasta</button>
+            </div>
+          </article>
+        )) : (
+          <div className="empty-inline"><ImageIcon size={22} /><span>Nenhum mapa gerado nesta analise.</span></div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function AutomationGrid({ autos, selected, setSelected, progress, running, onRun }) {
+  const selectedCount = Object.values(selected).filter(Boolean).length
+  return (
+    <section className="view-stack">
+      <div className="section-header">
+        <div>
+          <span className="eyebrow">Execucoes auxiliares</span>
+          <h1>Automacoes do projeto</h1>
+        </div>
+        <PrimaryButton onClick={onRun} disabled={running || selectedCount === 0} tone="solid">
+          {running ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
+          Rodar selecionadas
+        </PrimaryButton>
+      </div>
+      <div className="automation-grid">
+        {autos.map((auto) => {
+          const state = progress[auto.id]?.status
+          const isSelected = !!selected[auto.id]
+          return (
+            <button
+              type="button"
+              className={`automation-card ${isSelected ? 'selected' : ''}`}
+              key={auto.id}
+              onClick={() => setSelected((old) => ({ ...old, [auto.id]: !isSelected }))}
+            >
+              <div className="automation-card-header">
+                <div className="automation-card-body">
+                  <div className="file-mark"><ClipboardList size={18} /></div>
+                  <div>
+                    <strong>{auto.label}</strong>
+                    <span>{auto.desc}</span>
+                  </div>
+                </div>
+                <StatusBadge state={state === 'done' ? 'done' : state === 'error' ? 'error' : state === 'started' ? 'progress' : 'idle'}>
+                  {statusCopy(state)}
+                </StatusBadge>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+function ResultsView({ results, mapResults, onRefresh, onRefreshMaps }) {
+  return (
+    <section className="view-stack">
+      <div className="section-header">
+        <div>
+          <span className="eyebrow">Arquivos gerados</span>
+          <h1>Resultados</h1>
+        </div>
+        <div className="action-row inline-actions">
+          <IconButton title="Atualizar documentos" onClick={onRefresh}><RefreshCw size={18} /></IconButton>
+          <IconButton title="Atualizar mapas" onClick={onRefreshMaps}><ImageIcon size={18} /></IconButton>
+        </div>
+      </div>
+      <div className="results-list">
+        {results.length ? results.map((item) => (
+          <article className="result-card" key={item.path}>
+            <div className="file-mark"><FileText size={18} /></div>
+            <div className="result-main">
+              <strong>{item.nome}</strong>
+              <span>{item.path}</span>
+            </div>
+            <StatusBadge state="ok">{item.ext || 'arquivo'}</StatusBadge>
+            <div className="result-actions">
+              <button type="button" onClick={() => jpost('/api/abrir', { alvo: item.path })}>abrir</button>
+            </div>
+          </article>
+        )) : null}
+        {mapResults.map((job) => (
+          <article className="result-card" key={job.job_id}>
+            <div className="file-mark"><ImageIcon size={18} /></div>
+            <div className="result-main">
+              <strong>{job.titulo}</strong>
+              <span>{job.job_dir}</span>
+            </div>
+            <StatusBadge state={job.ok ? 'ok' : 'error'}>{job.ok ? 'mapa validado' : 'mapa com aviso'}</StatusBadge>
+            <div className="result-actions">
+              {['pdf', 'png_validacao', 'mxd', 'validacao'].map((key) => job.outputs?.[key] ? (
+                <button type="button" key={key} onClick={() => jpost('/api/abrir', { alvo: job.outputs[key] })}>{key}</button>
+              ) : null)}
+            </div>
+          </article>
+        ))}
+        {!results.length && !mapResults.length ? (
+          <div className="empty-state">
+            <FileText size={34} />
+            <strong>Nenhum resultado encontrado</strong>
+            <span>Execute a Pre-Analise, automacoes ou Mapas IA.</span>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
+function DoctorView({ doctor, onRefresh }) {
+  const arc = doctor?.arcgis
+  return (
+    <section className="view-stack">
+      <div className="section-header">
+        <div>
+          <span className="eyebrow">Ambiente</span>
+          <h1>Doctor</h1>
+        </div>
+        <IconButton title="Atualizar doctor" onClick={onRefresh}><RefreshCw size={18} /></IconButton>
+      </div>
+      <div className="doctor-grid">
+        <section className="work-panel">
+          <div className="section-title"><MonitorCog size={18} /><span>ArcGIS / MXD</span></div>
+          <dl className="detail-list">
+            <div><dt>Python</dt><dd>{arc?.python_path || '-'}</dd></div>
+            <div><dt>Executavel</dt><dd>{arc?.python_exists ? 'encontrado' : 'ausente'}</dd></div>
+            <div><dt>Manifesto</dt><dd>{arc?.manifest_exists ? 'encontrado' : 'ausente'}</dd></div>
+            <div><dt>Status</dt><dd>{arc?.message || '-'}</dd></div>
+          </dl>
+        </section>
+        <section className="work-panel">
+          <div className="section-title"><Bot size={18} /><span>IA e API</span></div>
+          <dl className="detail-list">
+            <div><dt>Python API</dt><dd>{doctor?.python || '-'}</dd></div>
+            <div><dt>UI dist</dt><dd>{doctor?.ui_dist ? 'build presente' : 'sem build'}</dd></div>
+            <div><dt>Fallback</dt><dd>parser local ativo</dd></div>
+          </dl>
+        </section>
+      </div>
+    </section>
+  )
+}
+
+function ManualView() {
+  return (
+    <section className="manual-layout">
+      <div className="manual-intro">
+        <span className="eyebrow">Manual operacional</span>
+        <h1>NexoGeo Ambiental</h1>
+        <p>Use Pre-Analise para gerar o Word, Automacoes para os relatórios auxiliares e Mapas IA para gerar PDF/PNG validado a partir de um prompt cartografico.</p>
+      </div>
+      <div className="manual-grid">
+        <article className="work-panel"><h2>Dados</h2><p className="muted">O projeto de analise continua sendo o `projeto.json` normal. A aba Mapas IA cria um arquivo interno `.nexomap/projeto.nexomap.json` na pasta da analise.</p></article>
+        <article className="work-panel"><h2>Saidas</h2><p className="muted">Mapas entram em `Resultados/Mapas_IA/job_id/` com `mapa.pdf`, `png_validacao.png`, `validacao.json` e `mapspec.json`.</p></article>
+        <article className="work-panel"><h2>MXD</h2><p className="muted">MXD real exige ArcMap 10.x e templates `.mxd` reais em `templates/mxd/`. Sem isso, o PDF/PNG funciona e a UI mostra o aviso.</p></article>
+        <article className="work-panel"><h2>IA</h2><p className="muted">Sem chave configurada, a aba usa parser local deterministico para MapSpec. Com `deepseek_api_key`, usa o provedor configurado em `secrets.local.json`.</p></article>
+      </div>
+    </section>
+  )
+}
+
+export default function App() {
+  const [appView, setAppView] = useState('lobby')
+  const [activeView, setActiveView] = useState('pre')
+  const [recentes, setRecentes] = useState([])
+  const [showNewForm, setShowNewForm] = useState(false)
+  const [path, setPath] = useState('')
+  const [project, setProject] = useState(null)
+  const [autos, setAutos] = useState([])
+  const [selected, setSelected] = useState({})
+  const [progress, setProgress] = useState({})
+  const [results, setResults] = useState([])
+  const [running, setRunning] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [erro, setErro] = useState('')
+  const [preShape, setPreShape] = useState('')
+  const [preOut, setPreOut] = useState('')
+  const [resumo, setResumo] = useState(null)
+  const [preStatus, setPreStatus] = useState(null)
+  const [mapProject, setMapProject] = useState(null)
+  const [chatResult, setChatResult] = useState(null)
+  const [mapResult, setMapResult] = useState(null)
+  const [mapResults, setMapResults] = useState([])
+  const [doctor, setDoctor] = useState(null)
+
+  const activeMeta = useMemo(() => NAV.find((item) => item.id === activeView) || NAV[0], [activeView])
+  const ActiveIcon = activeMeta.icon
+
+  async function loadRecentes() {
+    const cfg = await jget('/api/config').catch(() => ({ recentes: [] }))
+    setRecentes(cfg.recentes || [])
+  }
+
+  async function refreshResults(projectPath = path) {
+    if (!projectPath) return
+    const data = await jget(`/api/resultados?path=${encodeURIComponent(projectPath)}`).catch(() => [])
+    setResults(data)
+  }
+
+  async function refreshMapResults(projectPath = mapProject?.arquivo) {
+    if (!projectPath) return
+    const data = await jget(`/api/nexomap/resultados?path=${encodeURIComponent(projectPath)}`).catch(() => [])
+    setMapResults(data)
+  }
+
+  async function refreshDoctor(mapProjectPath = mapProject?.arquivo) {
+    const suffix = mapProjectPath ? `?path=${encodeURIComponent(mapProjectPath)}` : ''
+    const data = await jget(`/api/nexomap/doctor${suffix}`).catch(() => null)
+    setDoctor(data)
+  }
+
+  async function carregar(projetoPath) {
+    setBusy(true)
+    setErro('')
+    try {
+      const [projectData, automationList] = await Promise.all([
+        jpost('/api/projeto/validar', { path: projetoPath }),
+        jget('/api/automacoes'),
+      ])
+      setPath(projetoPath)
+      setProject(projectData)
+      setAutos(automationList)
+      setSelected(Object.fromEntries(automationList.map((auto) => [auto.id, false])))
+      setPreOut(projectData?.pastas?.resultados?.path || '')
+      setPreShape('')
+      setResumo(null)
+      setPreStatus(null)
+      setMapProject(null)
+      setChatResult(null)
+      setMapResult(null)
+      setMapResults([])
+      setActiveView('pre')
+      setAppView('project')
+      await Promise.all([refreshResults(projetoPath), refreshDoctor(), loadRecentes()])
+    } catch (error) {
+      setErro(cleanError(error))
+    } finally {
+      setBusy(false)
+      setShowNewForm(false)
+    }
+  }
+
+  async function conferirGeometria() {
+    setErro('')
+    try {
+      const data = await jpost('/api/pre-analise/resumo', {
+        path,
+        shapefile_zip: preShape,
+        saida_dir: preOut,
+        usar_ia: false,
+      })
+      setResumo(data)
+    } catch (error) {
+      setErro(cleanError(error))
+    }
+  }
+
+  async function rodarPreAnalise() {
+    setRunning(true)
+    setErro('')
+    try {
+      const data = await jpost('/api/pre-analise/resumo', {
+        path,
+        shapefile_zip: preShape,
+        saida_dir: preOut,
+        usar_ia: false,
+      })
+      setResumo(data)
+      const output = await jpost('/api/pre-analise/run', {
+        path,
+        shapefile_zip: preShape,
+        saida_dir: preOut,
+        usar_ia: true,
+      })
+      setPreStatus(output)
+      await refreshResults(path)
+    } catch (error) {
+      setErro(cleanError(error))
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  async function runAutomations() {
+    const ids = autos.filter((auto) => selected[auto.id]).map((auto) => auto.id)
+    if (!ids.length) return
+    setRunning(true)
+    setErro('')
+    setProgress({})
+    try {
+      const response = await fetch(API + '/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path, ids }),
+      })
+      if (!response.ok || !response.body) throw new Error(await response.text())
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const chunks = buffer.split('\n\n')
+        buffer = chunks.pop() || ''
+        for (const chunk of chunks) {
+          const line = chunk.split('\n').find((entry) => entry.startsWith('data: '))
+          if (!line) continue
+          const event = JSON.parse(line.slice(6))
+          if (event.automacao) setProgress((old) => ({ ...old, [event.automacao]: event }))
+        }
+      }
+      await refreshResults(path)
     } catch (error) {
       setErro(cleanError(error))
     } finally {
@@ -814,22 +905,18 @@ export default function App() {
   }
 
   useEffect(() => {
-    carregarRecentes()
+    loadRecentes()
+    refreshDoctor('')
   }, [])
-
-  const ActiveIcon = NAV.find((item) => item.id === activeView)?.icon || MapPin
 
   if (appView === 'lobby') {
     return (
       <div className="app-shell lobby-shell">
-        <main className="main-surface" style={{ border: 'none', borderRadius: 0, height: '100vh', display: 'flex', flexDirection: 'column' }}>
-          {showNewForm ? (
-            <NewProjectForm onCancel={() => setShowNewForm(false)} onCreate={carregar} />
-          ) : (
-            <ProjectsLobby recentes={recentes} onOpen={carregar} onNew={() => setShowNewForm(true)} />
-          )}
-          {erro && <div className="floating-error"><AlertTriangle size={18} /><span>{erro}</span></div>}
-        </main>
+        {showNewForm ? (
+          <NewAnalysisForm onCancel={() => setShowNewForm(false)} onCreate={carregar} />
+        ) : (
+          <ProjectsLobby recentes={recentes} onOpen={carregar} onNew={() => setShowNewForm(true)} erro={erro} />
+        )}
       </div>
     )
   }
@@ -838,25 +925,14 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">
-            <Globe2 size={25} />
-          </div>
-          <div>
-            <strong>NexoGeo</strong>
-            <span>Ambiental</span>
-          </div>
+          <div className="brand-mark"><Globe2 size={25} /></div>
+          <div><strong>NexoGeo</strong><span>Ambiental</span></div>
         </div>
-
-        <nav className="nav-list" aria-label="Navegação principal">
+        <nav className="nav-list" aria-label="Navegacao principal">
           {NAV.map((item) => {
             const Icon = item.icon
             return (
-              <button
-                type="button"
-                key={item.id}
-                className={activeView === item.id ? 'active' : ''}
-                onClick={() => setActiveView(item.id)}
-              >
+              <button type="button" key={item.id} className={activeView === item.id ? 'active' : ''} onClick={() => setActiveView(item.id)}>
                 <Icon size={18} />
                 <span>{item.label}</span>
                 {activeView === item.id ? <ChevronRight size={16} /> : null}
@@ -864,86 +940,91 @@ export default function App() {
             )
           })}
         </nav>
-
         <div className="sidebar-footer">
           <span>Projeto ativo</span>
-          <strong>{proj?.imovel || 'Nenhum projeto'}</strong>
-          <small>{proj?.raiz || 'Carregue o projeto.json'}</small>
+          <strong>{project?.imovel || 'Sem projeto'}</strong>
+          <small>{project?.raiz || path}</small>
         </div>
       </aside>
-
       <main className="main-surface">
         <header className="topbar">
           <div className="topbar-title">
-            <div className="topbar-icon">
-              <ActiveIcon size={19} />
-            </div>
-            <div>
-              <span>NexoGeo Ambiental</span>
-              <strong>{NAV.find((item) => item.id === activeView)?.label || 'Pré-Análise'}</strong>
-            </div>
+            <div className="topbar-icon"><ActiveIcon size={19} /></div>
+            <div><span>NexoGeo Ambiental</span><strong>{activeMeta.label}</strong></div>
           </div>
-
-          <div className="project-command breadcrumb-command" style={{ gridTemplateColumns: '42px minmax(0, 1fr) 42px' }}>
-            <IconButton title="Voltar ao Início" onClick={() => setAppView('lobby')} kind="soft">
-              <ArrowLeft size={18} />
+          <div className="project-command">
+            <input value={path} onChange={(event) => setPath(event.target.value)} placeholder="Caminho do projeto.json da analise" />
+            <IconButton title="Abrir projeto" onClick={async () => {
+              const result = await jget('/api/dialog/file')
+              if (result.path) carregar(result.path)
+            }}>
+              <FolderOpen size={18} />
             </IconButton>
-            <div className="breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 12px', background: 'var(--panel)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              <span style={{ color: 'var(--muted)', fontSize: '13px' }}>Projetos</span>
-              <ChevronRight size={14} style={{ color: 'var(--muted)' }} />
-              <strong style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{proj?.imovel}</strong>
-            </div>
-            <IconButton title="Recarregar projeto" onClick={() => carregar(path)} disabled={busy} kind="soft">
+            <IconButton title="Recarregar" onClick={() => carregar(path)} disabled={busy || !path}>
               {busy ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
             </IconButton>
           </div>
-
-          <StatusBadge state={proj ? 'ok' : 'idle'}>{proj ? 'Projeto validado' : 'Sem projeto'}</StatusBadge>
+          <button className="back-button" type="button" onClick={() => setAppView('lobby')}>
+            <ArrowLeft size={17} />
+            Projetos
+          </button>
         </header>
-
         <div className="content-surface">
-          <>
-            {activeView === 'pre' ? (
-              <PreAnalysisView
-                proj={proj}
-                resumo={resumo}
-                preShape={preShape}
-                setPreShape={setPreShape}
-                preOut={preOut}
-                setPreOut={setPreOut}
-                preStatus={preStatus}
-                running={running}
-                erro={erro}
-                onPreview={conferirGeometria}
-                onRun={rodarPreAnalise}
-                results={results}
-              />
-            ) : null}
-
-            {activeView === 'automations' ? (
-              <AutomationGrid
-                autos={autos}
-                selected={selected}
-                setSelected={setSelected}
-                progress={progress}
-                running={running}
-                onRun={runStream}
-              />
-            ) : null}
-
-            {activeView === 'results' ? <ResultsView results={results} onRefresh={atualizarResultados} /> : null}
-            {activeView === 'manual' ? <ManualView /> : null}
-
-            {erro && activeView !== 'pre' ? (
-              <div className="floating-error">
-                <AlertTriangle size={18} />
-                <span>{erro}</span>
-              </div>
-            ) : null}
-          </>
+          {activeView === 'pre' ? (
+            <PreAnalysisView
+              project={project}
+              resumo={resumo}
+              preShape={preShape}
+              setPreShape={setPreShape}
+              preOut={preOut}
+              setPreOut={setPreOut}
+              preStatus={preStatus}
+              running={running}
+              erro={erro}
+              onPreview={conferirGeometria}
+              onRun={rodarPreAnalise}
+              results={results}
+            />
+          ) : null}
+          {activeView === 'maps_ai' ? (
+            <MapsAiView
+              analysisPath={path}
+              preShape={preShape}
+              mapProject={mapProject}
+              setMapProject={setMapProject}
+              chatResult={chatResult}
+              setChatResult={setChatResult}
+              mapResult={mapResult}
+              setMapResult={setMapResult}
+              mapResults={mapResults}
+              setMapResults={setMapResults}
+            />
+          ) : null}
+          {activeView === 'automations' ? (
+            <AutomationGrid
+              autos={autos}
+              selected={selected}
+              setSelected={setSelected}
+              progress={progress}
+              running={running}
+              onRun={runAutomations}
+            />
+          ) : null}
+          {activeView === 'results' ? (
+            <ResultsView
+              results={results}
+              mapResults={mapResults}
+              onRefresh={() => refreshResults(path)}
+              onRefreshMaps={() => refreshMapResults()}
+            />
+          ) : null}
+          {activeView === 'doctor' ? <DoctorView doctor={doctor} onRefresh={() => refreshDoctor()} /> : null}
+          {activeView === 'manual' ? <ManualView /> : null}
+          {erro && activeView !== 'pre' ? (
+            <div className="floating-error"><AlertTriangle size={18} /><span>{erro}</span></div>
+          ) : null}
         </div>
       </main>
     </div>
   )
 }
-
