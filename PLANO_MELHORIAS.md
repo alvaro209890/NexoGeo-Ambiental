@@ -16,6 +16,14 @@
 | **Abrangência** | **Só Mato Grosso na v2.** Municípios de MT (minimapa IBGE), UTM 21S/22S, órgão estadual = SEMA-MT. | Sem abstração de outros estados por ora; `municipio.uf` validado como "MT". |
 | **IA (DeepSeek)** | **Obrigatória.** Chave DeepSeek é pré-requisito para a pré-análise (extração de PDFs e resumo de embargos sempre via IA). | Sem chave configurada, a pré-análise **falha rápido com mensagem clara** (não degrada silenciosamente); o "doctor" e a tela Config validam a chave. |
 
+### 0.1.1 Decisões adicionais (02/07/2026, tarde — após o NexoMap AI)
+
+| Tema | Decisão | Consequência no plano |
+|---|---|---|
+| **Repo público** | O repo `alvaro209890/NexoGeo-Ambiental` está **público e assim permanece por ora** (risco assumido pelo usuário: `pre_analise.py` publicado contém matrículas/CNPJ reais da São Judas). | O M1 remove o hardcode do working tree; os dados **permanecem no histórico do git** — reavaliar visibilidade/`git filter-repo` depois. LICENSE proprietária adicionada. |
+| **Série padrão × NexoMap AI** | A série padrão de mapas vira a **automação `mapas`** (determinística, sem chat), **reusando a infraestrutura NexoMap** já criada: `core/arcgis_bridge.py`, `templates/mxd/MANIFEST.json`, validação PNG, convenção de saída. A aba **Mapas IA** (chat → MapSpec → mapa avulso) continua existindo em paralelo. | M2/M3 deixam de criar a ponte do zero — **estendem** a existente (timeout/exit-124/locks, receitas por template no MANIFEST). |
+| **Templates MXD fora do Git** | Os **20 MXDs** (90 MB, com authkey SEMA embutida nas camadas WMS — inviável limpar o binário nesta máquina sem o arcpy travar) **não são versionados**. `templates/mxd/*.mxd` entra no `.gitignore`; o MANIFEST (versionado) aponta para uma **pasta local de templates configurável** (secrets/app config). | Item "copiar 18 MXDs para o repo" do M2 vira "manifesto + pasta configurável"; a pasta canônica local é `MXD/claude` (agora com 20: + `Dinamica_2026_cultivo`, `PEF`). |
+
 ## 0. Meta final (definição de "pronto")
 
 O usuário fornece **apenas duas coisas**:
@@ -232,6 +240,10 @@ disponíveis) e registra o resultado no `DESENVOLVIMENTO.md`.
 
 ## 10. Preparação do repositório GitHub (fazer ANTES do M1)
 
+> **Executado em 02/07/2026 com desvios** (ver §0.1.1): o repo existe como
+> `alvaro209890/NexoGeo-Ambiental` e está **público** por decisão do usuário
+> (o plano abaixo previa privado). Passos 3-5 conferidos/aplicados.
+
 A pasta do sistema já se chama **`nexogeo/`** (renomeada de `software/` em 02/07/2026 —
 o `.git` interno não é afetado pelo rename da pasta). Passos para publicar:
 
@@ -256,10 +268,10 @@ o `.git` interno não é afetado pelo rename da pasta). Passos para publicar:
 ## 11. CHECKLIST DE DESENVOLVIMENTO
 
 ### M0 — Kickoff do repositório (§10)
-- [ ] Repo `nexogeo` criado no GitHub (privado) e `origin` configurado
-- [ ] Varredura de credenciais/dados de imóvel no histórico e working tree (comandos do §10.3)
-- [ ] `LICENSE` + README revisado + push inicial
-- [ ] Tag `m0`
+- [x] Repo criado no GitHub (`alvaro209890/NexoGeo-Ambiental`) e `origin` configurado — **público por decisão do usuário (§0.1.1)**, não privado como planejado
+- [x] Varredura de credenciais/dados de imóvel (02/07): nenhuma credencial versionada; **dados São Judas presentes no `pre_analise.py` publicado** (risco assumido; M1 remove do working tree, histórico permanece)
+- [x] `LICENSE` (proprietária) + README revisado + push inicial
+- [x] Tag `m0`
 
 ### M1 — Generalizar a pré-análise (Frente A → mata P1/P2)
 - [ ] Bloco `dominialidade` no `schema/projeto.schema.json` + `core/config.py` (dataclasses)
@@ -276,14 +288,18 @@ o `.git` interno não é afetado pelo rename da pasta). Passos para publicar:
 - [ ] **Aceite M1:** pré-análise da Harmonia (zip ATP + matrículas) confere com `Análise_de_area_Fazenda_Harmonia.docx` seções 1-3; tag `m1`
 
 ### M2 — Ponte ArcGIS + templates MXD (Frente B.1-B.2 → mata P9, prepara P3)
-- [ ] `core/arcgis_bridge.py`: localizar Python 2.7 do ArcGIS (config override), subprocess com timeout, exit 124 tolerado no save, args via **JSON UTF-8 temporário** (nunca argv), caminhos absolutos, detecção de `*.lock`/ArcMap aberto
-- [ ] "Doctor" da ponte: `python -m core.arcgis_bridge --check` informa ArcGIS/ogr2ogr achados
-- [ ] `templates/mxd/`: copiar os 18 MXDs limpos de `MXD/claude` (Harmonia 02/07/2026)
-- [ ] Remover credenciais embutidas dos templates (authkey SEMA / api_key Planet) — injeção em runtime na cópia de trabalho
-- [ ] `templates/mxd/MANIFEST.json`: por mapa → shapes homônimos exigidos, CRS do frame, textos/títulos editáveis, elementos do minimapa, dependências (tabela PNG, AIR.shp, distâncias TI/UC)
-- [ ] **Aceite M2:** cópia de trabalho de 1 template abre sem link quebrado com homônimos de exemplo; nenhum segredo em `git grep`; tag `m2`
+> Base já existente (NexoMap AI, 02/07): `core/arcgis_bridge.py` (subprocess + JSON UTF-8 via
+> env var + doctor) e `templates/mxd/MANIFEST.json`. O M2 **estende** essa base — não recriar.
+- [ ] Estender `core/arcgis_bridge.py`: exit 124 tolerado no `save()` (arcpy trava — verificar `os.path.exists` da saída), detecção de `*.lock`/ArcMap aberto, timeout configurável por script
+- [ ] "Doctor" da ponte via CLI: `python -m core.arcgis_bridge --check` informa ArcGIS/ogr2ogr achados (hoje só existe via API `/api/nexomap/doctor`)
+- [ ] Templates **fora do Git** (§0.1.1): `templates/mxd/*.mxd` no `.gitignore`; pasta local de templates configurável (`mxd_templates_dir` em secrets/app config; padrão = `MXD/claude` da análise 4, hoje com 20 MXDs)
+- [ ] Injeção de credenciais em runtime na cópia de trabalho (authkey SEMA nas camadas WMS fica no binário local; nunca versionada)
+- [ ] `templates/mxd/MANIFEST.json` real: substituir os 2 placeholders pelos **20 mapas** → shapes homônimos exigidos, CRS do frame, textos/títulos editáveis, elementos do minimapa, dependências (tabela PNG, AIR.shp, distâncias TI/UC)
+- [ ] **Aceite M2:** cópia de trabalho de 1 template abre sem link quebrado com homônimos de exemplo; nenhum segredo nem `.mxd` em `git ls-files`; tag `m2`
 
 ### M3 — Automação `mapas` completa (Frente B.3-B.5 → mata P3/P6)
+> A automação `mapas` é **determinística** (série padrão, sem chat) e reusa a infra NexoMap
+> (bridge, MANIFEST, validação PNG, `Resultados/`). A aba Mapas IA continua em paralelo (§0.1.1).
 - [ ] Port py2 `templates/mxd/scripts/adapt_generico.py` (fusão adapt_dinamica/tematico/bloco2; broken = `os.path.exists`, nunca `isBroken` pós-repontagem; dedupe sem matar camada dona de legenda)
 - [ ] Port py2 `fix_minimap_rect.py` (retângulo + linha-guia; centro do imóvel vindo do JSON)
 - [ ] Port py2 `export_pdf.py` (lote 150 dpi, nomes via JSON)

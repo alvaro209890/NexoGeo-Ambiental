@@ -15,3 +15,9 @@ build/
 
 # Empacotamento
 *.spec
+
+# Templates MXD: binários com credenciais embutidas ficam FORA do Git (§0.1.1 do PLANO_MELHORIAS)
+templates/mxd/*.mxd
+
+# Temporários de execução
+tmp/
