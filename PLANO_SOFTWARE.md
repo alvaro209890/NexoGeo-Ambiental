@@ -298,5 +298,5 @@ Herdadas do estudo de arquitetura — são o trabalho de base:
 ---
 
 *Em andamento:* **Fase 0** — esquema final do `projeto.json` + estrutura de pastas do
-repositório do software (pasta `software/` na raiz do projeto, pensada para virar repositório
+repositório do software (pasta `nexogeo/` na raiz do projeto, pensada para virar repositório
 próprio, tendo cada análise como um "projeto" externo).

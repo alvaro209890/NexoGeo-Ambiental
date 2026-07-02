@@ -9,7 +9,7 @@ Registro cronológico do desenvolvimento. Complementa [`PLANO_SOFTWARE.md`](PLAN
 
 1. **Software genérico, zero dado de imóvel embutido.** Nada de nome de fazenda, CAR, CRS ou
    campo de `.dbf` escrito no código. Tudo vem do `projeto.json` da análise.
-2. **Projeto vive com os dados**, não dentro do `software/`. O `software/` só traz código,
+2. **Projeto vive com os dados**, não dentro do `nexogeo/`. O `nexogeo/` só traz código,
    schema e exemplos.
 3. **I/O único** em `<projeto>/Resultados`.
 4. **Segredos fora do código e do Git** (`secrets.local.json` na pasta da análise).
@@ -19,7 +19,7 @@ Registro cronológico do desenvolvimento. Complementa [`PLANO_SOFTWARE.md`](PLAN
 
 ## 2026-06-17 — Fase 0 (fundação) ✓
 
-- Esqueleto do repositório `software/` criado.
+- Esqueleto do repositório `nexogeo/` criado.
 - `core/config.py`: esquema do `projeto.json` (dataclasses, **stdlib puro**) + `load_projeto()`
   com validação (campos obrigatórios, ids de fazenda únicos, versão de schema) e derivados
   (`data_consulta_efetiva`, `raiz_abs`, `caminho`).
@@ -31,7 +31,7 @@ Registro cronológico do desenvolvimento. Complementa [`PLANO_SOFTWARE.md`](PLAN
 **Verificação:** `python -m core.config ..\projeto.json` → schema válido, 4 pastas de dados
 resolvidas `[ok]`, 5 shapefiles de CAR encontrados `[ok]`, matrículas somando corretamente.
 
-> Correção de rumo aplicada: o `projeto.json` da Querência saiu de dentro do `software/`
+> Correção de rumo aplicada: o `projeto.json` da Querência saiu de dentro do `nexogeo/`
 > (era dado embutido) e foi para a **raiz da análise** (`../projeto.json`, com `raiz_dados="."`).
 
 ## 2026-06-17 — Fase 1 (núcleo) — em andamento

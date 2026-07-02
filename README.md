@@ -1,4 +1,4 @@
-# Software de Análise de Área
+# NexoGeo Ambiental
 
 Aplicativo Windows para rodar as automações de análise fundiária/ambiental em **várias
 análises / vários imóveis**, dirigido por configuração. **Não contém dados de nenhuma
@@ -7,12 +7,14 @@ análise (não dentro deste repositório).
 
 > Plano completo, inventário de serviços WMS/WFS e roadmap: [`PLANO_SOFTWARE.md`](PLANO_SOFTWARE.md).
 > Diário de desenvolvimento: [`DESENVOLVIMENTO.md`](DESENVOLVIMENTO.md).
+> **Melhorias em execução** (SHP + matrículas → Word + MXD + PDFs) com checklist:
+> [`PLANO_MELHORIAS.md`](PLANO_MELHORIAS.md).
 
 ## Princípio: software genérico, dados externos
 
 ```
    ESTE REPOSITÓRIO (genérico)              SUA ANÁLISE (dados + config)
-   software/                                 <pasta da análise>/
+   nexogeo/                                 <pasta da análise>/
      core/        código reutilizável          projeto.json        <- descreve a análise
      catalogo/    serviços WMS/WFS              secrets.local.json  <- credenciais (não versionar)
      schema/      validação do projeto.json     Shapes/  Consultas_Publicas/  ...
@@ -34,7 +36,7 @@ raiz da própria análise). Assim o mesmo software roda qualquer imóvel.
 ## Estrutura
 
 ```
-software/
+nexogeo/
   core/                 # biblioteca reutilizável (genérica, sem dado de imóvel)
     config.py           # esquema + carga do projeto.json            [Fase 0 ✓]
     geo.py              # reprojeção (via .prj) + atribuição espacial [Fase 1 ✓]
@@ -70,7 +72,7 @@ Só usa a biblioteca padrão do Python — roda sem instalar nada. Aponte para o
 da sua análise (no exemplo, a análise está um nível acima):
 
 ```powershell
-cd software
+cd nexogeo
 & "C:\Users\Usuario\AppData\Local\Programs\Python\Python311\python.exe" -m core.config ..\projeto.json
 ```
 
@@ -79,7 +81,7 @@ se cada shapefile do CAR foi encontrado.
 
 ## Rodar as automações (Fase 2)
 
-Cada automação roda isolada por linha de comando (a partir de `software/`), recebendo o
+Cada automação roda isolada por linha de comando (a partir de `nexogeo/`), recebendo o
 `projeto.json` e, opcionalmente, um caminho de saída (por padrão grava em `Resultados/`):
 
 ```powershell
@@ -100,10 +102,10 @@ python -m automations.apf            ..\projeto.json --pdfs   # APFs -> .xlsx (+
 
 ```powershell
 # terminal 1 — API
-cd software
+cd nexogeo
 python -m uvicorn api.app:app --port 8000
 # terminal 2 — UI (http://localhost:5173, com proxy /api -> 8000)
-cd software\ui
+cd nexogeo\ui
 npm install
 npm run dev
 ```
@@ -111,8 +113,8 @@ npm run dev
 **Janela do app** (UI buildada servida pela API, em janela pywebview):
 
 ```powershell
-cd software\ui ; npm run build      # gera ui/dist
-cd ..                               # software/
+cd nexogeo\ui ; npm run build      # gera ui/dist
+cd ..                               # nexogeo/
 pip install pywebview
 python app.py                       # abre a janela do programa
 ```
@@ -122,8 +124,8 @@ Sem `pywebview`, o `app.py` mantém o servidor no ar e você abre `http://127.0.
 ## Criar uma nova análise
 
 1. Crie a pasta da análise com os dados (`Shapes/`, `Shapes/CAR/`, `Consultas_Publicas/`).
-2. Copie `software/exemplos/projeto.template.json` para `<análise>/projeto.json` e preencha.
-3. (Opcional) Copie `software/exemplos/secrets.example.json` para `<análise>/secrets.local.json`
+2. Copie `nexogeo/exemplos/projeto.template.json` para `<análise>/projeto.json` e preencha.
+3. (Opcional) Copie `nexogeo/exemplos/secrets.example.json` para `<análise>/secrets.local.json`
    e preencha as credenciais (authkey SEMA / api_key Planet).
 4. Valide: `python -m core.config <caminho>\projeto.json`.
 
