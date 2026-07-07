@@ -64,23 +64,26 @@ def ler_geometria(shp_path: str, dst_epsg: int, unir: bool = False):
     - ``unir=True``: devolve uma única geometria (união de todas) ou ``None``.
     """
     r = shapefile.Reader(shp_path, encoding="latin-1")
-    rep = _reprojetor(crs_do_prj(shp_path), dst_epsg)
-    flds = [f[0] for f in r.fields[1:]]
-    feats, geoms = [], []
-    for rec, sh in zip(r.records(), r.shapes()):
-        if sh.shapeType == 0:  # NullShape
-            continue
-        g = _shp_shape(sh.__geo_interface__)
-        if not g.is_valid:
-            g = g.buffer(0)
-        if g.is_empty:
-            continue
-        if rep:
-            g = rep(g)
-        if unir:
-            geoms.append(g)
-        else:
-            feats.append((g, dict(zip(flds, list(rec)))))
+    try:
+        rep = _reprojetor(crs_do_prj(shp_path), dst_epsg)
+        flds = [f[0] for f in r.fields[1:]]
+        feats, geoms = [], []
+        for rec, sh in zip(r.records(), r.shapes()):
+            if sh.shapeType == 0:  # NullShape
+                continue
+            g = _shp_shape(sh.__geo_interface__)
+            if not g.is_valid:
+                g = g.buffer(0)
+            if g.is_empty:
+                continue
+            if rep:
+                g = rep(g)
+            if unir:
+                geoms.append(g)
+            else:
+                feats.append((g, dict(zip(flds, list(rec)))))
+    finally:
+        r.close()
     if unir:
         return unary_union(geoms) if geoms else None
     return feats
@@ -208,12 +211,9 @@ def _features(shp_path: str, dst_epsg: int, assume_epsg: int, avisos: list[str])
     return src, out
 
 
-def importar_shape_extraido(shp_path: str, temp_dir: str, zip_path: str,
-                            dst_epsg: int, geo_epsg: int = 4674,
-                            assume_epsg: int = 4674) -> ShapeImportado:
-    avisos: list[str] = []
-    src, feats_utm = _features(shp_path, dst_epsg, assume_epsg, avisos)
-    rep_geo = _reprojetor(src, geo_epsg)
+def _montar_importado(origem_path: str, temp_dir: str, shp_path: str, src: Optional[CRS],
+                      feats_utm: list, dst_epsg: int, geo_epsg: int,
+                      avisos: list[str]) -> ShapeImportado:
     feats_geo = []
     for geom_utm, rec in feats_utm:
         # Reprojeta a partir do UTM ja carregado quando necessario.
@@ -225,9 +225,9 @@ def importar_shape_extraido(shp_path: str, temp_dir: str, zip_path: str,
     union_utm = unary_union([g for g, _ in feats_utm])
     union_geo = unary_union([g for g, _ in feats_geo])
     return ShapeImportado(
-        zip_path=os.path.abspath(zip_path),
+        zip_path=os.path.abspath(origem_path),
         temp_dir=temp_dir,
-        shp_path=os.path.abspath(shp_path),
+        shp_path=os.path.abspath(shp_path) if shp_path else "",
         src_crs=src,
         dst_epsg=dst_epsg,
         geo_epsg=geo_epsg,
@@ -242,23 +242,208 @@ def importar_shape_extraido(shp_path: str, temp_dir: str, zip_path: str,
     )
 
 
+def importar_shape_extraido(shp_path: str, temp_dir: str, zip_path: str,
+                            dst_epsg: int, geo_epsg: int = 4674,
+                            assume_epsg: int = 4674) -> ShapeImportado:
+    avisos: list[str] = []
+    src, feats_utm = _features(shp_path, dst_epsg, assume_epsg, avisos)
+    return _montar_importado(zip_path, temp_dir, shp_path, src, feats_utm, dst_epsg, geo_epsg, avisos)
+
+
+# --------------------------------------------------------------------------- #
+# GeoJSON / KML / KMZ
+# --------------------------------------------------------------------------- #
+def _geojson_features(path: str, dst_epsg: int, avisos: list[str]):
+    """Feicoes de um .geojson/.json (WGS84 por especificacao; aceita crs legado)."""
+    import json as _json
+    from shapely.geometry import shape as _gshape
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = _json.load(f)
+    src_epsg = 4326
+    crs_name = str(((data.get("crs") or {}).get("properties") or {}).get("name", ""))
+    m_epsg = None
+    if crs_name:
+        import re as _re
+        m_epsg = _re.search(r"(?:EPSG|epsg)[:.]+(\d+)", crs_name)
+    if m_epsg:
+        src_epsg = int(m_epsg.group(1))
+        avisos.append(f"GeoJSON com crs legado EPSG:{src_epsg}.")
+    src = CRS.from_epsg(src_epsg)
+    rep = _reprojetor(src, dst_epsg)
+    raw = data.get("features") if data.get("type") == "FeatureCollection" else None
+    if raw is None:
+        if data.get("type") == "Feature":
+            raw = [data]
+        elif data.get("type"):
+            raw = [{"type": "Feature", "geometry": data, "properties": {}}]
+        else:
+            raise ValueError(f"GeoJSON invalido (sem features): {path}")
+    feats = []
+    for idx, feat in enumerate(raw, start=1):
+        geom_data = feat.get("geometry")
+        if not geom_data:
+            avisos.append(f"feicao {idx} ignorada: sem geometria.")
+            continue
+        g = _gshape(geom_data)
+        if not g.is_valid:
+            g = g.buffer(0)
+        if g.is_empty:
+            avisos.append(f"feicao {idx} ignorada: geometria vazia/invalida.")
+            continue
+        if rep:
+            g = rep(g)
+        feats.append((g, dict(feat.get("properties") or {})))
+    if not feats:
+        raise ValueError(f"GeoJSON sem geometrias validas: {path}")
+    return src, feats
+
+
+def _kml_coords(text: str):
+    pts = []
+    for token in (text or "").split():
+        parts = token.split(",")
+        if len(parts) >= 2:
+            pts.append((float(parts[0]), float(parts[1])))
+    return pts
+
+
+def _kml_features(kml_bytes: bytes, path: str, dst_epsg: int, avisos: list[str]):
+    """Placemarks de um KML (sempre WGS84). Suporta Polygon/MultiGeometry/LineString/Point."""
+    import xml.etree.ElementTree as ET
+    from shapely.geometry import LineString, Point, Polygon
+
+    root = ET.fromstring(kml_bytes)
+    ns = {"k": root.tag.split("}")[0].strip("{")} if root.tag.startswith("{") else {"k": ""}
+
+    def q(tag: str) -> str:
+        return f"{{{ns['k']}}}{tag}" if ns["k"] else tag
+
+    src = CRS.from_epsg(4326)
+    rep = _reprojetor(src, dst_epsg)
+    feats = []
+
+    def _poly(poly_el):
+        outer = poly_el.find(f"{q('outerBoundaryIs')}/{q('LinearRing')}/{q('coordinates')}")
+        if outer is None or not (outer.text or "").strip():
+            return None
+        shell = _kml_coords(outer.text)
+        holes = []
+        for inner in poly_el.findall(f"{q('innerBoundaryIs')}/{q('LinearRing')}/{q('coordinates')}"):
+            if (inner.text or "").strip():
+                holes.append(_kml_coords(inner.text))
+        if len(shell) < 4:
+            return None
+        g = Polygon(shell, holes)
+        return g if g.is_valid else g.buffer(0)
+
+    for pm in root.iter(q("Placemark")):
+        nome_el = pm.find(q("name"))
+        props = {"Name": (nome_el.text or "").strip() if nome_el is not None else ""}
+        geoms = []
+        for poly_el in pm.iter(q("Polygon")):
+            g = _poly(poly_el)
+            if g is not None and not g.is_empty:
+                geoms.append(g)
+        if not geoms:
+            for line_el in pm.iter(q("LineString")):
+                coords_el = line_el.find(q("coordinates"))
+                pts = _kml_coords(coords_el.text if coords_el is not None else "")
+                if len(pts) >= 2:
+                    geoms.append(LineString(pts))
+        if not geoms:
+            for pt_el in pm.iter(q("Point")):
+                coords_el = pt_el.find(q("coordinates"))
+                pts = _kml_coords(coords_el.text if coords_el is not None else "")
+                if pts:
+                    geoms.append(Point(pts[0]))
+        for g in geoms:
+            g_final = rep(g) if rep else g
+            feats.append((g_final, dict(props)))
+    if not feats:
+        raise ValueError(f"KML sem Placemarks com geometria valida: {path}")
+    return src, feats
+
+
+_EXTS_GEOMETRIA = (".zip", ".shp", ".geojson", ".json", ".kml", ".kmz")
+
+
 @contextlib.contextmanager
 def abrir_shape_zip(zip_path: str, dst_epsg: int, geo_epsg: int = 4674,
                     assume_epsg: int = 4674, temp_root: str | None = None):
-    """Extrai um .zip de shapefile em pasta temporaria e limpa ao final.
+    """Abre uma geometria de area em varios formatos e limpa temporarios ao final.
+
+    Formatos aceitos: ``.zip`` (shapefile compactado), ``.shp`` solto (com
+    ``.shx``/``.dbf`` ao lado), ``.geojson``/``.json``, ``.kml`` e ``.kmz``.
+    O nome historico ``abrir_shape_zip`` foi mantido por compatibilidade;
+    ``abrir_geometria`` e um alias.
 
     Uso:
         with abrir_shape_zip("area.zip", 31982) as shp:
             ...
     """
     if not os.path.exists(zip_path):
-        raise FileNotFoundError(f"shapefile zip nao encontrado: {zip_path}")
+        raise FileNotFoundError(
+            f"geometria nao encontrada: {zip_path} "
+            f"(formatos aceitos: {', '.join(_EXTS_GEOMETRIA)})"
+        )
+    ext = os.path.splitext(zip_path)[1].lower()
+    if ext not in _EXTS_GEOMETRIA:
+        raise ValueError(
+            f"formato de geometria nao suportado: '{ext or zip_path}'. "
+            f"Use {', '.join(_EXTS_GEOMETRIA)}."
+        )
     if temp_root:
         os.makedirs(temp_root, exist_ok=True)
+
+    avisos: list[str] = []
+    if ext == ".shp":
+        base = Path(zip_path).with_suffix("")
+        faltando = [s for s in (".shx", ".dbf") if not base.with_suffix(s).exists()]
+        if faltando:
+            raise FileNotFoundError(
+                f"shapefile incompleto: faltam {', '.join(faltando)} ao lado de {zip_path}"
+            )
+        src, feats = _features(zip_path, dst_epsg, assume_epsg, avisos)
+        yield _montar_importado(zip_path, "", zip_path, src, feats, dst_epsg, geo_epsg, avisos)
+        return
+    if ext in (".geojson", ".json"):
+        src, feats = _geojson_features(zip_path, dst_epsg, avisos)
+        yield _montar_importado(zip_path, "", "", src, feats, dst_epsg, geo_epsg, avisos)
+        return
+    if ext == ".kml":
+        with open(zip_path, "rb") as f:
+            src, feats = _kml_features(f.read(), zip_path, dst_epsg, avisos)
+        yield _montar_importado(zip_path, "", "", src, feats, dst_epsg, geo_epsg, avisos)
+        return
+    if ext == ".kmz":
+        with zipfile.ZipFile(zip_path) as zf:
+            kml_names = [n for n in zf.namelist() if n.lower().endswith(".kml")]
+            if not kml_names:
+                raise ValueError(f"kmz sem arquivo .kml interno: {zip_path}")
+            kml_names.sort(key=lambda n: (n.lower() != "doc.kml", n))
+            src, feats = _kml_features(zf.read(kml_names[0]), zip_path, dst_epsg, avisos)
+        yield _montar_importado(zip_path, "", "", src, feats, dst_epsg, geo_epsg, avisos)
+        return
+
+    # .zip: shapefile compactado (ou kml compactado sem extensao .kmz)
     with tempfile.TemporaryDirectory(prefix="shape_", dir=temp_root) as tmp:
         _safe_extract(zip_path, tmp)
-        shp = _achar_shp(tmp, prefer_stem=Path(zip_path).stem)
+        try:
+            shp = _achar_shp(tmp, prefer_stem=Path(zip_path).stem)
+        except FileNotFoundError:
+            kmls = sorted(Path(tmp).rglob("*.kml"))
+            if kmls:
+                src, feats = _kml_features(kmls[0].read_bytes(), zip_path, dst_epsg, avisos)
+                yield _montar_importado(zip_path, tmp, "", src, feats, dst_epsg, geo_epsg, avisos)
+                return
+            raise FileNotFoundError(
+                f"zip nao contem um conjunto .shp/.shx/.dbf valido nem .kml: {zip_path}"
+            )
         yield importar_shape_extraido(shp, tmp, zip_path, dst_epsg, geo_epsg, assume_epsg)
+
+
+abrir_geometria = abrir_shape_zip
 
 
 # --------------------------------------------------------------------------- #
@@ -290,9 +475,15 @@ def carregar_cars(projeto) -> list[Car]:
         if not os.path.exists(shp):
             raise FileNotFoundError(f"shape do CAR não encontrado: {shp}")
         r = shapefile.Reader(shp, encoding="latin-1")
-        flds = [f[0] for f in r.fields[1:]]
-        attrs = dict(zip(flds, list(r.records()[0])))
+        try:
+            flds = [f[0] for f in r.fields[1:]]
+            records = r.records()
+            attrs = dict(zip(flds, list(records[0]))) if records else {}
+        finally:
+            r.close()
         geom = ler_geometria(shp, projeto.crs_utm, unir=True)
+        if geom is None:
+            raise ValueError(f"shape do CAR sem geometrias válidas: {shp}")
         cars.append(Car(fz.id, fz.nome, geom, attrs))
     return cars
 

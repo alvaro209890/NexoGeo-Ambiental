@@ -40,23 +40,29 @@ def _nome_saida(projeto) -> str:
     return f"Pre_Analise_{_slug_arquivo(projeto.imovel)}.docx"
 
 
+_EXTS_GEOMETRIA = (".zip", ".shp", ".geojson", ".json", ".kml", ".kmz")
+
+
 def _zip_entrada(projeto) -> str:
-    """Sem zip explícito, aceita exatamente UM .zip na pasta de shapes do projeto."""
+    """Sem geometria explícita, aceita exatamente UMA na pasta de shapes do projeto.
+
+    Formatos aceitos: .zip (shapefile), .shp, .geojson/.json, .kml e .kmz.
+    """
     shapes_dir = projeto.caminho("shapes")
-    zips = sorted(
+    candidatos = sorted(
         os.path.join(shapes_dir, n) for n in os.listdir(shapes_dir)
-        if n.lower().endswith(".zip")
+        if n.lower().endswith(_EXTS_GEOMETRIA)
     ) if os.path.isdir(shapes_dir) else []
-    if len(zips) == 1:
-        return zips[0]
-    if not zips:
+    if len(candidatos) == 1:
+        return candidatos[0]
+    if not candidatos:
         raise RuntimeError(
-            f"nenhum shapefile .zip informado e nenhum encontrado em {shapes_dir}; "
-            "envie o zip da área pela UI ou informe o caminho na chamada"
+            f"nenhuma geometria informada e nenhuma encontrada em {shapes_dir}; "
+            "envie o arquivo da área pela UI (.zip/.shp/.geojson/.kml/.kmz) ou informe o caminho na chamada"
         )
     raise RuntimeError(
-        f"nenhum shapefile .zip informado e há {len(zips)} candidatos em {shapes_dir}; "
-        "informe qual usar: " + ", ".join(os.path.basename(z) for z in zips)
+        f"nenhuma geometria informada e há {len(candidatos)} candidatas em {shapes_dir}; "
+        "informe qual usar: " + ", ".join(os.path.basename(z) for z in candidatos)
     )
 
 
@@ -837,7 +843,11 @@ def _alertas(doc, alertas, sccon_data, num_id, projeto):
                 _add_bullet(doc, "Há um alerta inserido na área analisada:", 0, num_id)
                 _add_bullet(doc, f"○ Código do alerta: {codigo}", 1, num_id)
                 _add_bullet(doc, f"○ Ano: {str(ano)[:4] if ano != 'não informado' else ano}", 1, num_id)
-                _add_bullet(doc, f"○ Área: {_fmt_area(float(area))} ha", 1, num_id)
+                try:
+                    area_txt = f"{_fmt_area(float(area))} ha"
+                except (TypeError, ValueError):
+                    area_txt = f"{area or 'não informado'}"
+                _add_bullet(doc, f"○ Área: {area_txt}", 1, num_id)
     else:
         _add_bullet(doc, "Nada consta no MapBiomas Alerta para a geometria consultada.", 0, num_id)
 

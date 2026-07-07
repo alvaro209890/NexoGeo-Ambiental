@@ -17,9 +17,8 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import subprocess
 import sys
-import tkinter as tk
-from tkinter import filedialog
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException
@@ -41,8 +40,8 @@ from core.nexomap_project import (
 from core.nexomap_catalog import load_layer_catalog, load_template_manifest
 from core.nexomap_ai import spec_from_prompt
 from core.nexomap_geo import summarize_area
-from core import arcgis_bridge
 from core import matriculas
+from core import nexomap_doctor as nexomap_doctor_mod
 from core import nexomap_generator
 from core import secrets as secrets_loader
 
@@ -102,6 +101,7 @@ class NexoMapGenerateBody(BaseModel):
     path: str
     prompt: str | None = None
     mapspec: dict | None = None
+    # DEPRECATED: MXD/ArcMap removidos; aceito e ignorado por compatibilidade.
     strict_mxd: bool = False
 
 
@@ -123,7 +123,7 @@ def load_app_config():
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+        except (OSError, json.JSONDecodeError):
             pass
     return {"recentes": []}
 
@@ -295,9 +295,14 @@ def abrir(body: AbrirBody):
     if not os.path.exists(alvo):
         raise HTTPException(status_code=404, detail="caminho não encontrado")
     try:
-        os.startfile(alvo)  # type: ignore[attr-defined]  (Windows)
-    except AttributeError:
-        raise HTTPException(status_code=501, detail="abrir só é suportado no Windows")
+        if sys.platform.startswith("win"):
+            os.startfile(alvo)  # type: ignore[attr-defined]
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", alvo])
+        else:
+            subprocess.Popen(["xdg-open", alvo])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"não foi possível abrir: {e}")
     return {"ok": True}
 
 
@@ -388,7 +393,11 @@ def nexomap_from_analysis(body: NexoMapFromAnalysisBody):
 def nexomap_area_base(body: NexoMapAreaBaseBody):
     proj = _carregar_nexomap(body.path)
     if not os.path.exists(body.area_path):
-        raise HTTPException(status_code=404, detail=f"shapefile zip nao encontrado: {body.area_path}")
+        raise HTTPException(status_code=404, detail=f"geometria nao encontrada: {body.area_path}")
+    ext = os.path.splitext(body.area_path)[1].lower()
+    if ext not in (".zip", ".shp", ".geojson", ".json", ".kml", ".kmz"):
+        raise HTTPException(status_code=400,
+                            detail=f"formato nao suportado: {ext} (use .zip, .shp, .geojson, .kml ou .kmz)")
     try:
         with open(proj._arquivo, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -399,7 +408,7 @@ def nexomap_area_base(body: NexoMapAreaBaseBody):
             stored = rel if not rel.startswith("..") else area_abs
         except ValueError:
             stored = area_abs
-        data.setdefault("area_base", {})["tipo"] = "shapefile_zip"
+        data.setdefault("area_base", {})["tipo"] = "shapefile_zip" if ext == ".zip" else "geometria"
         data["area_base"]["path"] = stored
         with open(proj._arquivo, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
@@ -426,7 +435,7 @@ def nexomap_chat(body: NexoMapChatBody):
 async def nexomap_generate(body: NexoMapGenerateBody):
     async def stream():
         for event in nexomap_generator.generate_stream(
-            body.path, prompt=body.prompt, mapspec=body.mapspec, strict_mxd=body.strict_mxd
+            body.path, prompt=body.prompt, mapspec=body.mapspec
         ):
             yield _sse(event)
 
@@ -450,19 +459,14 @@ def nexomap_file(path: str):
 
 @app.get("/api/nexomap/doctor")
 def nexomap_doctor(path: str | None = None):
-    proj = None
-    sec = {}
-    if path:
-        proj = _carregar_nexomap(path)
-        sec = secrets_loader.load_secrets(proj)
-    return {
-        "arcgis": arcgis_bridge.doctor(proj, sec).to_dict(),
-        "python": sys.executable,
-        "ui_dist": os.path.isdir(_DIST) if "_DIST" in globals() else False,
-    }
+    try:
+        result = nexomap_doctor_mod.run(path or None)
+    except (NexoMapError, FileNotFoundError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    result["python"] = sys.executable
+    result["ui_dist"] = os.path.isdir(_DIST) if "_DIST" in globals() else False
+    return result
 
-
-import subprocess
 
 @app.get("/api/dialog/file")
 def ask_file():

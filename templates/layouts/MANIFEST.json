@@ -1,0 +1,32 @@
+{
+  "_descricao": "Manifesto de layouts NATIVOS do NexoMap AI (motor matplotlib, sem ArcMap). pagina_mm = [largura, altura].",
+  "templates": [
+    {
+      "id": "tematico_a3_retrato",
+      "nome": "Mapa tematico A3 retrato",
+      "formato": "A3",
+      "orientacao": "retrato",
+      "pagina_mm": [297, 420],
+      "motor": "nativo",
+      "elementos": ["titulo", "legenda", "escala", "norte", "grade", "minimapa", "metadados"]
+    },
+    {
+      "id": "dinamica_a3_paisagem",
+      "nome": "Dinamica temporal A3 paisagem",
+      "formato": "A3",
+      "orientacao": "paisagem",
+      "pagina_mm": [420, 297],
+      "motor": "nativo",
+      "elementos": ["titulo", "legenda", "escala", "norte", "grade", "minimapa", "metadados"]
+    },
+    {
+      "id": "tematico_a4_paisagem",
+      "nome": "Mapa tematico A4 paisagem",
+      "formato": "A4",
+      "orientacao": "paisagem",
+      "pagina_mm": [297, 210],
+      "motor": "nativo",
+      "elementos": ["titulo", "legenda", "escala", "norte", "grade", "metadados"]
+    }
+  ]
+}

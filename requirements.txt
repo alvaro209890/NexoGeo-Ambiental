@@ -8,6 +8,8 @@ python-docx
 requests
 pymupdf
 matplotlib
+numpy
+pillow
 
 # Backend web (Fase 4) — instalar:  pip install fastapi "uvicorn[standard]" pydantic
 fastapi

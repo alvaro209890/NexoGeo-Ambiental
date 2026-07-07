@@ -348,7 +348,7 @@ function PreAnalysisView({ project, resumo, preShape, setPreShape, preOut, setPr
           </div>
           <div className="analysis-grid">
             <Field
-              label="Shapefile compactado (.zip)"
+              label="Geometria da area (.zip, .shp, .geojson, .kml, .kmz)"
               value={preShape}
               onChange={setPreShape}
               icon={UploadCloud}
@@ -393,6 +393,23 @@ function PreAnalysisView({ project, resumo, preShape, setPreShape, preOut, setPr
           <MiniStat icon={Layers} label="Area" value={formatHa(resumo?.area_ha)} />
           <MiniStat icon={MapPin} label="Poligonos" value={resumo?.feature_count || resumo?.poligonos || '-'} />
         </div>
+        {resumo?.fazendas_intersectadas?.length ? (
+          <div className="folder-list">
+            {resumo.fazendas_intersectadas.map((fz) => (
+              <div className="folder-row" key={fz.id}><span>{fz.nome}</span><strong>CAR</strong></div>
+            ))}
+          </div>
+        ) : null}
+        {resumo?.avisos?.length ? (
+          <div className="warning-list">
+            {resumo.avisos.map((warning, index) => (
+              <div key={`${warning}-${index}`}>
+                <AlertTriangle size={15} />
+                <span>{warning}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
         <div className="section-title"><FileText size={18} /><span>Recentes</span></div>
         <div className="folder-list">
           {results.slice(0, 4).map((item) => (
@@ -458,8 +475,8 @@ function MapsAiView({ analysisPath, preShape, mapProject, setMapProject, chatRes
     setEvents([])
     try {
       const body = chatResult?.mapspec
-        ? { path: project.arquivo, mapspec: chatResult.mapspec, strict_mxd: false }
-        : { path: project.arquivo, prompt, strict_mxd: false }
+        ? { path: project.arquivo, mapspec: chatResult.mapspec }
+        : { path: project.arquivo, prompt }
       const response = await fetch(API + '/api/nexomap/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -580,7 +597,7 @@ function MapResultsInline({ results, onRefresh }) {
             </div>
             <StatusBadge state={job.ok ? 'ok' : 'error'}>{job.ok ? 'Validado' : 'Aviso'}</StatusBadge>
             <div className="result-actions">
-              {['pdf', 'png_validacao', 'mxd', 'validacao'].map((key) => job.outputs?.[key] ? (
+              {['pdf', 'png_validacao', 'camadas', 'validacao'].map((key) => job.outputs?.[key] ? (
                 <button type="button" key={key} onClick={() => jpost('/api/abrir', { alvo: job.outputs[key] })}>{key}</button>
               ) : null)}
               <button type="button" onClick={() => jpost('/api/abrir', { alvo: job.job_dir })}>pasta</button>
@@ -675,7 +692,7 @@ function ResultsView({ results, mapResults, onRefresh, onRefreshMaps }) {
             </div>
             <StatusBadge state={job.ok ? 'ok' : 'error'}>{job.ok ? 'mapa validado' : 'mapa com aviso'}</StatusBadge>
             <div className="result-actions">
-              {['pdf', 'png_validacao', 'mxd', 'validacao'].map((key) => job.outputs?.[key] ? (
+              {['pdf', 'png_validacao', 'camadas', 'validacao'].map((key) => job.outputs?.[key] ? (
                 <button type="button" key={key} onClick={() => jpost('/api/abrir', { alvo: job.outputs[key] })}>{key}</button>
               ) : null)}
             </div>
@@ -694,7 +711,8 @@ function ResultsView({ results, mapResults, onRefresh, onRefreshMaps }) {
 }
 
 function DoctorView({ doctor, onRefresh }) {
-  const arc = doctor?.arcgis
+  const engine = doctor?.engine
+  const deps = engine?.dependencias || {}
   return (
     <section className="view-stack">
       <div className="section-header">
@@ -706,12 +724,12 @@ function DoctorView({ doctor, onRefresh }) {
       </div>
       <div className="doctor-grid">
         <section className="work-panel">
-          <div className="section-title"><MonitorCog size={18} /><span>ArcGIS / MXD</span></div>
+          <div className="section-title"><MonitorCog size={18} /><span>Motor de mapas nativo</span></div>
           <dl className="detail-list">
-            <div><dt>Python</dt><dd>{arc?.python_path || '-'}</dd></div>
-            <div><dt>Executavel</dt><dd>{arc?.python_exists ? 'encontrado' : 'ausente'}</dd></div>
-            <div><dt>Manifesto</dt><dd>{arc?.manifest_exists ? 'encontrado' : 'ausente'}</dd></div>
-            <div><dt>Status</dt><dd>{arc?.message || '-'}</dd></div>
+            <div><dt>Motor</dt><dd>{engine?.motor || '-'}</dd></div>
+            <div><dt>Dependencias</dt><dd>{Object.keys(deps).length ? Object.entries(deps).map(([k, v]) => `${k}${v ? '' : ' (ausente)'}`).join(', ') : '-'}</dd></div>
+            <div><dt>Saidas</dt><dd>PDF, PNG e GeoJSON (abre no QGIS) — sem ArcMap</dd></div>
+            <div><dt>Status</dt><dd>{engine?.message || '-'}</dd></div>
           </dl>
         </section>
         <section className="work-panel">
@@ -737,8 +755,8 @@ function ManualView() {
       </div>
       <div className="manual-grid">
         <article className="work-panel"><h2>Dados</h2><p className="muted">O projeto de analise continua sendo o `projeto.json` normal. A aba Mapas IA cria um arquivo interno `.nexomap/projeto.nexomap.json` na pasta da analise.</p></article>
-        <article className="work-panel"><h2>Saidas</h2><p className="muted">Mapas entram em `Resultados/Mapas_IA/job_id/` com `mapa.pdf`, `png_validacao.png`, `validacao.json` e `mapspec.json`.</p></article>
-        <article className="work-panel"><h2>MXD</h2><p className="muted">MXD real exige ArcMap 10.x e templates `.mxd` reais em `templates/mxd/`. Sem isso, o PDF/PNG funciona e a UI mostra o aviso.</p></article>
+        <article className="work-panel"><h2>Saidas</h2><p className="muted">Mapas entram em `Resultados/Mapas_IA/job_id/` com `mapa.pdf`, `png_validacao.png`, `validacao.json`, `mapspec.json` e a pasta `camadas/` com GeoJSON por camada.</p></article>
+        <article className="work-panel"><h2>SIG aberto</h2><p className="muted">O motor de mapas e 100% nativo (sem ArcMap): PDF em escala verdadeira com basemap, camadas WFS reais, grade UTM e minimapa. Os GeoJSON de `camadas/` abrem direto no QGIS.</p></article>
         <article className="work-panel"><h2>IA</h2><p className="muted">Sem chave configurada, a aba usa parser local deterministico para MapSpec. Com `deepseek_api_key`, usa o provedor configurado em `secrets.local.json`.</p></article>
       </div>
     </section>

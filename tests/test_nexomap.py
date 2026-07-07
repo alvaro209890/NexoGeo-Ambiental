@@ -24,7 +24,7 @@ class NexoMapContractTests(unittest.TestCase):
             "pastas": {"shapes": "Shapes", "resultados": "Resultados", "mapas": "Resultados/Mapas"},
             "area_base": {"tipo": "shapefile_zip", "path": "Shapes/area.zip"},
             "catalogo_camadas": os.path.join(ROOT, "catalogo", "camadas.json"),
-            "templates_mxd": os.path.join(ROOT, "templates", "mxd", "MANIFEST.json"),
+            "templates_layouts": os.path.join(ROOT, "templates", "layouts", "MANIFEST.json"),
         }
         os.makedirs(os.path.join(temp.name, "Shapes"))
         path = os.path.join(temp.name, "projeto.json")
@@ -40,25 +40,56 @@ class NexoMapContractTests(unittest.TestCase):
         self.assertEqual(project.crs.utm, 31982)
         self.assertTrue(project.catalog_path().endswith("camadas.json"))
 
+    def test_legacy_templates_mxd_falls_back_to_native_layouts(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        project = {
+            "versao_schema": 1,
+            "nome": "Projeto Legado",
+            "municipio": {"nome": "Vila Rica", "uf": "MT", "ibge": "5108601"},
+            "crs": {"utm": 31982},
+            "raiz_dados": ".",
+            "area_base": {"tipo": "shapefile_zip", "path": "Shapes/area.zip"},
+            "templates_mxd": "templates/mxd/MANIFEST.json",
+        }
+        path = os.path.join(temp.name, "projeto.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(project, f)
+        loaded = load_nexomap_project(path)
+        manifest_path = loaded.template_manifest_path()
+        self.assertTrue(os.path.exists(manifest_path))
+        self.assertIn(os.path.join("templates", "layouts"), manifest_path)
+
     def test_catalog_and_manifest_load(self):
         catalog = load_layer_catalog(os.path.join(ROOT, "catalogo", "camadas.json"))
-        manifest = load_template_manifest(os.path.join(ROOT, "templates", "mxd", "MANIFEST.json"))
+        manifest = load_template_manifest(os.path.join(ROOT, "templates", "layouts", "MANIFEST.json"))
         self.assertGreaterEqual(len(catalog["camadas"]), 3)
         self.assertGreaterEqual(len(manifest["templates"]), 1)
 
     def test_rule_based_mapspec_validates(self):
         catalog = load_layer_catalog(os.path.join(ROOT, "catalogo", "camadas.json"))
-        manifest = load_template_manifest(os.path.join(ROOT, "templates", "mxd", "MANIFEST.json"))
+        manifest = load_template_manifest(os.path.join(ROOT, "templates", "layouts", "MANIFEST.json"))
         spec = build_rule_based_spec("mapa com car e embargos", "Projeto Teste", catalog, manifest)
         warnings = validate_mapspec(spec, catalog, manifest, {})
         self.assertTrue(spec.titulo)
-        self.assertIn("mxd", spec.saidas)
+        self.assertIn("pdf", spec.saidas)
+        self.assertIn("geojson", spec.saidas)
+        self.assertNotIn("mxd", spec.saidas)
         self.assertTrue(any(layer.id == "embargos_ibama" for layer in spec.camadas))
         self.assertTrue(any("sema_authkey" in warning for warning in warnings))
 
+    def test_legacy_mxd_output_becomes_geojson(self):
+        spec = mapspec_from_dict({
+            "titulo": "Mapa",
+            "layout_template": "tematico_a3_retrato",
+            "camadas": [{"id": "perimetro", "fonte": "area_base"}],
+            "saidas": ["mxd", "pdf"],
+        })
+        self.assertEqual(spec.saidas, ["geojson", "pdf"])
+
     def test_unknown_layer_is_blocked(self):
         catalog = load_layer_catalog(os.path.join(ROOT, "catalogo", "camadas.json"))
-        manifest = load_template_manifest(os.path.join(ROOT, "templates", "mxd", "MANIFEST.json"))
+        manifest = load_template_manifest(os.path.join(ROOT, "templates", "layouts", "MANIFEST.json"))
         spec = mapspec_from_dict({
             "titulo": "Mapa",
             "tipo": "teste",

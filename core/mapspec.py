@@ -11,7 +11,19 @@ from core.nexomap_catalog import layer_index, template_index
 from core.nexomap_project import NexoMapError
 
 
-ALLOWED_OUTPUTS = {"mxd", "pdf", "png_validacao"}
+ALLOWED_OUTPUTS = {"pdf", "png_validacao", "geojson"}
+
+# "mxd" era a saida do ArcMap (removido); vira exportacao aberta em GeoJSON
+_LEGACY_OUTPUTS = {"mxd": "geojson"}
+
+
+def _normalize_outputs(saidas: list) -> list[str]:
+    out: list[str] = []
+    for item in saidas:
+        mapped = _LEGACY_OUTPUTS.get(str(item), str(item))
+        if mapped not in out:
+            out.append(mapped)
+    return out
 
 
 @dataclass
@@ -79,7 +91,7 @@ def mapspec_from_dict(data: dict) -> MapSpec:
         basemap=str(data.get("basemap", "satellite")),
         camadas=layers,
         elementos_layout=data.get("elementos_layout") or {},
-        saidas=[str(x) for x in (data.get("saidas") or ["mxd", "pdf", "png_validacao"])],
+        saidas=_normalize_outputs(data.get("saidas") or ["pdf", "png_validacao", "geojson"]),
     )
 
 
@@ -180,7 +192,7 @@ def build_rule_based_spec(prompt: str, project_name: str, catalog: dict, manifes
         tipo = "tipologia"
         titulo = f"Mapa de Tipologia - {project_name}"
         add("tipologia_sema", "#16a34a", 0.35)
-    if "terra indigena" in text or "terra indígena" in text or re.search(r"\bti\b", text):
+    if "indigena" in text or "indígena" in text or re.search(r"\bti(s)?\b", text):
         tipo = "areas_protegidas"
         titulo = f"Mapa de Terras Indigenas - {project_name}"
         add("terras_indigenas_funai", "#8b5cf6", 0.35)
@@ -214,5 +226,5 @@ def build_rule_based_spec(prompt: str, project_name: str, catalog: dict, manifes
             "minimapa": True,
             "metadados": True,
         },
-        saidas=["mxd", "pdf", "png_validacao"],
+        saidas=["pdf", "png_validacao", "geojson"],
     )

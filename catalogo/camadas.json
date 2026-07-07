@@ -23,9 +23,9 @@
       "id": "embargos_ibama",
       "nome": "Embargos IBAMA",
       "tema": "embargos",
-      "tipo": "wms",
-      "endpoint": "http://siscom.ibama.gov.br/geoserver/publica/wms",
-      "layer": "publica:vw_brasil_adm_embargo_a",
+      "tipo": "arcgis_rest",
+      "endpoint": "https://pamgia.ibama.gov.br/server/rest/services/01_Publicacoes_Bases/adm_embargos_ibama_a/MapServer/0/query",
+      "layer": "adm_embargos_ibama_a",
       "auth": null
     },
     {

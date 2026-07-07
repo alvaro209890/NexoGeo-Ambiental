@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""End-to-end NexoMap generation orchestration."""
+"""Orquestracao ponta a ponta da geracao de mapas (100% nativa, sem ArcMap)."""
 from __future__ import annotations
 
 import json
@@ -9,7 +9,8 @@ from datetime import datetime
 from typing import Iterator
 
 from core import secrets as secrets_loader
-from core import arcgis_bridge
+from core import nexomap_layers
+from core.geo import abrir_shape_zip
 from core.mapspec import MapSpec, mapspec_from_dict, validate_mapspec
 from core.nexomap_ai import spec_from_prompt
 from core.nexomap_catalog import load_layer_catalog, load_template_manifest
@@ -30,7 +31,7 @@ def _append_history(project, entry: dict) -> None:
 
 
 def generate(project_path: str, prompt: str | None = None, mapspec: dict | None = None,
-             strict_mxd: bool = False, allow_local_ai_fallback: bool = True) -> dict:
+             allow_local_ai_fallback: bool = True, use_basemap: bool = True) -> dict:
     project = load_nexomap_project(project_path)
     catalog = load_layer_catalog(project.catalog_path())
     manifest = load_template_manifest(project.template_manifest_path())
@@ -64,16 +65,24 @@ def generate(project_path: str, prompt: str | None = None, mapspec: dict | None 
         "mapspec": spec.to_dict(),
     })
 
-    outputs = render_pdf_map(project, spec, catalog, job_dir)
-    warnings = list(ai_warnings)
-    mxd_path = None
-    if "mxd" in spec.saidas:
-        try:
-            mxd_path = arcgis_bridge.export_mxd(project, spec.to_dict(), manifest, job_dir, secrets=secrets)
-        except Exception as e:
-            if strict_mxd:
-                raise
-            warnings.append(f"MXD real nao gerado: {e}")
+    # camadas reais do catalogo (WFS) — desenhadas no mapa e exportadas em GeoJSON
+    drawn_layers, layer_warnings = nexomap_layers.fetch_layers(
+        spec, catalog, area.bbox_geo, project.crs.utm, secrets,
+    )
+
+    outputs = render_pdf_map(project, spec, catalog, job_dir,
+                             manifest=manifest, drawn_layers=drawn_layers,
+                             use_basemap=use_basemap)
+
+    camadas_dir = None
+    if "geojson" in spec.saidas:
+        with abrir_shape_zip(
+            project.area_base_path(), project.crs.utm, project.crs.geografico
+        ) as area_shape:
+            area_geojson = nexomap_layers.area_base_geojson(area_shape)
+        camadas_dir = nexomap_layers.save_layers_geojson(job_dir, drawn_layers, area_geojson)
+
+    warnings = list(ai_warnings) + layer_warnings + outputs.get("render_warnings", [])
 
     result = {
         "ok": bool(outputs["validacao_result"].get("ok")),
@@ -83,12 +92,13 @@ def generate(project_path: str, prompt: str | None = None, mapspec: dict | None 
         "ai_raw": ai_raw,
         "mapspec": spec.to_dict(),
         "area": area.to_dict(),
+        "escala": outputs.get("escala"),
         "outputs": {
-            "mxd": mxd_path,
             "pdf": outputs["pdf"],
             "preview_png": outputs["preview_png"],
             "png_validacao": outputs["png_validacao"],
             "validacao": outputs["validacao"],
+            "camadas": camadas_dir,
         },
         "validacao": outputs["validacao_result"],
         "warnings": warnings + area.avisos,
@@ -98,14 +108,14 @@ def generate(project_path: str, prompt: str | None = None, mapspec: dict | None 
     return result
 
 
-def generate_stream(project_path: str, prompt: str | None = None, mapspec: dict | None = None,
-                    strict_mxd: bool = False) -> Iterator[dict]:
+def generate_stream(project_path: str, prompt: str | None = None,
+                    mapspec: dict | None = None) -> Iterator[dict]:
     yield {"status": "started", "stage": "carregar_projeto"}
     try:
         yield {"status": "progress", "stage": "interpretar_mapspec"}
-        yield {"status": "progress", "stage": "preparar_geometria"}
-        yield {"status": "progress", "stage": "renderizar_pdf_png"}
-        result = generate(project_path, prompt=prompt, mapspec=mapspec, strict_mxd=strict_mxd)
+        yield {"status": "progress", "stage": "buscar_camadas_wfs"}
+        yield {"status": "progress", "stage": "renderizar_mapa_nativo"}
+        result = generate(project_path, prompt=prompt, mapspec=mapspec)
         yield {"status": "done", "stage": "complete", "result": result}
     except Exception as e:
         yield {"status": "error", "stage": "failed", "erro": str(e)}

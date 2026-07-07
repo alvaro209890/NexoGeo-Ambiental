@@ -16,5 +16,5 @@
     "path": "Shapes/area.zip"
   },
   "catalogo_camadas": "catalogo/camadas.json",
-  "templates_mxd": "templates/mxd/MANIFEST.json"
+  "templates_layouts": "templates/layouts/MANIFEST.json"
 }

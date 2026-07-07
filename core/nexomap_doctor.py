@@ -1,29 +1,54 @@
 # -*- coding: utf-8 -*-
-"""Command-line doctor for NexoMap AI."""
+"""Doctor do motor nativo de mapas (linha de comando e API).
+
+Checa as dependencias do renderer, o catalogo de camadas, o manifesto de
+layouts e a area do projeto. ArcMap nao existe mais no fluxo.
+"""
 from __future__ import annotations
 
 import json
 import sys
 
-from core import arcgis_bridge, secrets as secrets_loader
+from core import secrets as secrets_loader
 from core.nexomap_catalog import load_layer_catalog, load_template_manifest
 from core.nexomap_geo import summarize_area
 from core.nexomap_project import load_nexomap_project
 
 
+def engine_doctor() -> dict:
+    """Estado do motor nativo: dependencias de renderizacao presentes."""
+    deps = {}
+    for mod in ("matplotlib", "numpy", "PIL", "shapely", "pyproj", "shapefile", "fitz"):
+        try:
+            __import__(mod)
+            deps[mod] = True
+        except Exception:
+            deps[mod] = False
+    ok = all(deps.values())
+    return {
+        "motor": "nativo (matplotlib)",
+        "dependencias": deps,
+        "available": ok,
+        "message": "Motor de mapas nativo pronto (PDF/PNG/GeoJSON, sem ArcMap)." if ok
+        else "Dependencias ausentes: " + ", ".join(k for k, v in deps.items() if not v),
+    }
+
+
 def run(path: str | None = None) -> dict:
     if not path:
-        return {"arcgis": arcgis_bridge.doctor().to_dict()}
+        return {"engine": engine_doctor()}
     project = load_nexomap_project(path)
-    sec = secrets_loader.load_secrets(project)
+    secrets_loader.load_secrets(project)
     result = {
         "projeto": project._arquivo,
-        "arcgis": arcgis_bridge.doctor(project, sec).to_dict(),
+        "engine": engine_doctor(),
         "catalogo": {"path": project.catalog_path(), "ok": True},
         "templates": {"path": project.template_manifest_path(), "ok": True},
     }
-    load_layer_catalog(project.catalog_path())
-    load_template_manifest(project.template_manifest_path())
+    catalog = load_layer_catalog(project.catalog_path())
+    manifest = load_template_manifest(project.template_manifest_path())
+    result["catalogo"]["camadas"] = len(catalog.get("camadas", []))
+    result["templates"]["layouts"] = len(manifest.get("templates", []))
     try:
         result["area"] = summarize_area(project).to_dict()
         result["area"]["ok"] = True

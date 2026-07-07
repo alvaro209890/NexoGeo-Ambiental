@@ -39,11 +39,12 @@
       "type": "object",
       "required": ["tipo", "path"],
       "properties": {
-        "tipo": { "type": "string", "enum": ["shapefile_zip"] },
+        "tipo": { "type": "string", "enum": ["shapefile_zip", "geometria"] },
         "path": { "type": "string" }
       }
     },
     "catalogo_camadas": { "type": "string", "default": "catalogo/camadas.json" },
-    "templates_mxd": { "type": "string", "default": "templates/mxd/MANIFEST.json" }
+    "templates_layouts": { "type": "string", "default": "templates/layouts/MANIFEST.json" },
+    "templates_mxd": { "type": "string", "description": "DEPRECATED: ArcMap removido; usado apenas como fallback de leitura" }
   }
 }

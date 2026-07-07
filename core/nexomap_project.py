@@ -16,6 +16,11 @@ from typing import Any
 
 SCHEMA_VERSION = 1
 
+DEFAULT_LAYOUTS_MANIFEST = os.path.join("templates", "layouts", "MANIFEST.json")
+
+# formatos de geometria aceitos como area_base (alem do classico .zip de shapefile)
+AREA_BASE_TIPOS = {"shapefile_zip", "geometria"}
+
 
 class NexoMapError(Exception):
     """Configuration or runtime error raised by NexoMap modules."""
@@ -58,7 +63,7 @@ class NexoMapProject:
     pastas: NexoMapPastas
     area_base: NexoMapAreaBase
     catalogo_camadas: str
-    templates_mxd: str
+    templates_layouts: str
     data_consulta: str = "auto"
     metadata: dict[str, Any] = field(default_factory=dict)
     _arquivo: str = ""
@@ -100,7 +105,14 @@ class NexoMapProject:
         return self.resolve_repo_or_data_path(self.catalogo_camadas)
 
     def template_manifest_path(self) -> str:
-        return self.resolve_repo_or_data_path(self.templates_mxd)
+        path = self.resolve_repo_or_data_path(self.templates_layouts)
+        if not os.path.exists(path):
+            # projetos antigos apontavam para templates/mxd (ArcMap, removido);
+            # cai no manifesto de layouts nativos do repositorio
+            fallback = os.path.join(self.repo_root(), DEFAULT_LAYOUTS_MANIFEST)
+            if os.path.exists(fallback):
+                return fallback
+        return path
 
     def mapas_dir(self) -> str:
         return self.caminho("mapas")
@@ -151,8 +163,8 @@ def load_nexomap_project(path: str) -> NexoMapProject:
         tipo=str(area_data.get("tipo", "shapefile_zip")),
         path=str(_req(area_data, "path", "area_base")),
     )
-    if area_base.tipo != "shapefile_zip":
-        raise NexoMapError("area_base.tipo suportado na v1: shapefile_zip")
+    if area_base.tipo not in AREA_BASE_TIPOS:
+        raise NexoMapError("area_base.tipo suportado: shapefile_zip ou geometria (.zip/.shp/.geojson/.kml/.kmz)")
 
     nome = str(data.get("nome") or data.get("imovel") or "").strip()
     if not nome:
@@ -168,7 +180,7 @@ def load_nexomap_project(path: str) -> NexoMapProject:
         pastas=pastas,
         area_base=area_base,
         catalogo_camadas=str(data.get("catalogo_camadas", "catalogo/camadas.json")),
-        templates_mxd=str(data.get("templates_mxd", "templates/mxd/MANIFEST.json")),
+        templates_layouts=str(data.get("templates_layouts") or data.get("templates_mxd") or DEFAULT_LAYOUTS_MANIFEST),
         data_consulta=str(data.get("data_consulta", "auto")),
         metadata=data.get("metadata") or {},
         _arquivo=os.path.abspath(path),
@@ -196,7 +208,7 @@ def create_project_template(nome: str, cliente: str, destino: str) -> str:
         },
         "area_base": {"tipo": "shapefile_zip", "path": "Shapes/area.zip"},
         "catalogo_camadas": "catalogo/camadas.json",
-        "templates_mxd": "templates/mxd/MANIFEST.json",
+        "templates_layouts": DEFAULT_LAYOUTS_MANIFEST,
     }
     path = os.path.join(project_dir, "projeto.json")
     with open(path, "w", encoding="utf-8") as f:
@@ -247,7 +259,7 @@ def ensure_project_from_analysis(analysis_project, area_path: str | None = None)
         },
         "area_base": {"tipo": "shapefile_zip", "path": area_rel},
         "catalogo_camadas": os.path.join(repo, "catalogo", "camadas.json"),
-        "templates_mxd": os.path.join(repo, "templates", "mxd", "MANIFEST.json"),
+        "templates_layouts": os.path.join(repo, "templates", "layouts", "MANIFEST.json"),
         "metadata": {
             "origem": "nexogeo_analysis_tab",
             "analysis_project": analysis_project._arquivo,
@@ -281,5 +293,5 @@ def resumo_project(project: NexoMapProject) -> dict:
             "mapas": {"path": project.mapas_dir(), "exists": os.path.isdir(project.mapas_dir())},
         },
         "catalogo_camadas": {"path": project.catalog_path(), "exists": os.path.exists(project.catalog_path())},
-        "templates_mxd": {"path": project.template_manifest_path(), "exists": os.path.exists(project.template_manifest_path())},
+        "templates_layouts": {"path": project.template_manifest_path(), "exists": os.path.exists(project.template_manifest_path())},
     }
