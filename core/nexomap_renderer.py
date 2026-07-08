@@ -47,6 +47,24 @@ _INK = "#111827"
 _MUTED = "#4b5563"
 
 
+def _resolver_caminho(project: NexoMapProject, path: str) -> str:
+    """Resolve um caminho (raster/logo) absoluto ou relativo a raiz de dados/repo."""
+    if not path:
+        return path
+    if os.path.isabs(path) and os.path.exists(path):
+        return path
+    for meth in ("resolve_repo_or_data_path", "resolve_data_path"):
+        fn = getattr(project, meth, None)
+        if fn:
+            try:
+                cand = fn(path)
+                if cand and os.path.exists(cand):
+                    return cand
+            except Exception:
+                pass
+    return path
+
+
 def _page_mm(spec: MapSpec, manifest: dict) -> tuple[float, float]:
     tpl = template_index(manifest).get(spec.layout_template) or {}
     page = tpl.get("pagina_mm") or [420, 297]
@@ -81,22 +99,132 @@ def _fmt_coord(value: float, _pos=None) -> str:
     return f"{value:,.0f}".replace(",", ".")
 
 
-def _layer_color(layer_spec_estilo: dict, tema: str) -> tuple[str, str, float]:
+# --------------------------------------------------------------------------- #
+# Grade DMS (graus/minutos/segundos) — padrao IMAP
+# --------------------------------------------------------------------------- #
+# passos em graus decimais: 1°, 30', 15', 10', 5', 2'30", 1', 30", 15", 10", 5"
+_DMS_STEPS = [1.0, 0.5, 0.25, 1 / 6, 1 / 12, 1 / 24, 1 / 60, 1 / 120, 1 / 240, 1 / 360, 1 / 720]
+
+
+def _nice_dms_step(span_deg: float, alvo: int = 4) -> float:
+    if span_deg <= 0:
+        return _DMS_STEPS[-1]
+    for step in _DMS_STEPS:
+        if span_deg / step >= alvo:
+            return step
+    return _DMS_STEPS[-1]
+
+
+def _fmt_dms(value: float, is_lat: bool) -> str:
+    hemi = ("S" if value < 0 else "N") if is_lat else ("W" if value < 0 else "E")
+    total_sec = round(abs(value) * 3600)  # arredonda no segundo
+    d, rem = divmod(total_sec, 3600)
+    m, s = divmod(rem, 60)
+    if s:
+        return f"{d}°{m:02d}'{s:02d}\"{hemi}"
+    if m:
+        return f"{d}°{m:02d}'{hemi}"
+    return f"{d}°{hemi}"
+
+
+def _dms_ticks(lo: float, hi: float, step: float) -> list[float]:
+    import math
+    start = math.ceil(lo / step) * step
+    ticks = []
+    v = start
+    while v <= hi + step * 1e-6:
+        ticks.append(round(v, 10))
+        v += step
+    return ticks
+
+
+def _draw_graticule_dms(ax, extent_utm: tuple, utm_epsg: int, geo_epsg: int, mostrar_linhas: bool):
+    """Desenha uma grade lat/long (DMS) sobre eixos em UTM, com rotulos nos 4 lados."""
+    from pyproj import CRS, Transformer
+    minx, maxx, miny, maxy = extent_utm
+    to_geo = Transformer.from_crs(CRS.from_epsg(utm_epsg), CRS.from_epsg(geo_epsg), always_xy=True)
+    to_utm = Transformer.from_crs(CRS.from_epsg(geo_epsg), CRS.from_epsg(utm_epsg), always_xy=True)
+
+    # bbox geografico do extent (amostra a borda p/ pegar a curvatura)
+    lons, lats = [], []
+    for a in range(9):
+        for (x, y) in ((minx + (maxx - minx) * a / 8, miny), (minx + (maxx - minx) * a / 8, maxy),
+                       (minx, miny + (maxy - miny) * a / 8), (maxx, miny + (maxy - miny) * a / 8)):
+            lo, la = to_geo.transform(x, y)
+            lons.append(lo)
+            lats.append(la)
+    lon0, lon1 = min(lons), max(lons)
+    lat0, lat1 = min(lats), max(lats)
+
+    step_lon = _nice_dms_step(lon1 - lon0)
+    step_lat = _nice_dms_step(lat1 - lat0)
+    lon_ticks = _dms_ticks(lon0, lon1, step_lon)
+    lat_ticks = _dms_ticks(lat0, lat1, step_lat)
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    n = 60
+
+    # meridianos (lon fixo) — linha vertical-ish
+    for lon in lon_ticks:
+        pts = [to_utm.transform(lon, lat0 + (lat1 - lat0) * k / n) for k in range(n + 1)]
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        if mostrar_linhas:
+            ax.plot(xs, ys, color="#ffffff", alpha=0.35, lw=0.7, zorder=8,
+                    dashes=(5, 4))
+        xb, _ = to_utm.transform(lon, lat0)
+        xt, _ = to_utm.transform(lon, lat1)
+        label = _fmt_dms(lon, is_lat=False)
+        if minx <= xb <= maxx:
+            ax.annotate(label, xy=(xb, miny), xytext=(0, -4), textcoords="offset points",
+                        ha="center", va="top", fontsize=6.8, color=_INK, annotation_clip=False, zorder=21)
+        if minx <= xt <= maxx:
+            ax.annotate(label, xy=(xt, maxy), xytext=(0, 4), textcoords="offset points",
+                        ha="center", va="bottom", fontsize=6.8, color=_INK, annotation_clip=False, zorder=21)
+
+    # paralelos (lat fixo) — linha horizontal-ish
+    for lat in lat_ticks:
+        pts = [to_utm.transform(lon0 + (lon1 - lon0) * k / n, lat) for k in range(n + 1)]
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        if mostrar_linhas:
+            ax.plot(xs, ys, color="#ffffff", alpha=0.35, lw=0.7, zorder=8, dashes=(5, 4))
+        _, yl = to_utm.transform(lon0, lat)
+        _, yr = to_utm.transform(lon1, lat)
+        label = _fmt_dms(lat, is_lat=True)
+        if miny <= yl <= maxy:
+            ax.annotate(label, xy=(minx, yl), xytext=(-4, 0), textcoords="offset points",
+                        ha="right", va="center", fontsize=6.8, color=_INK, rotation=90,
+                        annotation_clip=False, zorder=21)
+        if miny <= yr <= maxy:
+            ax.annotate(label, xy=(maxx, yr), xytext=(4, 0), textcoords="offset points",
+                        ha="left", va="center", fontsize=6.8, color=_INK, rotation=90,
+                        annotation_clip=False, zorder=21)
+
+
+def _layer_color(layer_spec_estilo: dict, tema: str) -> tuple[str, str, float, str]:
     line = layer_spec_estilo.get("linha")
     fill = layer_spec_estilo.get("preenchimento")
     base = line or fill or THEME_COLORS.get(tema, "#64748b")
     alpha = float(layer_spec_estilo.get("opacidade", 0.4) or 0.4)
-    return (line or base), (fill if fill not in (None, "", "transparente") else base), alpha
+    hatch = layer_spec_estilo.get("hachura") or layer_spec_estilo.get("hatch") or ""
+    is_transp = fill in (None, "", "transparente")
+    # com hachura, o preenchimento em geral e "vazado" (so as linhas da hachura aparecem)
+    fill_final = "none" if (is_transp and hatch) else (base if is_transp else fill)
+    return (line or base), fill_final, alpha, hatch
 
 
-def _draw_geoms(ax, feats, line: str, fill: str, alpha: float, lw: float = 1.1, zorder: int = 6):
+def _draw_geoms(ax, feats, line: str, fill: str, alpha: float, lw: float = 1.1,
+                zorder: int = 6, hatch: str = ""):
     for feat in feats:
         geom = feat.geom
         gtype = geom.geom_type
         if gtype in ("Polygon", "MultiPolygon", "GeometryCollection"):
             for poly in iter_polygons(geom):
                 xs, ys = poly.exterior.xy
-                ax.fill(xs, ys, facecolor=fill, edgecolor=line, linewidth=lw, alpha=alpha, zorder=zorder)
+                ax.fill(xs, ys, facecolor=fill, edgecolor=line, linewidth=lw, alpha=alpha,
+                        hatch=hatch or None, zorder=zorder)
                 for ring in poly.interiors:
                     ax.plot(*ring.xy, color=line, linewidth=lw * 0.6, zorder=zorder)
         elif gtype in ("LineString", "MultiLineString"):
@@ -204,6 +332,318 @@ def _draw_minimap(fig, rect, area, extent: tuple, utm_epsg: int, basemap_style: 
     return mini
 
 
+def _draw_compass_rose(fig, rect):
+    """Rosa-dos-ventos (estrela de 8 pontas com N/S/E/W) no padrao IMAP."""
+    import numpy as np
+    from matplotlib.patches import Polygon
+    axc = fig.add_axes(rect)
+    axc.set_xlim(-1.25, 1.25)
+    axc.set_ylim(-1.25, 1.25)
+    axc.set_aspect("equal")
+    axc.axis("off")
+    long_r, short_r = 0.9, 0.34
+    verts = []
+    for k in range(8):
+        ang = np.deg2rad(90 - k * 45)  # N no topo, sentido horario
+        r = long_r if k % 2 == 0 else short_r
+        verts.append((r * np.cos(ang), r * np.sin(ang)))
+    axc.add_patch(Polygon(verts, closed=True, facecolor="white", edgecolor=_INK, lw=0.9, zorder=3))
+    # ponta norte destacada
+    axc.add_patch(Polygon([(0, long_r), (short_r * 0.72, short_r * 0.72), (0, 0),
+                           (-short_r * 0.72, short_r * 0.72)], closed=True,
+                          facecolor=_INK, edgecolor=_INK, lw=0.5, zorder=4))
+    for a, lab in [(90, "N"), (0, "E"), (-90, "S"), (180, "W")]:
+        ar = np.deg2rad(a)
+        axc.text(1.12 * np.cos(ar), 1.12 * np.sin(ar), lab, ha="center", va="center",
+                 fontsize=6.2, fontweight="bold", color=_INK)
+    axc.plot(0, 0, marker="o", ms=2.2, color=_INK, zorder=4)
+
+
+def _draw_title_box(ax, titulo: str, subtitulo: str, x: float = 0.985, y: float = 0.97):
+    """Caixa de titulo escura no canto superior direito (padrao IMAP)."""
+    texto = titulo + (("\n" + subtitulo) if subtitulo else "")
+    ax.text(x, y, texto, transform=ax.transAxes, ha="right", va="top",
+            fontsize=16, fontweight="bold", color="white", linespacing=1.25, zorder=26,
+            bbox=dict(boxstyle="round,pad=0.55", fc="#2b2b2b", ec="white", lw=1.3, alpha=0.93))
+
+
+def _draw_legend_swatches(fig, rect, entries, titulo="Legenda"):
+    """Legenda com swatches (patches/linhas) — usada na faixa inferior do flagship."""
+    axl = fig.add_axes(rect)
+    axl.axis("off")
+    axl.text(0.0, 1.0, titulo, fontsize=11, fontweight="bold", va="top", color=_INK,
+             transform=axl.transAxes)
+    if entries:
+        axl.legend(handles=entries, loc="upper left", bbox_to_anchor=(0.0, 0.84),
+                   frameon=False, fontsize=8, handlelength=1.9, handleheight=1.4, borderaxespad=0)
+
+
+def _draw_tipologia_inset(fig, rect, area, tipo_layers, base_color="#c9c15a"):
+    """Inset 'Tipologia vegetal': imovel preenchido (Cerrado) + camadas de vegetacao (Floresta)."""
+    axi = fig.add_axes(rect)
+    axi.set_aspect("equal")
+    axi.axis("off")
+    axi.add_patch(patches.FancyBboxPatch((0, 0), 1, 1, transform=axi.transAxes,
+                                         boxstyle="round,pad=0.005,rounding_size=0.02",
+                                         facecolor="white", edgecolor="#9ca3af", linewidth=0.9, zorder=0))
+    inner = fig.add_axes((rect[0] + rect[2] * 0.40, rect[1] + rect[3] * 0.10,
+                          rect[2] * 0.56, rect[3] * 0.62))
+    inner.set_aspect("equal")
+    inner.axis("off")
+    for poly in iter_polygons(area.union_utm):
+        inner.fill(*poly.exterior.xy, facecolor=base_color, edgecolor="#7a7333", linewidth=0.5, zorder=2)
+    for layer in tipo_layers:
+        for feat in layer.features:
+            for poly in iter_polygons(feat.geom):
+                inner.fill(*poly.exterior.xy, facecolor="#5aa85a", edgecolor="#2f6d2f",
+                           linewidth=0.3, zorder=3)
+    minx, miny, maxx, maxy = area.bbox_utm
+    mx = max(maxx - minx, maxy - miny) * 0.08
+    inner.set_xlim(minx - mx, maxx + mx)
+    inner.set_ylim(miny - mx, maxy + mx)
+    # titulo + mini legenda
+    axi.text(0.06, 0.93, "Tipologia vegetal", fontsize=9.5, fontweight="bold", va="top", color=_INK,
+             transform=axi.transAxes)
+    axi.text(0.06, 0.52, "LEGENDA", fontsize=6.2, fontweight="bold", va="top", color=_INK,
+             transform=axi.transAxes)
+    axi.add_patch(patches.Rectangle((0.06, 0.34), 0.09, 0.07, transform=axi.transAxes,
+                                    facecolor="#5aa85a", edgecolor="#2f6d2f", lw=0.5))
+    axi.text(0.17, 0.375, "Tipologia: Floresta", fontsize=6.0, va="center", transform=axi.transAxes)
+    axi.add_patch(patches.Rectangle((0.06, 0.20), 0.09, 0.07, transform=axi.transAxes,
+                                    facecolor=base_color, edgecolor="#7a7333", lw=0.5))
+    axi.text(0.17, 0.235, "Tipologia: Cerrado", fontsize=6.0, va="center", transform=axi.transAxes)
+
+
+def _draw_metadados_imagem(ax_or_fig, x: float, y: float, meta: dict, transform=None):
+    """Caixa 'Metadados imagem' no padrao IMAP (Satelite/Sensor, Data, Orbita/Ponto, Datum)."""
+    linhas = [
+        ("Satelite/Sensor", meta.get("satelite_sensor") or meta.get("satelite") or "-"),
+        ("Data da imagem", meta.get("data_aquisicao") or meta.get("data") or "-"),
+        ("Orbita/Ponto", meta.get("orbita_ponto") or meta.get("orbita") or "-"),
+        ("Datum", meta.get("datum") or "SIRGAS 2000"),
+    ]
+    txt = "METADADOS IMAGEM\n" + "\n".join(f"{k}: {v}" for k, v in linhas)
+    kw = dict(fontsize=7.0, va="top", ha="left", color=_INK, linespacing=1.6,
+              bbox=dict(boxstyle="round,pad=0.5", fc="white", ec="#9ca3af", lw=0.9))
+    if transform is not None:
+        kw["transform"] = transform
+    ax_or_fig.text(x, y, txt, **kw)
+
+
+def _draw_metadados_imagem_band(fig, rect, meta: dict, scale: int):
+    """Bloco 'METADADOS IMAGEM' centralizado da faixa inferior (rotulos em negrito)."""
+    axm = fig.add_axes(rect)
+    axm.axis("off")
+    axm.text(0.5, 1.0, "METADADOS IMAGEM", ha="center", va="top", fontsize=9.5,
+             fontweight="bold", color=_INK, transform=axm.transAxes)
+    linhas = [
+        ("Satelite/Sensor", meta.get("satelite_sensor") or meta.get("satelite") or "-"),
+        ("Data da imagem", meta.get("data_aquisicao") or meta.get("data") or "-"),
+        ("Orbita/Ponto", meta.get("orbita_ponto") or meta.get("orbita") or "-"),
+        ("Datum", meta.get("datum") or "SIRGAS 2000"),
+        ("Escala", f"1:{scale:,}".replace(",", ".")),
+    ]
+    y = 0.78
+    for k, v in linhas:
+        axm.text(0.49, y, k + ":", ha="right", va="top", fontsize=7.4, fontweight="bold",
+                 color=_INK, transform=axm.transAxes)
+        axm.text(0.51, y, str(v), ha="left", va="top", fontsize=7.4, color=_INK,
+                 transform=axm.transAxes)
+        y -= 0.165
+
+
+def _draw_logo(fig, rect, logo_path: str) -> bool:
+    """Desenha o logo (PNG) num eixo proprio. Devolve True se conseguiu."""
+    if not logo_path or not os.path.exists(logo_path):
+        return False
+    try:
+        import matplotlib.image as mpimg
+        img = mpimg.imread(logo_path)
+        axl = fig.add_axes(rect)
+        axl.imshow(img)
+        axl.axis("off")
+        return True
+    except Exception:
+        return False
+
+
+def _draw_table(fig, rect, tabela: dict):
+    """Tabela de dados no padrao IMAP (cabecalho azul, zebra). ``tabela`` = {titulo, colunas, linhas}."""
+    colunas = tabela.get("colunas") or []
+    linhas = tabela.get("linhas") or []
+    if not colunas or not linhas:
+        return None
+    axt = fig.add_axes(rect)
+    axt.axis("off")
+    titulo = tabela.get("titulo")
+    if titulo:
+        axt.text(0.5, 1.03, titulo, ha="center", va="bottom", fontsize=8.5,
+                 fontweight="bold", color=_INK, transform=axt.transAxes,
+                 bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="#9ca3af", lw=0.6, alpha=0.95))
+    t = axt.table(cellText=[[str(c) for c in row] for row in linhas],
+                  colLabels=[str(c) for c in colunas], loc="center", cellLoc="center")
+    t.auto_set_font_size(False)
+    t.set_fontsize(6.6)
+    t.scale(1, 1.35)
+    for (r, c), cell in t.get_celld().items():
+        cell.set_edgecolor("#9ca3af")
+        cell.set_linewidth(0.5)
+        if r == 0:
+            cell.set_facecolor("#1f4e78")
+            cell.set_text_props(color="white", weight="bold")
+        else:
+            cell.set_facecolor("#eef3f8" if r % 2 else "white")
+    return axt
+
+
+def _rects_overlap(a: tuple, b: tuple) -> float:
+    """Area de intersecao entre dois retangulos (x,y,w,h) em fracao da pagina."""
+    ax0, ay0, aw, ah = a
+    bx0, by0, bw, bh = b
+    ix = max(0.0, min(ax0 + aw, bx0 + bw) - max(ax0, bx0))
+    iy = max(0.0, min(ay0 + ah, by0 + bh) - max(ay0, by0))
+    return ix * iy
+
+
+def _layout_report(fig, regions: dict) -> dict:
+    """Detecta sobreposicao entre regioes de topo e texto cortado nas bordas."""
+    from itertools import combinations
+    from matplotlib.text import Text
+
+    report = {"sobreposicoes": [], "texto_cortado": []}
+    itens = [(k, v) for k, v in regions.items() if v is not None]
+    for (na, ra), (nb, rb) in combinations(itens, 2):
+        if _rects_overlap(ra, rb) > 0.0008:  # ~0.08% da pagina de folga
+            report["sobreposicoes"].append(f"{na} x {nb}")
+
+    fig.canvas.draw()
+    fw, fh = fig.bbox.width, fig.bbox.height
+    tol = 2.0
+    vistos = set()
+    for t in fig.findobj(Text):
+        s = (t.get_text() or "").strip()
+        if not s:
+            continue
+        try:
+            bb = t.get_window_extent()
+        except Exception:
+            continue
+        if bb.width <= 0 or bb.height <= 0:
+            continue
+        if bb.x0 < -tol or bb.y0 < -tol or bb.x1 > fw + tol or bb.y1 > fh + tol:
+            if s not in vistos:
+                report["texto_cortado"].append(s[:24])
+                vistos.add(s)
+    return report
+
+
+def _flagship_furniture(fig, ax, spec, project, area, scale, extent,
+                        drawn_layers, legend_entries, map_rect, band_rect, on):
+    """Mobiliario full-bleed padrao IMAP. Cada peca respeita spec.elementos_layout."""
+    mx, my, mw, mh = map_rect
+
+    # rosa-dos-ventos no canto superior direito extremo
+    if on("norte"):
+        if on("rosa_dos_ventos", True):
+            _draw_compass_rose(fig, (mx + mw - 0.043, my + mh - 0.058, 0.038, 0.055))
+        else:
+            _draw_north(ax)
+    # caixa de titulo preta a esquerda da rosa-dos-ventos.
+    # Desligar via elementos_layout.titulo_caixa=false ("remova o titulo preto").
+    if on("titulo_caixa", True) and spec.titulo:
+        _draw_title_box(ax, spec.titulo, spec.subtitulo, x=(mw - 0.058) / mw, y=0.985)
+    if on("escala_grafica"):
+        _draw_scale_bar(ax, extent, scale)
+
+    # inset "Tipologia vegetal" (topo esquerdo)
+    if on("inset_tipologia", True):
+        tipo_layers = [l for l in drawn_layers if getattr(l, "tema", "") == "tipologia" and l.features]
+        _draw_tipologia_inset(fig, (mx + 0.006, my + mh - 0.232, 0.205, 0.222), area, tipo_layers)
+
+    # tabela flutuando sobre o canto inferior direito do mapa
+    if on("tabela", True) and spec.tabela:
+        tw, th = 0.46, 0.205
+        _draw_table(fig, (mx + mw - tw - 0.005, my + 0.006, tw, th), spec.tabela)
+
+    # ---- faixa inferior: [localizacao] [METADADOS IMAGEM] [Legenda] [logo] ----
+    bx, by, bw, bh = band_rect
+    if on("minimapa", True):
+        _draw_minimap(fig, (0.02, by + 0.012, 0.10, bh - 0.02), area, extent, project.crs.utm, "light")
+    if on("metadados_imagem", True) and spec.metadados_imagem:
+        _draw_metadados_imagem_band(fig, (0.19, by + 0.005, 0.24, bh - 0.01), spec.metadados_imagem, scale)
+    if on("legenda") and legend_entries:
+        _draw_legend_swatches(fig, (0.52, by + 0.012, 0.30, bh - 0.02), legend_entries)
+    if on("logo", True) and spec.marca:
+        logo_path = _resolver_caminho(project, str(spec.marca.get("logo", "")))
+        logo_ok = _draw_logo(fig, (0.85, by + 0.01, 0.12, bh - 0.02), logo_path) if logo_path else False
+        if not logo_ok and spec.marca.get("texto"):
+            fig.text(0.91, by + bh / 2, str(spec.marca.get("texto")), ha="center", va="center",
+                     fontsize=13, fontweight="bold", color="#17324d")
+
+
+def _standard_furniture(fig, ax, spec, project, area, scale, extent,
+                        drawn_layers, legend_entries, map_rect, panel_rect,
+                        band_rect, landscape, on):
+    """Mobiliario com painel lateral/inferior (mapas simples, retrato, sem satelite)."""
+    if on("norte"):
+        _draw_north(ax)
+    if on("escala_grafica"):
+        _draw_scale_bar(ax, extent, scale)
+
+    cx_map = map_rect[0] + map_rect[2] / 2
+    top_map = map_rect[1] + map_rect[3]
+    if spec.titulo:
+        fig.text(cx_map, min(0.99, top_map + 0.055), spec.titulo, ha="center",
+                 fontsize=17, fontweight="bold", color=_INK, va="top")
+    subtitle = spec.subtitulo or (
+        f"{project.municipio.nome}/{project.municipio.uf}  |  SIRGAS 2000 / UTM "
+        f"(EPSG:{project.crs.utm})  |  Escala 1:{scale:,}".replace(",", ".")
+        + f"  |  {project.data_consulta_efetiva()}")
+    fig.text(cx_map, min(0.96, top_map + 0.028), subtitle, ha="center",
+             fontsize=8.5, color=_MUTED, va="top")
+
+    if panel_rect is None:
+        return
+    panel = fig.add_axes(panel_rect)
+    panel.axis("off")
+    panel.add_patch(patches.FancyBboxPatch((0, 0), 1, 1, transform=panel.transAxes,
+                                           boxstyle="round,pad=0.008,rounding_size=0.015",
+                                           facecolor="#f8fafc", edgecolor="#d1d5db", linewidth=0.8))
+    if landscape:
+        panel.text(0.07, 0.975, "Legenda", fontsize=11, fontweight="bold", color=_INK, va="top")
+        if legend_entries and on("legenda"):
+            panel.legend(handles=legend_entries, loc="upper left", bbox_to_anchor=(0.04, 0.955),
+                         frameon=False, fontsize=7.4, handlelength=1.6, borderaxespad=0)
+        meta_y = 0.60
+    else:
+        if legend_entries and on("legenda"):
+            panel.legend(handles=legend_entries, loc="upper left", bbox_to_anchor=(0.03, 0.97),
+                         frameon=False, fontsize=7.2, ncols=2, handlelength=1.5, borderaxespad=0)
+        meta_y = 0.50
+
+    if on("metadados"):
+        area_fmt = f"{area.area_ha:,.4f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        metadata = [
+            f"Projeto: {project.nome}",
+            f"Cliente: {project.cliente or '-'}",
+            f"Area: {area_fmt} ha  |  Feicoes: {area.feature_count}",
+            f"Fonte da area: {os.path.basename(project.area_base_path())}",
+            f"Datum: SIRGAS 2000  |  Escala 1:{scale:,}".replace(",", "."),
+        ]
+        x_meta = 0.07 if landscape else 0.52
+        panel.text(x_meta, meta_y + 0.045, "Metadados", fontsize=10, fontweight="bold", color=_INK, va="bottom")
+        panel.text(x_meta, meta_y, "\n".join(metadata), fontsize=7.2, color=_MUTED, va="top", linespacing=1.7)
+
+    if on("minimapa"):
+        if landscape:
+            mini_rect = (panel_rect[0] + 0.028, panel_rect[1] + 0.035,
+                         panel_rect[2] - 0.056, panel_rect[3] * 0.30)
+        else:
+            mini_rect = (panel_rect[0] + panel_rect[2] - 0.20, panel_rect[1] + 0.015,
+                         0.185, panel_rect[3] * 0.62)
+        _draw_minimap(fig, mini_rect, area, extent, project.crs.utm, "light")
+
+
 def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_dir: str,
                    manifest: dict | None = None, drawn_layers: list | None = None,
                    use_basemap: bool = True) -> dict:
@@ -220,14 +660,24 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
     page_w_mm, page_h_mm = _page_mm(spec, manifest)
     fig = plt.figure(figsize=(page_w_mm * MM, page_h_mm * MM), facecolor="white")
 
+    # "flagship" = layout padrao IMAP (satelite full-bleed + faixa inferior com
+    # logo / metadados-imagem / tabela). Ativa quando o MapSpec traz esses campos.
+    flagship = bool(spec.metadados_imagem or spec.tabela or spec.marca)
+
     # geometria do layout (fracoes da pagina)
     landscape = page_w_mm >= page_h_mm
-    if landscape:
+    if landscape and flagship:
+        map_rect = (0.035, 0.155, 0.935, 0.80)   # full-bleed
+        panel_rect = None
+        band_rect = (0.0, 0.0, 1.0, 0.135)        # faixa inferior full-width
+    elif landscape:
         map_rect = (0.045, 0.075, 0.655, 0.83)
         panel_rect = (0.725, 0.075, 0.245, 0.83)
+        band_rect = None
     else:
         map_rect = (0.06, 0.30, 0.88, 0.62)
         panel_rect = (0.06, 0.045, 0.88, 0.22)
+        band_rect = None
 
     with abrir_shape_zip(project.area_base_path(), project.crs.utm, project.crs.geografico) as area:
         bbox = area.bbox_utm
@@ -249,26 +699,42 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
         ax.set_ylim(extent[2], extent[3])
         ax.set_facecolor("#eef2f7")
 
-        # basemap
+        # fundo do mapa: 1) raster local (GeoTIFF); 2) tiles; 3) neutro
         credito_basemap = ""
-        if use_basemap and spec.basemap not in ("none", "nenhum"):
+        fundo_desenhado = False
+        if spec.raster_fundo:
+            from core import raster as raster_mod
+            bg, warn = raster_mod.load_raster_background(
+                _resolver_caminho(project, spec.raster_fundo), project.crs.utm,
+                (extent[0], extent[2], extent[1], extent[3]))
+            if bg:
+                ax.imshow(bg.image, extent=bg.extent, origin="upper",
+                          interpolation="bilinear", zorder=1)
+                credito_basemap = f"Imagem: {bg.fonte}"
+                fundo_desenhado = True
+            elif warn:
+                render_warnings.append(warn)
+        if not fundo_desenhado and use_basemap and spec.basemap not in ("none", "nenhum"):
             bm = basemap_mod.fetch_basemap_utm((extent[0], extent[2], extent[1], extent[3]),
                                                project.crs.utm, style=spec.basemap)
             if bm:
                 img, ext, credito_basemap = bm
                 ax.imshow(img, extent=ext, origin="upper", interpolation="bilinear", zorder=1)
+                fundo_desenhado = True
             else:
                 render_warnings.append("basemap indisponivel (sem internet ou provedor fora do ar); fundo neutro usado")
+        fundo_escuro = fundo_desenhado  # imagem/satelite => rotulos claros
 
         # camadas do catalogo (dados reais via WFS)
         legend_entries: list = []
         for layer in drawn_layers:
-            line, fill, alpha = _layer_color(layer.estilo, layer.tema)
+            line, fill, alpha, hatch = _layer_color(layer.estilo, layer.tema)
             if layer.features:
-                _draw_geoms(ax, layer.features, line, fill, alpha)
+                _draw_geoms(ax, layer.features, line, fill, alpha, hatch=hatch)
             suffix = f" ({layer.feature_count})" if layer.features else " (sem feicoes no recorte)"
-            legend_entries.append(patches.Patch(facecolor=fill, edgecolor=line, alpha=max(alpha, 0.35),
-                                                label=layer.nome + suffix))
+            legend_entries.append(patches.Patch(facecolor=(fill if fill != "none" else "white"),
+                                                edgecolor=line, alpha=max(alpha, 0.35),
+                                                hatch=hatch or None, label=layer.nome + suffix))
 
         # perimetro da area base
         perimeter_layer = next((l for l in spec.camadas if l.fonte == "area_base"), None)
@@ -277,73 +743,41 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
         legend_entries.insert(0, Line2D([0], [0], color=peri_style.get("linha", "#ff3b30"),
                                         lw=2.4, label=f"Perimetro do imovel ({area.feature_count})"))
 
-        # grade de coordenadas UTM
-        if spec.elementos_layout.get("grade", True):
-            ax.grid(True, color="#64748b", alpha=0.35, linewidth=0.5, linestyle=(0, (6, 4)))
-        ax.xaxis.set_major_locator(MaxNLocator(5, steps=[1, 2, 5]))
-        ax.yaxis.set_major_locator(MaxNLocator(6, steps=[1, 2, 5]))
-        ax.xaxis.set_major_formatter(FuncFormatter(_fmt_coord))
-        ax.yaxis.set_major_formatter(FuncFormatter(_fmt_coord))
-        ax.tick_params(labelsize=6.5, colors=_MUTED, length=3)
-        plt.setp(ax.get_yticklabels(), rotation=90, va="center")
+        # grade de coordenadas: DMS (padrao IMAP) ou UTM
+        mostrar_grade = bool(spec.elementos_layout.get("grade", True))
+        if spec.grade_tipo == "utm":
+            if mostrar_grade:
+                ax.grid(True, color="#64748b", alpha=0.35, linewidth=0.5, linestyle=(0, (6, 4)))
+            ax.xaxis.set_major_locator(MaxNLocator(5, steps=[1, 2, 5]))
+            ax.yaxis.set_major_locator(MaxNLocator(6, steps=[1, 2, 5]))
+            ax.xaxis.set_major_formatter(FuncFormatter(_fmt_coord))
+            ax.yaxis.set_major_formatter(FuncFormatter(_fmt_coord))
+            ax.tick_params(labelsize=6.5, colors=_MUTED, length=3)
+            plt.setp(ax.get_yticklabels(), rotation=90, va="center")
+        else:
+            _draw_graticule_dms(ax, extent, project.crs.utm, project.crs.geografico, mostrar_grade)
         for spine in ax.spines.values():
             spine.set_color(_INK)
             spine.set_linewidth(1.2)
 
-        if spec.elementos_layout.get("norte", True):
-            _draw_north(ax)
-        if spec.elementos_layout.get("escala_grafica", True):
-            _draw_scale_bar(ax, extent, scale)
+        # ============================================================= #
+        # Mobiliario do mapa — TODOS os elementos sao ligaveis/desligaveis
+        # pela IA via spec.elementos_layout (a IA controla o layout, nada e
+        # cravado no codigo). Ex.: elementos_layout.titulo_caixa=false remove
+        # a caixa de titulo preta.
+        # ============================================================= #
+        el = spec.elementos_layout or {}
 
-        # titulo
-        fig.text(map_rect[0], 0.965 if landscape else 0.975, spec.titulo,
-                 fontsize=17, fontweight="bold", color=_INK, va="top")
-        subtitle = (f"{project.municipio.nome}/{project.municipio.uf}  |  SIRGAS 2000 / UTM "
-                    f"(EPSG:{project.crs.utm})  |  Escala 1:{scale:,}".replace(",", ".")
-                    + f"  |  {project.data_consulta_efetiva()}")
-        fig.text(map_rect[0], 0.937 if landscape else 0.952, subtitle, fontsize=8.5, color=_MUTED, va="top")
+        def on(chave: str, padrao: bool = True) -> bool:
+            return bool(el.get(chave, padrao))
 
-        # painel lateral/inferior: legenda + metadados + minimapa
-        panel = fig.add_axes(panel_rect)
-        panel.axis("off")
-        panel.add_patch(patches.FancyBboxPatch((0, 0), 1, 1, transform=panel.transAxes,
-                                               boxstyle="round,pad=0.008,rounding_size=0.015",
-                                               facecolor="#f8fafc", edgecolor="#d1d5db", linewidth=0.8))
-
-        if landscape:
-            panel.text(0.07, 0.975, "Legenda", fontsize=11, fontweight="bold", color=_INK, va="top")
-            if legend_entries and spec.elementos_layout.get("legenda", True):
-                panel.legend(handles=legend_entries, loc="upper left", bbox_to_anchor=(0.04, 0.955),
-                             frameon=False, fontsize=7.4, handlelength=1.6, borderaxespad=0)
-            meta_y = 0.60
+        if flagship:
+            _flagship_furniture(fig, ax, spec, project, area, scale, extent,
+                                drawn_layers, legend_entries, map_rect, band_rect, on)
         else:
-            if legend_entries and spec.elementos_layout.get("legenda", True):
-                panel.legend(handles=legend_entries, loc="upper left", bbox_to_anchor=(0.03, 0.97),
-                             frameon=False, fontsize=7.2, ncols=2, handlelength=1.5, borderaxespad=0)
-            meta_y = 0.50
-
-        if spec.elementos_layout.get("metadados", True):
-            area_fmt = f"{area.area_ha:,.4f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            metadata = [
-                f"Projeto: {project.nome}",
-                f"Cliente: {project.cliente or '-'}",
-                f"Area: {area_fmt} ha  |  Feicoes: {area.feature_count}",
-                f"Fonte da area: {os.path.basename(project.area_base_path())}",
-                "Datum: SIRGAS 2000  |  Motor: NexoMap nativo",
-            ]
-            x_meta = 0.07 if landscape else 0.52
-            panel.text(x_meta, meta_y + 0.045, "Metadados", fontsize=10, fontweight="bold", color=_INK, va="bottom")
-            panel.text(x_meta, meta_y, "\n".join(metadata), fontsize=7.2, color=_MUTED,
-                       va="top", linespacing=1.7)
-
-        if spec.elementos_layout.get("minimapa", True):
-            if landscape:
-                mini_rect = (panel_rect[0] + 0.028, panel_rect[1] + 0.035,
-                             panel_rect[2] - 0.056, panel_rect[3] * 0.30)
-            else:
-                mini_rect = (panel_rect[0] + panel_rect[2] - 0.20, panel_rect[1] + 0.015,
-                             0.185, panel_rect[3] * 0.62)
-            _draw_minimap(fig, mini_rect, area, extent, project.crs.utm, "light")
+            _standard_furniture(fig, ax, spec, project, area, scale, extent,
+                                 drawn_layers, legend_entries, map_rect, panel_rect,
+                                 band_rect, landscape, on)
 
         # rodape de creditos
         fontes = sorted({layer.nome for layer in drawn_layers})
@@ -351,7 +785,12 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
         if credito_basemap:
             credito += f".  {credito_basemap}"
         credito += ".  Gerado pelo NexoGeo Ambiental (motor nativo, sem ArcMap)."
-        fig.text(map_rect[0], 0.018, credito, fontsize=6.4, color="#6b7280")
+        cred_y = 0.006 if band_rect is None else 0.001
+        fig.text(map_rect[0], cred_y, credito, fontsize=6.0, color="#6b7280", va="bottom")
+
+        # relatorio de layout (sobreposicao/corte de texto) antes de salvar
+        regioes = {"mapa": map_rect, "painel": panel_rect, "faixa": band_rect}
+        layout_report = _layout_report(fig, regioes)
 
         fig.savefig(pdf_path, dpi=200)
         fig.savefig(preview_path, dpi=130)
@@ -363,7 +802,8 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
             "bbox_utm": list(area.bbox_utm),
         }
 
-    validation = validate_pdf(pdf_path, validation_png_path, spec.titulo)
+    validation = validate_pdf(pdf_path, validation_png_path, spec.titulo,
+                              map_region=map_rect, layout_report=layout_report)
     validation["escala"] = scale
     validation["camadas_desenhadas"] = [
         {"id": l.id, "nome": l.nome, "feicoes": l.feature_count} for l in drawn_layers

@@ -72,6 +72,42 @@
       "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
       "layer": "Geoportal:TIPOLOGIA",
       "auth": "sema_authkey"
+    },
+    {
+      "id": "sigef_particular_mt",
+      "nome": "SIGEF - Certificadas particulares (INCRA)",
+      "tema": "fundiario",
+      "tipo": "wms_wfs",
+      "endpoint": "http://acervofundiario.incra.gov.br/i3geo/ogc.php?tema=certificada_sigef_particular_mt",
+      "layer": "certificada_sigef_particular_mt",
+      "auth": null
+    },
+    {
+      "id": "sigef_publico_mt",
+      "nome": "SIGEF - Certificadas publicas (INCRA)",
+      "tema": "fundiario",
+      "tipo": "wms_wfs",
+      "endpoint": "http://acervofundiario.incra.gov.br/i3geo/ogc.php?tema=certificada_sigef_publico_mt",
+      "layer": "certificada_sigef_publico_mt",
+      "auth": null
+    },
+    {
+      "id": "snci_particular_mt",
+      "nome": "SNCI - Certificadas particulares (INCRA)",
+      "tema": "fundiario",
+      "tipo": "wms_wfs",
+      "endpoint": "http://acervofundiario.incra.gov.br/i3geo/ogc.php?tema=certificada_snci_particular_mt",
+      "layer": "certificada_snci_particular_mt",
+      "auth": null
+    },
+    {
+      "id": "assentamentos_incra",
+      "nome": "Assentamentos (INCRA)",
+      "tema": "fundiario",
+      "tipo": "wms_wfs",
+      "endpoint": "http://acervofundiario.incra.gov.br/i3geo/ogc.php?tema=assentamento_brasil",
+      "layer": "assentamento_brasil",
+      "auth": null
     }
   ]
 }

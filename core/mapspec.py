@@ -13,14 +13,25 @@ from core.nexomap_project import NexoMapError
 
 ALLOWED_OUTPUTS = {"pdf", "png_validacao", "geojson"}
 
-# "mxd" era a saida do ArcMap (removido); vira exportacao aberta em GeoJSON
-_LEGACY_OUTPUTS = {"mxd": "geojson"}
+# aliases/legado -> saidas canonicas. "mxd" (ArcMap removido) vira GeoJSON aberto.
+_LEGACY_OUTPUTS = {
+    "mxd": "geojson",
+    "png": "png_validacao", "preview": "png_validacao", "preview_png": "png_validacao",
+    "png_preview": "png_validacao", "validacao": "png_validacao",
+    "json": "geojson", "shp": "geojson", "shapefile": "geojson",
+}
 
 
 def _normalize_outputs(saidas: list) -> list[str]:
     out: list[str] = []
     for item in saidas:
-        mapped = _LEGACY_OUTPUTS.get(str(item), str(item))
+        # a IA as vezes devolve objetos {"formato": "pdf", "resolucao": 300}
+        if isinstance(item, dict):
+            item = item.get("formato") or item.get("tipo") or item.get("nome") or ""
+        nome = str(item).strip().lower()
+        if not nome:
+            continue
+        mapped = _LEGACY_OUTPUTS.get(nome, nome)
         if mapped not in out:
             out.append(mapped)
     return out
@@ -46,15 +57,28 @@ class MapSpec:
     camadas: list[MapLayerSpec]
     elementos_layout: dict[str, bool]
     saidas: list[str]
+    # --- campos do padrao IMAP / motor cartografico profissional (opcionais) ---
+    subtitulo: str = ""
+    grade_tipo: str = "dms"                       # "dms" (padrao) | "utm"
+    raster_fundo: str = ""                        # caminho de GeoTIFF local de fundo
+    metadados_imagem: dict[str, Any] = field(default_factory=dict)  # satelite/sensor/data/orbita_ponto/datum
+    tabela: dict[str, Any] = field(default_factory=dict)            # {titulo, colunas[], linhas[[]]}
+    marca: dict[str, Any] = field(default_factory=dict)            # {logo, texto}
+    # --- versionamento (edicao com MapSpec como fonte de verdade) ---
+    versao: int = 1
+    parent_job_id: str = ""
 
     def to_dict(self) -> dict:
         return {
             "titulo": self.titulo,
+            "subtitulo": self.subtitulo,
             "tipo": self.tipo,
             "area_base": self.area_base,
             "layout_template": self.layout_template,
             "escala": self.escala,
             "basemap": self.basemap,
+            "grade_tipo": self.grade_tipo,
+            "raster_fundo": self.raster_fundo,
             "camadas": [
                 {
                     "id": layer.id,
@@ -66,7 +90,12 @@ class MapSpec:
                 for layer in self.camadas
             ],
             "elementos_layout": self.elementos_layout,
+            "metadados_imagem": self.metadados_imagem,
+            "tabela": self.tabela,
+            "marca": self.marca,
             "saidas": self.saidas,
+            "versao": self.versao,
+            "parent_job_id": self.parent_job_id,
         }
 
 
@@ -82,16 +111,27 @@ def mapspec_from_dict(data: dict) -> MapSpec:
             estilo=raw.get("estilo") or {},
             rotulo=bool(raw.get("rotulo", False)),
         ))
+    grade = str(data.get("grade_tipo", "dms")).lower().strip() or "dms"
+    if grade not in ("dms", "utm"):
+        grade = "dms"
     return MapSpec(
         titulo=str(data.get("titulo", "")).strip(),
+        subtitulo=str(data.get("subtitulo", "")).strip(),
         tipo=str(data.get("tipo", "geral")).strip() or "geral",
         area_base=str(data.get("area_base", "projeto.area_base")),
         layout_template=str(data.get("layout_template", "")),
         escala=data.get("escala", "auto"),
         basemap=str(data.get("basemap", "satellite")),
+        grade_tipo=grade,
+        raster_fundo=str(data.get("raster_fundo", "") or ""),
         camadas=layers,
         elementos_layout=data.get("elementos_layout") or {},
+        metadados_imagem=data.get("metadados_imagem") or {},
+        tabela=data.get("tabela") or {},
+        marca=data.get("marca") or {},
         saidas=_normalize_outputs(data.get("saidas") or ["pdf", "png_validacao", "geojson"]),
+        versao=int(data.get("versao", 1) or 1),
+        parent_job_id=str(data.get("parent_job_id", "") or ""),
     )
 
 
@@ -228,3 +268,76 @@ def build_rule_based_spec(prompt: str, project_name: str, catalog: dict, manifes
         },
         saidas=["pdf", "png_validacao", "geojson"],
     )
+
+
+_ELEM_KEYS = {
+    "legenda": "legenda", "escala": "escala_grafica", "norte": "norte",
+    "grade": "grade", "minimapa": "minimapa", "metadados": "metadados",
+}
+
+
+def apply_rule_based_edit(spec: MapSpec, instrucao: str, catalog: dict, manifest: dict) -> MapSpec:
+    """Edicao deterministica de um MapSpec (fallback sem IA). Preserva o resto."""
+    text = (instrucao or "").lower()
+    data = spec.to_dict()
+
+    m = re.search(r"t[ií]tulo\s+(?:para|:)?\s*['\"]?(.+?)['\"]?$", instrucao or "", re.I)
+    if m and "subt" not in text:
+        data["titulo"] = m.group(1).strip()
+    m = re.search(r"subt[ií]tulo\s+(?:para|:)?\s*['\"]?(.+?)['\"]?$", instrucao or "", re.I)
+    if m:
+        data["subtitulo"] = m.group(1).strip()
+
+    m = re.search(r"escala\s*(?:1\s*[:x]\s*)?([\d\.]{3,})", text)
+    if m:
+        data["escala"] = int(m.group(1).replace(".", ""))
+    elif "escala automatica" in text or "escala auto" in text:
+        data["escala"] = "auto"
+
+    if "grade utm" in text or "utm" in text and "grade" in text:
+        data["grade_tipo"] = "utm"
+    if "grade dms" in text or ("dms" in text and "grade" in text) or "graus" in text:
+        data["grade_tipo"] = "dms"
+
+    if any(k in text for k in ("satelite", "satélite", "imagem de fundo", "basemap satellite")):
+        data["basemap"] = "satellite"
+    if "sem fundo" in text or "fundo neutro" in text or "sem basemap" in text:
+        data["basemap"] = "none"
+
+    elems = dict(data.get("elementos_layout") or {})
+    for palavra, chave in _ELEM_KEYS.items():
+        if re.search(rf"(remover|sem|ocultar|tirar|esconder)\s+\w*\s*{palavra}", text):
+            elems[chave] = False
+        if re.search(rf"(adicionar|mostrar|incluir|com)\s+\w*\s*{palavra}", text):
+            elems[chave] = True
+    data["elementos_layout"] = elems
+
+    # adicionar/remover camadas do catalogo por palavra-chave
+    known = {
+        "embargo": ["embargos_ibama", "embargos_sema"], "car": ["car_sema"],
+        "tipologia": ["tipologia_sema"], "vegetac": ["tipologia_sema"],
+        "indigena": ["terras_indigenas_funai"], "indígena": ["terras_indigenas_funai"],
+        "conservacao": ["unidades_conservacao"], "conservação": ["unidades_conservacao"],
+        "alerta": ["alertas_mapbiomas"], "mapbiomas": ["alertas_mapbiomas"],
+        "prodes": ["prodes_inpe"], "desmat": ["alertas_mapbiomas", "prodes_inpe"],
+    }
+    cores = {"embargos_ibama": "#d93025", "embargos_sema": "#f97316", "car_sema": "#1d4ed8",
+             "tipologia_sema": "#16a34a", "terras_indigenas_funai": "#8b5cf6",
+             "unidades_conservacao": "#059669", "alertas_mapbiomas": "#facc15", "prodes_inpe": "#ef4444"}
+    ids_atuais = {c["id"] for c in data["camadas"]}
+    for chave, layer_ids in known.items():
+        if chave in text:
+            for lid in layer_ids:
+                if not _has_layer(catalog, lid):
+                    continue
+                if re.search(rf"(remover|tirar|sem)\s+\w*\s*{chave}", text):
+                    data["camadas"] = [c for c in data["camadas"] if c["id"] != lid]
+                elif lid not in ids_atuais:
+                    data["camadas"].append({
+                        "id": lid, "fonte": f"catalogo.{lid}", "filtro": "intersecta_area_base",
+                        "estilo": {"linha": cores.get(lid, "#64748b"),
+                                   "preenchimento": cores.get(lid, "#64748b"), "opacidade": 0.4},
+                        "rotulo": False,
+                    })
+
+    return mapspec_from_dict(data)

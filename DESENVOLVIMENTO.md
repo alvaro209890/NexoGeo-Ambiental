@@ -155,6 +155,28 @@ servindo o index buildado e o bundle JS (200).
   templates reais.
 - Handoff para continuidade por outro agente: `docs/NEXOMAP_AGENT_HANDOFF.md`.
 
+## 2026-07-08 — IA cartográfica no padrão IMAP (motor nativo)
+
+Motor cartográfico nativo evoluído para uma IA que **cria, edita, valida e exporta** mapas no
+padrão IMAP, com **layout dirigido pela IA** (nada fixo no código). Detalhes completos em
+[`novas-implementacoes/2026-07-08-ia-cartografica-imap.md`](novas-implementacoes/2026-07-08-ia-cartografica-imap.md).
+
+- **`core/raster.py` (novo):** GeoTIFF de fundo sem GDAL (`tifffile` + `Pillow`), reprojeção por
+  cantos com `pyproj`, esticamento de contraste. Landsat/Planet como fundo do mapa.
+- **`nexomap_renderer.py`:** grade DMS, raster local, hachuras, caixa de título, rosa-dos-ventos,
+  inset "Tipologia vegetal", tabela flutuante, faixa inferior IMAP (localização/metadados-imagem/
+  legenda/logo). **Cada elemento ligável/desligável via `elementos_layout`.**
+- **`mapspec.py`:** campos `subtitulo`, `grade_tipo`, `raster_fundo`, `metadados_imagem`, `tabela`,
+  `marca`, `versao`, `parent_job_id`; parser tolerante; edição determinística de fallback.
+- **`nexomap_validation.py`:** checa imagem-presente, sem-sobreposição, sem-texto-cortado.
+- **`nexomap_ai.py`:** **DeepSeek V4 Pro** como cérebro (chave em `secrets.local.json`); edição
+  versionada (MapSpec = fonte de verdade, nunca PDF/PNG). "Remova o título preto" → `titulo_caixa=false`.
+- **`nexomap_generator.py`:** `edit_map()` gera nova versão com linhagem; pipeline compartilhado.
+- **`catalogo/camadas.json`:** camadas INCRA (SIGEF particular/público, SNCI, assentamentos).
+- **`templates/marca/`:** logos oficiais IMAP.
+- **Verificação:** flagship "Dinâmica 2000" reproduzido na área ATP real com Landsat 224/071 —
+  10/10 checks OK; `pytest` 25 passed; loop DeepSeek gerar+editar validado ao vivo.
+
 ## Pendências/decisões registradas
 
 - **Matrícula 6350 (817,0640 ha)** — **Resolvido (2026-06-17):** é da *Fazenda Gabriela II*
