@@ -1,0 +1,123 @@
+{
+  "gerado_de": "referencias/Mapas_unidos.pdf",
+  "n_paginas": 24,
+  "descricao": "Perfil visual extraido dos mapas IMAP reais (plano 10). Posicoes em fracao da pagina, origem topo-esquerda.",
+  "pagina": {
+    "aspect": {
+      "n": 24,
+      "media": 1.4131,
+      "min": 1.4131,
+      "max": 1.4131,
+      "desvio": 0.0,
+      "tol": 0.02
+    },
+    "orientacao": "paisagem"
+  },
+  "titulo": {
+    "size": {
+      "n": 24,
+      "media": 24.9333,
+      "min": 18.7225,
+      "max": 25.2034,
+      "desvio": 1.295,
+      "tol": 3.2404
+    },
+    "cx_frac": {
+      "n": 24,
+      "media": 0.4804,
+      "min": 0.2459,
+      "max": 0.4921,
+      "desvio": 0.049,
+      "tol": 0.12
+    },
+    "y0_frac": {
+      "n": 24,
+      "media": 0.0167,
+      "min": 0.0111,
+      "max": 0.0188,
+      "desvio": 0.0015,
+      "tol": 0.06
+    },
+    "largura_frac": {
+      "n": 24,
+      "media": 0.2614,
+      "min": 0.1817,
+      "max": 0.4335,
+      "desvio": 0.0667,
+      "tol": 0.0667
+    },
+    "fontes": {
+      "Tahoma-Bold": 24
+    },
+    "cores": {
+      "#000000": 24
+    }
+  },
+  "norte": {
+    "presente_em": 23,
+    "cx_frac": {
+      "n": 23,
+      "media": 0.9573,
+      "min": 0.9516,
+      "max": 0.9597,
+      "desvio": 0.0037,
+      "tol": 0.05
+    },
+    "cy_frac": {
+      "n": 23,
+      "media": 0.0774,
+      "min": 0.0618,
+      "max": 0.0843,
+      "desvio": 0.0103,
+      "tol": 0.05
+    }
+  },
+  "legenda": {
+    "presente_em": 24,
+    "cx_frac": {
+      "n": 24,
+      "media": 0.6117,
+      "min": 0.5702,
+      "max": 0.6595,
+      "desvio": 0.019,
+      "tol": 0.08
+    },
+    "y0_frac": {
+      "n": 24,
+      "media": 0.8073,
+      "min": 0.7751,
+      "max": 0.842,
+      "desvio": 0.0125,
+      "tol": 0.06
+    }
+  },
+  "metadados_imagem": {
+    "presente_em": 24,
+    "cx_frac": {
+      "n": 24,
+      "media": 0.398,
+      "min": 0.3352,
+      "max": 0.4207,
+      "desvio": 0.0247,
+      "tol": 0.08
+    },
+    "y0_frac": {
+      "n": 24,
+      "media": 0.7976,
+      "min": 0.779,
+      "max": 0.8478,
+      "desvio": 0.024,
+      "tol": 0.06
+    }
+  },
+  "faixa_inferior": {
+    "y0_frac": {
+      "n": 24,
+      "media": 0.7882,
+      "min": 0.7751,
+      "max": 0.8174,
+      "desvio": 0.0121,
+      "tol": 0.06
+    }
+  }
+}

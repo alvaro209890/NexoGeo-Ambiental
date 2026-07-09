@@ -101,9 +101,16 @@ referencias/
 
 ## Próximos passos (priorizados)
 
+### ✅ CONCLUÍDO 2026-07-09 — Plano 10 (validação PDF-modelo)
+- `scripts/extrair_perfil_imap.py` → gera `referencias/perfil_imap.json` (24 mapas IMAP reais)
+- `core/nexomap_validation.py`: `validar_contra_modelo(pdf, perfil)`, `extrair_metricas_pagina/pdf`,
+  `load_perfil_imap`. Checks HARD (estrutura) vs SOFT (estilo). Flagship passa todos os HARD.
+- Integrado no render: `validacao.json > conformidade_modelo` (best-effort, não bloqueia)
+- `tests/test_validacao_modelo.py`: 6 testes. **Suite total: 96 offline + 6 skipped.**
+- Gaps de estilo achados (soft): título nativo ~16pt vs IMAP ~25pt; norte não detectável por texto.
+
 ### Imediato
-1. **Extrair perfil visual do PDF-modelo** (plano 10): usar pymupdf para extrair métricas
-   dos 24 mapas IMAP reais → validar mapas gerados contra o perfil
+1. **Tool `validar_mapa`** (plano 09): expor `validar_contra_modelo` como tool da IA + auto-correção
 2. **Schema JSON** (plano 05): adicionar campos novos (subtitulo, grade_tipo, raster_fundo,
    metadados_imagem, tabela, marca, layout, legenda, versao, parent_job_id)
 3. **Endpoint de edição versionada** (plano 05): `POST /api/nexomap/edit` com SSE

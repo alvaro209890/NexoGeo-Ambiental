@@ -43,14 +43,46 @@ Nova função `validar_contra_modelo(pdf_path, perfil)` que compara:
 
 ## Checklist
 
-- [ ] Instalar pymupdf no venv
-- [ ] Script `scripts/extrair_perfil_imap.py`: lê Mapas_unidos.pdf, extrai métricas
-- [ ] Gerar `referencias/perfil_imap.json` com médias e tolerâncias
-- [ ] `core/nexomap_validacao.py`: função `validar_contra_modelo(pdf, perfil)`
-- [ ] Integrar no pipeline de geração (pós-render)
-- [ ] Tool `validar_mapa` usa o resultado
-- [ ] Testes com mapa gerado vs perfil
-- [ ] Documentar o perfil extraído
+- [x] Instalar pymupdf no venv (PyMuPDF 1.28.0)
+- [x] Script `scripts/extrair_perfil_imap.py`: lê Mapas_unidos.pdf, extrai métricas
+- [x] Gerar `referencias/perfil_imap.json` com médias e tolerâncias (24 páginas)
+- [x] `core/nexomap_validation.py`: função `validar_contra_modelo(pdf, perfil)`
+- [x] Integrar no pipeline de geração (pós-render → `validacao.json > conformidade_modelo`)
+- [ ] Tool `validar_mapa` usa o resultado (plano 09)
+- [x] Testes com mapa gerado vs perfil (`tests/test_validacao_modelo.py`, 6 testes)
+- [x] Documentar o perfil extraído (ver abaixo)
+
+## Perfil extraído (2026-07-09) — `referencias/perfil_imap.json`
+
+Métricas médias dos 24 mapas IMAP reais (posições em fração da página, origem topo-esquerda):
+
+| Elemento | Métrica | Valor | Presente em |
+|----------|---------|-------|-------------|
+| Página | aspect | 1.413 (A4 paisagem) | 24/24 |
+| Título | fonte / cor | Tahoma-Bold / #000000 | 24/24 |
+| Título | size · cx · y0 | ~24.9 · 0.480 · 0.017 | 24/24 |
+| Norte | cx · cy | 0.957 · 0.077 (topo-direita) | 23/24 |
+| Legenda | cx · y0 | 0.612 · 0.807 (faixa) | 24/24 |
+| Metadados | cx · y0 | 0.398 · 0.798 (faixa) | 24/24 |
+| Faixa inferior | y0 (topo) | 0.788 | — |
+
+### Como `validar_contra_modelo` classifica os checks
+
+- **HARD** (estrutura IMAP, reprovam): `aspecto_pagina`, `titulo_presente`, `titulo_no_topo`,
+  `titulo_centralizado`, `legenda_presente`, `legenda_no_rodape`.
+- **SOFT** (estilo, só informam): `titulo_tamanho`, `titulo_cor_escura`, `titulo_fonte`,
+  `norte_presente`, `metadados_presente`.
+
+Um mapa em modo **flagship** (faixa inferior — quando o MapSpec traz `metadados_imagem`/`tabela`/`marca`)
+passa todos os checks HARD. Um mapa em **painel-direito** reprova `legenda_no_rodape` (correto: não
+segue a faixa inferior IMAP). Regenerar o perfil: `.venv/bin/python scripts/extrair_perfil_imap.py`.
+
+### Gaps de estilo detectados (soft) — candidatos ao renderer / plano 09
+
+- **Título menor** que o modelo (native ~16-17pt vs IMAP ~25pt) → aumentar fonte do título.
+- **Norte não detectado por texto**: matplotlib desenha a seta como vetor, não como fonte
+  ESRINorth → validação por texto sempre soft-falha; futuro = detectar por região desenhada.
+- **Fonte do título** DejaVuSans-Bold (nativo) vs Tahoma-Bold (modelo) — esperado, não bloqueia.
 
 ## Dependências
 

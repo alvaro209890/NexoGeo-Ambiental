@@ -27,7 +27,7 @@ from core.nexomap_catalog import template_index
 from core.nexomap_geo import iter_polygons
 from core.nexomap_layout import element_rect, element_text_anchor
 from core.nexomap_project import NexoMapProject
-from core.nexomap_validation import validate_pdf, write_validation_report
+from core.nexomap_validation import validar_contra_modelo, validate_pdf, write_validation_report
 
 
 MM = 1 / 25.4  # mm -> polegadas
@@ -1123,6 +1123,20 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
         {"id": l.id, "nome": l.nome, "feicoes": l.feature_count} for l in drawn_layers
     ]
     validation["render_warnings"] = render_warnings
+
+    # conformidade com o perfil do PDF-modelo IMAP (plano 10); best-effort — nao
+    # bloqueia o render se o perfil nao existir.
+    try:
+        conform = validar_contra_modelo(pdf_path)
+        validation["conformidade_modelo"] = {
+            "ok": conform.get("ok"),
+            "hard_falhos": conform.get("hard_falhos", []),
+            "soft_falhos": conform.get("soft_falhos", []),
+            "checks": conform.get("checks", []),
+        }
+    except Exception as e:  # pragma: no cover - defensivo
+        validation["conformidade_modelo"] = {"erro": str(e)}
+
     write_validation_report(validation_path, validation)
     with open(os.path.join(job_dir, "mapspec.json"), "w", encoding="utf-8") as f:
         json.dump(spec.to_dict(), f, indent=2, ensure_ascii=False)

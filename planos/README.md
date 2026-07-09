@@ -12,7 +12,7 @@
 | **C** — Dados reais | 03, 04 | ✅ Concluída | `8a3cbf6` |
 | **D** — Integração, UI e QA | 05, 06, 07 | 🚧 Em andamento | `3da5317` |
 | **E** — Extensibilidade | 08 | ⬜ Não iniciado | — |
-| **F** — Inteligência e validação | 09, 10 | ⬜ Não iniciado | — |
+| **F** — Inteligência e validação | 09, **10** | 🚧 Plano 10 concluído | — |
 
 ## Novos planos (Fase F)
 
