@@ -388,17 +388,17 @@ def _draw_compass_rose(fig, rect):
     axc.plot(0, 0, marker="o", ms=2.2, color=_INK, zorder=4)
 
 
-def _draw_title_box(ax, titulo: str, subtitulo: str, x: float = 0.985, y: float = 0.97,
-                    ha: str = "right", va: str = "top", fundo: str = "#2b2b2b",
-                    cor: str = "white", tamanho: float = 16.0, borda: str | None = None):
-    """Caixa de titulo (padrao IMAP). Estilo editavel: fundo/cor/tamanho/borda.
+def _draw_title_box(ax, titulo: str, subtitulo: str, x: float = 0.5, y: float = 0.985,
+                    ha: str = "center", va: str = "top", fundo: str = "white",
+                    cor: str = "#111827", tamanho: float = 16.0, borda: str | None = None):
+    """Caixa de titulo (padrao IMAP). Default: caixa branca topo-centro.
 
-    O padrao historico e a caixa escura; o modelo IMAP recente usa caixa branca
-    com texto preto no topo-centro (layout.elementos.titulo.estilo).
+    O padrao IMAP recente usa caixa branca com texto escuro no topo-centro.
+    Para o estilo antigo (caixa escura a direita), use estilo {fundo:\"#2b2b2b\", cor:\"white\"}.
     """
     texto = titulo + (("\n" + subtitulo) if subtitulo else "")
     if borda is None:
-        borda = "white" if fundo not in ("white", "#fff", "#ffffff") else "#111827"
+        borda = "#9ca3af" if fundo in ("white", "#fff", "#ffffff") else "white"
     ax.text(x, y, texto, transform=ax.transAxes, ha=ha, va=va,
             fontsize=tamanho, fontweight="bold", color=cor, linespacing=1.25, zorder=26,
             bbox=dict(boxstyle="round,pad=0.55", fc=fundo, ec=borda, lw=1.3, alpha=0.93))
@@ -780,22 +780,22 @@ def _flagship_furniture(fig, ax, spec, project, area, scale, extent,
             regioes[elemento] = r
         return r
 
-    # rosa-dos-ventos no canto superior direito extremo
+    # rosa-dos-ventos no canto superior direito
     if on("norte"):
         if on("rosa_dos_ventos", True):
             _draw_compass_rose(fig, rect_de("rosa_dos_ventos",
-                                            (mx + mw - 0.043, my + mh - 0.058, 0.038, 0.055)))
+                                            (mx + mw - 0.048, my + mh - 0.060, 0.042, 0.058)))
         else:
             _draw_north(ax)
-    # caixa de titulo preta a esquerda da rosa-dos-ventos.
-    # Desligar via elementos_layout.titulo_caixa=false ("remova o titulo preto").
+    # caixa de titulo BRANCA no TOPO-CENTRO (padrao IMAP).
+    # Desligar via elementos_layout.titulo_caixa=false ("remova o titulo").
     if on("titulo_caixa", True) and spec.titulo:
         tx, ty, tha, tva = element_text_anchor(layout, "titulo", map_rect,
-                                               ((mw - 0.058) / mw, 0.985, "right", "top"),
+                                               (0.5, 0.985, "center", "top"),
                                                avisos=avisos)
         est = ((layout.get("elementos") or {}).get("titulo") or {}).get("estilo") or {}
         _draw_title_box(ax, spec.titulo, spec.subtitulo, x=tx, y=ty, ha=tha, va=tva,
-                        fundo=est.get("fundo", "#2b2b2b"), cor=est.get("cor", "white"),
+                        fundo=est.get("fundo", "white"), cor=est.get("cor", "#111827"),
                         tamanho=float(est.get("tamanho", 16) or 16))
     if on("escala_grafica"):
         pos = None
