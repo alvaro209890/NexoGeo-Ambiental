@@ -123,6 +123,31 @@ class NexoMapFromAnalysisBody(BaseModel):
     area_path: str | None = None
 
 
+class AuthRegisterBody(BaseModel):
+    email: str
+    senha: str
+    nome: str = ""
+
+
+class AuthLoginBody(BaseModel):
+    email: str
+    senha: str
+
+
+class ChatCreateBody(BaseModel):
+    email: str
+    token: str
+    titulo: str = "Novo mapa"
+
+
+class ChatMessageBody(BaseModel):
+    email: str
+    token: str
+    chat_id: str
+    prompt: str
+    max_steps: int = 12
+
+
 # ----------------------------- config global -----------------------------
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_config.json")
 
@@ -217,6 +242,95 @@ def _sse(obj: dict) -> str:
 @app.get("/api/health")
 def health():
     return {"ok": True}
+
+
+# ----------------------------- Auth + Chats -----------------------------
+@app.post("/api/auth/registrar")
+def auth_registrar(body: AuthRegisterBody):
+    from core import auth
+    return auth.registrar(body.email, body.senha, body.nome)
+
+
+@app.post("/api/auth/login")
+def auth_login(body: AuthLoginBody):
+    from core import auth
+    return auth.login(body.email, body.senha)
+
+
+@app.post("/api/chats/listar")
+def chats_listar(body: ChatCreateBody):
+    from core import auth, chat_store
+    user = auth.validar_token(body.email, body.token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Token invalido")
+    return {"chats": chat_store.listar_chats(body.email)}
+
+
+@app.post("/api/chats/criar")
+def chats_criar(body: ChatCreateBody):
+    from core import auth, chat_store
+    user = auth.validar_token(body.email, body.token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Token invalido")
+    chat_id = chat_store.criar_chat(body.email, body.titulo)
+    return {"ok": True, "chat_id": chat_id}
+
+
+@app.post("/api/chats/carregar")
+def chats_carregar(body: ChatCreateBody):
+    from core import auth, chat_store
+    user = auth.validar_token(body.email, body.token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Token invalido")
+    data = chat_store.carregar_chat(body.email, body.titulo)  # titulo = chat_id aqui
+    if not data:
+        raise HTTPException(status_code=404, detail="Chat nao encontrado")
+    return data
+
+
+@app.post("/api/chats/mensagem")
+async def chats_mensagem(body: ChatMessageBody):
+    from core import auth, chat_store, nexomap_generator
+
+    user = auth.validar_token(body.email, body.token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Token invalido")
+
+    # Salva mensagem do usuario
+    chat_store.salvar_mensagem(body.email, body.chat_id, "user", body.prompt)
+
+    # Carrega historico para contexto
+    chat_data = chat_store.carregar_chat(body.email, body.chat_id)
+    mapspec_atual = chat_data.get("mapspec_atual") if chat_data else None
+
+    # Monta contexto das ultimas mensagens (max 5)
+    historico = chat_data.get("mensagens", [])[-6:] if chat_data else []
+    contexto = "\n".join(
+        f"{'Usuario' if m['role']=='user' else 'Assistente'}: {m['content'][:200]}"
+        for m in historico[:-1] if m['role'] in ('user', 'assistant')
+    )
+    prompt_final = body.prompt
+    if contexto:
+        prompt_final = f"[HISTORICO]\n{contexto}\n\n[NOVO PEDIDO]\n{body.prompt}"
+
+    async def stream():
+        for event in nexomap_generator.chat_tools_stream(
+            "projetos/querencia_teste/projeto.json", prompt_final,
+            parent_job_id=None,
+            allow_local_ai_fallback=True,
+            max_steps=body.max_steps,
+        ):
+            yield _sse(event)
+            # Salva resultado final
+            if event.get("status") == "done" and event.get("result"):
+                chat_store.salvar_mensagem(
+                    body.email, body.chat_id, "assistant",
+                    event["result"].get("resumo", "Mapa gerado"),
+                    tool_calls=event["result"].get("tool_calls"),
+                    result=event["result"],
+                )
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
 
 
 @app.get("/api/config")

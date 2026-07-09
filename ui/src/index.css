@@ -1536,3 +1536,43 @@ p {
 .options-card button {
   cursor: pointer;
 }
+
+/* ── Auth ── */
+.auth-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 120px);
+  padding: 20px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  outline: none;
+}
+.auth-input:focus { border-color: var(--brand); }
+
+/* ── Sidebar ── */
+.chat-sidebar {
+  width: 240px;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
