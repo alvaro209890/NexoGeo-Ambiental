@@ -30,7 +30,7 @@
       "tema": "propriedade",
       "descricao": "Perímetro do Lote 65 (Matrícula 13.533)",
       "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\Lote 65.shp",
-      "estilo": {"nome": "Fazenda Trevisol (Lote 65)", "linha": "#ff2d00", "preenchimento": "none", "largura": 2.6, "opacidade": 1.0, "rotulo_texto": "Fazenda Trevisol (Lote 65)\nMatrícula 13.533", "rotulo_cor": "white"}
+      "estilo": {"nome": "Fazenda Trevisol (Lote 65)", "linha": "#c00000", "preenchimento": "none", "largura": 2.8, "opacidade": 1.0, "rotulo_texto": "Fazenda Trevisol (Lote 65)\nMatrícula 13.533", "rotulo_cor": "white"}
     },
     {
       "id": "lote66a",
@@ -38,7 +38,7 @@
       "tema": "propriedade",
       "descricao": "Perímetro do Lote 66-A (Matrícula 3.115)",
       "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\Lote 66A.shp",
-      "estilo": {"nome": "Lote Rural nº 66-A", "linha": "#00b0f0", "preenchimento": "none", "largura": 2.6, "opacidade": 1.0, "rotulo_texto": "Lote Rural nº 66-A\nMatrícula 3.115", "rotulo_cor": "white"}
+      "estilo": {"nome": "Lote Rural nº 66-A", "linha": "#00b0f0", "preenchimento": "none", "largura": 2.8, "opacidade": 1.0, "rotulo_texto": "Lote Rural nº 66-A\nMatrícula 3.115", "rotulo_cor": "white"}
     },
     {
       "id": "avn",
@@ -46,7 +46,7 @@
       "tema": "vegetacao",
       "descricao": "AVN — Área de Vegetação Nativa (SIMCAR)",
       "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\SIMCAR_Recorte_f74e2290-0236-4276-a679-88842db1faa0\\AVN.shp",
-      "estilo": {"nome": "Área de Vegetação Nativa (AVN)", "linha": "#166534", "preenchimento": "#16a34a", "largura": 1.2, "opacidade": 0.45}
+      "estilo": {"nome": "Área de Vegetação Nativa", "linha": "#00b050", "preenchimento": "transparente", "hachura": "xxx", "largura": 0.7, "opacidade": 0.95}
     },
     {
       "id": "ac",
@@ -54,7 +54,7 @@
       "tema": "consolidada",
       "descricao": "AC — Área Consolidada (SIMCAR)",
       "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\SIMCAR_Recorte_f74e2290-0236-4276-a679-88842db1faa0\\AREA_CONSOLIDADA.shp",
-      "estilo": {"nome": "Área Consolidada Cultivável (AC)", "linha": "#b45309", "preenchimento": "#f59e0b", "largura": 1.4, "opacidade": 0.4}
+      "estilo": {"nome": "Área consolidada cultivável", "linha": "#ff00ff", "preenchimento": "none", "largura": 1.6, "opacidade": 1.0}
     },
     {
       "id": "auas",
@@ -62,7 +62,7 @@
       "tema": "desmate",
       "descricao": "AUAS — Área de Uso Alternativo do Solo (SIMCAR)",
       "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\SIMCAR_Recorte_f74e2290-0236-4276-a679-88842db1faa0\\AUAS.shp",
-      "estilo": {"nome": "Área de Uso Alt. do Solo (AUAS)", "linha": "#c2410c", "preenchimento": "transparente", "hachura": "....", "largura": 1.4, "opacidade": 0.95}
+      "estilo": {"nome": "Área de desmate após 2008 a ser regularizada", "linha": "#ffa500", "preenchimento": "transparente", "hachura": "///", "largura": 0.7, "opacidade": 0.95}
     },
     {
       "id": "tipologia",

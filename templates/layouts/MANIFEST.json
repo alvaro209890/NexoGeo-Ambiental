@@ -20,6 +20,15 @@
       "elementos": ["titulo", "legenda", "escala", "norte", "grade", "minimapa", "metadados"]
     },
     {
+      "id": "dinamica_a4_paisagem",
+      "nome": "Dinamica temporal A4 paisagem (padrao IMAP)",
+      "formato": "A4",
+      "orientacao": "paisagem",
+      "pagina_mm": [297, 210],
+      "motor": "nativo",
+      "elementos": ["titulo", "legenda", "norte", "grade", "minimapa", "metadados"]
+    },
+    {
       "id": "tematico_a4_paisagem",
       "nome": "Mapa tematico A4 paisagem",
       "formato": "A4",

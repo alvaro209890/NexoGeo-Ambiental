@@ -5,17 +5,18 @@ que **cria, edita e versiona mapas** no padrão IMAP (Mato Grosso) usando functi
 A IA opera o mapa por **tools atômicas** — cada elemento (título, legenda, camadas, tabela,
 escala) é editável individualmente.
 
-## Status atual (2026-07-08)
+## Status atual (2026-07-09)
 
 | Fase | Status |
 |------|--------|
 | A — Layout dirigido pela IA | ✅ Pushado |
-| B — Function calling (16 tools) | ✅ Pushado |
+| B — Function calling (20 tools) | ✅ Pushado |
 | C — Camadas WMS/WFS + Tabelas calculadas | ✅ Pushado |
 | D — Schema/API/UI | 🚧 Em andamento |
 | E — Extensibilidade (Planet/Google) | ⬜ Não iniciado |
+| **Paridade visual com o PDF-modelo IMAP** | ✅ Calibrado contra os mapas reais do cliente |
 
-**Suíte:** 90 testes offline + 5 rede = 95 passando.
+**Suíte:** 117 testes offline passando, 9 skip de rede.
 
 ## Rodar local
 
@@ -38,6 +39,22 @@ Acessar: http://localhost:5173 → aba "Mapas IA"
   - Domínio principal: https://nexogeo-cursar.vercel.app (a configurar)
 - **Backend:** Cloudflare Tunnel → `https://nexogeo-api.cursar.space` (roda neste PC)
 - **Domínio:** `cursar.space` gerenciado via Cloudflare
+
+## Paridade visual IMAP (2026-07-09)
+
+O layout flagship foi calibrado **contra os PDFs-modelo reais do cliente** (ArcMap, A4
+paisagem) — guia completo em [`docs/PADRAO_IMAP_RENDERER.md`](docs/PADRAO_IMAP_RENDERER.md):
+
+- Grade DMS só com rótulos (`52°15'0"W`) + ticks pretos, sem linhas internas; moldura preta.
+- Seta de norte estilo ArcMap; sem barra de escala nem rodapé "Fontes:" por padrão.
+- Tabela branca com grade preta (cabeçalho e TOTAL em negrito); METADADOS IMAGEM centralizado.
+- Minimapa com municípios do IBGE: município em laranja rotulado, caixinha da UF, retângulo
+  vermelho no imóvel + linha-guia (cache local; fallback tiles).
+- Template A4 paisagem novo (`dinamica_a4_paisagem`) e escalas 20k/30k/40k.
+- Estilos oficiais: lotes `#c00000`/`#00b0f0` (2.8), AVN `xxx` verde, AC magenta vazada,
+  AUAS `///` laranja; legenda com retângulos vazados como no ArcMap.
+- Edição via chat validada ao vivo: "muda a cor da ATP" → `editar_camada` + `editar_legenda`
+  + nova versão do job com linhagem.
 
 ## Correções aplicadas (2026-07-09)
 
@@ -66,11 +83,12 @@ tests/              ← pytest (unit + rede + live)
 
 Endpoint: `POST /api/nexomap/chat-tools` (SSE streaming)
 
-A IA recebe o pedido do usuário e opera o mapa via **17 tools**:
+A IA recebe o pedido do usuário e opera o mapa via **20 tools**:
 `criar_mapa`, `adicionar_camada`, `remover_camada`, `editar_camada`, `definir_titulo`,
 `mover_elemento`, `alternar_elemento`, `editar_estilo_elemento`, `editar_legenda`,
 `criar_tabela`, `definir_metadados_imagem`, `definir_raster_fundo`, `definir_escala`,
-`sugerir_opcoes`, `estado_atual`, `listar_camadas`, `finalizar`.
+`sugerir_opcoes`, `sugerir_melhorias`, `validar_mapa`, `estado_atual`, `listar_camadas`,
+`listar_camadas_locais`, `finalizar`.
 
 Cada tool call é transmitido em tempo real via SSE para o frontend, que renderiza
 cards animados com cores por tipo de operação.

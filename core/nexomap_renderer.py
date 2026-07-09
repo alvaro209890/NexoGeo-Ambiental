@@ -33,8 +33,8 @@ from core.nexomap_validation import validar_contra_modelo, validate_pdf, write_v
 
 MM = 1 / 25.4  # mm -> polegadas
 
-NICE_SCALES = [1000, 2000, 2500, 5000, 10000, 15000, 25000, 50000, 75000,
-               100000, 150000, 250000, 500000, 1000000]
+NICE_SCALES = [1000, 2000, 2500, 5000, 10000, 15000, 20000, 25000, 30000, 40000,
+               50000, 75000, 100000, 150000, 250000, 500000, 1000000]
 
 # cores padrao por tema quando o estilo do MapSpec nao define
 THEME_COLORS = {
@@ -104,11 +104,12 @@ def _fmt_coord(value: float, _pos=None) -> str:
 # --------------------------------------------------------------------------- #
 # Grade DMS (graus/minutos/segundos) — padrao IMAP
 # --------------------------------------------------------------------------- #
-# passos em graus decimais: 1°, 30', 15', 10', 5', 2'30", 1', 30", 15", 10", 5"
-_DMS_STEPS = [1.0, 0.5, 0.25, 1 / 6, 1 / 12, 1 / 24, 1 / 60, 1 / 120, 1 / 240, 1 / 360, 1 / 720]
+# passos em graus decimais: 1°, 30', 15', 10', 5', 2'30", 1', 30", 20", 15", 10", 5"
+_DMS_STEPS = [1.0, 0.5, 0.25, 1 / 6, 1 / 12, 1 / 24, 1 / 60, 1 / 120, 1 / 180,
+              1 / 240, 1 / 360, 1 / 720]
 
 
-def _nice_dms_step(span_deg: float, alvo: int = 4) -> float:
+def _nice_dms_step(span_deg: float, alvo: int = 3) -> float:
     if span_deg <= 0:
         return _DMS_STEPS[-1]
     for step in _DMS_STEPS:
@@ -118,15 +119,13 @@ def _nice_dms_step(span_deg: float, alvo: int = 4) -> float:
 
 
 def _fmt_dms(value: float, is_lat: bool) -> str:
+    """Formato ArcMap/IMAP: sempre grau-minuto-segundo, sem zeros a esquerda
+    (ex.: 52°15'0"W, 12°33'10"S)."""
     hemi = ("S" if value < 0 else "N") if is_lat else ("W" if value < 0 else "E")
     total_sec = round(abs(value) * 3600)  # arredonda no segundo
     d, rem = divmod(total_sec, 3600)
     m, s = divmod(rem, 60)
-    if s:
-        return f"{d}°{m:02d}'{s:02d}\"{hemi}"
-    if m:
-        return f"{d}°{m:02d}'{hemi}"
-    return f"{d}°{hemi}"
+    return f"{d}°{m}'{s}\"{hemi}"
 
 
 def _dms_ticks(lo: float, hi: float, step: float) -> list[float]:
@@ -140,8 +139,13 @@ def _dms_ticks(lo: float, hi: float, step: float) -> list[float]:
     return ticks
 
 
-def _draw_graticule_dms(ax, extent_utm: tuple, utm_epsg: int, geo_epsg: int, mostrar_linhas: bool):
-    """Desenha uma grade lat/long (DMS) sobre eixos em UTM, com rotulos nos 4 lados."""
+def _draw_graticule_dms(ax, extent_utm: tuple, utm_epsg: int, geo_epsg: int,
+                        mostrar_linhas: bool, ticks: bool = True):
+    """Grade lat/long (DMS) sobre eixos em UTM, com rotulos nos 4 lados.
+
+    Padrao IMAP/ArcMap: SEM linhas dentro do mapa (``mostrar_linhas=False``) —
+    apenas rotulos DMS e pequenos ticks pretos cruzando a moldura.
+    """
     from pyproj import CRS, Transformer
     minx, maxx, miny, maxy = extent_utm
     to_geo = Transformer.from_crs(CRS.from_epsg(utm_epsg), CRS.from_epsg(geo_epsg), always_xy=True)
@@ -166,6 +170,15 @@ def _draw_graticule_dms(ax, extent_utm: tuple, utm_epsg: int, geo_epsg: int, mos
     ax.set_xticks([])
     ax.set_yticks([])
     n = 60
+    tick_len = 4  # pontos (cruza a moldura p/ fora, estilo ArcMap)
+
+    def _tick(x, y, dx, dy):
+        if not ticks:
+            return
+        ax.annotate("", xy=(x, y), xytext=(dx, dy), textcoords="offset points",
+                    xycoords="data", annotation_clip=False, zorder=22,
+                    arrowprops=dict(arrowstyle="-", color=_INK, linewidth=1.0,
+                                    shrinkA=0, shrinkB=0))
 
     # meridianos (lon fixo) — linha vertical-ish
     for lon in lon_ticks:
@@ -179,11 +192,13 @@ def _draw_graticule_dms(ax, extent_utm: tuple, utm_epsg: int, geo_epsg: int, mos
         xt, _ = to_utm.transform(lon, lat1)
         label = _fmt_dms(lon, is_lat=False)
         if minx <= xb <= maxx:
-            ax.annotate(label, xy=(xb, miny), xytext=(0, -4), textcoords="offset points",
-                        ha="center", va="top", fontsize=6.8, color=_INK, annotation_clip=False, zorder=21)
+            _tick(xb, miny, 0, -tick_len)
+            ax.annotate(label, xy=(xb, miny), xytext=(0, -6), textcoords="offset points",
+                        ha="center", va="top", fontsize=7.2, color=_INK, annotation_clip=False, zorder=21)
         if minx <= xt <= maxx:
-            ax.annotate(label, xy=(xt, maxy), xytext=(0, 4), textcoords="offset points",
-                        ha="center", va="bottom", fontsize=6.8, color=_INK, annotation_clip=False, zorder=21)
+            _tick(xt, maxy, 0, tick_len)
+            ax.annotate(label, xy=(xt, maxy), xytext=(0, 6), textcoords="offset points",
+                        ha="center", va="bottom", fontsize=7.2, color=_INK, annotation_clip=False, zorder=21)
 
     # paralelos (lat fixo) — linha horizontal-ish
     for lat in lat_ticks:
@@ -196,12 +211,14 @@ def _draw_graticule_dms(ax, extent_utm: tuple, utm_epsg: int, geo_epsg: int, mos
         _, yr = to_utm.transform(lon1, lat)
         label = _fmt_dms(lat, is_lat=True)
         if miny <= yl <= maxy:
-            ax.annotate(label, xy=(minx, yl), xytext=(-4, 0), textcoords="offset points",
-                        ha="right", va="center", fontsize=6.8, color=_INK, rotation=90,
+            _tick(minx, yl, -tick_len, 0)
+            ax.annotate(label, xy=(minx, yl), xytext=(-6, 0), textcoords="offset points",
+                        ha="right", va="center", fontsize=7.2, color=_INK, rotation=90,
                         annotation_clip=False, zorder=21)
         if miny <= yr <= maxy:
-            ax.annotate(label, xy=(maxx, yr), xytext=(4, 0), textcoords="offset points",
-                        ha="left", va="center", fontsize=6.8, color=_INK, rotation=90,
+            _tick(maxx, yr, tick_len, 0)
+            ax.annotate(label, xy=(maxx, yr), xytext=(6, 0), textcoords="offset points",
+                        ha="left", va="center", fontsize=7.2, color=_INK, rotation=90,
                         annotation_clip=False, zorder=21)
 
 
@@ -306,14 +323,24 @@ def _draw_perimeter(ax, area, style: dict, rotulo: bool):
                 txt.set_path_effects([patheffects.withStroke(linewidth=2.2, foreground="#111827")])
 
 
-def _draw_north(ax, x: float = 0.962, y: float = 0.935):
-    ax.annotate("", xy=(x, y), xytext=(x, y - 0.075), xycoords="axes fraction",
-                arrowprops=dict(arrowstyle="fancy,head_width=0.55,head_length=0.9",
-                                facecolor=_INK, edgecolor="white", linewidth=0.8),
-                zorder=20, annotation_clip=False)
-    txt = ax.text(x, y + 0.014, "N", transform=ax.transAxes, ha="center", va="bottom",
-                  fontsize=13, fontweight="bold", color=_INK, zorder=20)
-    txt.set_path_effects([patheffects.withStroke(linewidth=2.5, foreground="white")])
+def _draw_north(ax, x: float = 0.968, y: float = 0.90, altura: float = 0.085):
+    """Seta de norte no padrao ArcMap/IMAP: triangulo alto dividido ao meio
+    (metade esquerda preta, metade direita branca com contorno preto) e um
+    'N' grande acima, com halo branco."""
+    from matplotlib.patches import Polygon
+    h = altura
+    w = h * 0.42          # meia-largura da base em fracao (ajustada p/ paisagem)
+    base_y = y - h
+    kink_y = base_y + h * 0.22  # reentrancia central da base (estilo ESRI North 3)
+    esq = [(x, y), (x - w * 0.5, base_y), (x, kink_y)]
+    dir_ = [(x, y), (x + w * 0.5, base_y), (x, kink_y)]
+    ax.add_patch(Polygon(dir_, closed=True, transform=ax.transAxes, zorder=20,
+                         facecolor="white", edgecolor=_INK, linewidth=1.0))
+    ax.add_patch(Polygon(esq, closed=True, transform=ax.transAxes, zorder=20,
+                         facecolor=_INK, edgecolor=_INK, linewidth=1.0))
+    txt = ax.text(x, y + 0.008, "N", transform=ax.transAxes, ha="center", va="bottom",
+                  fontsize=15, fontweight="bold", color=_INK, zorder=20)
+    txt.set_path_effects([patheffects.withStroke(linewidth=3.0, foreground="white")])
 
 
 def _draw_scale_bar(ax, extent: tuple, scale: int, pos: tuple | None = None):
@@ -353,6 +380,161 @@ def _draw_scale_bar(ax, extent: tuple, scale: int, pos: tuple | None = None):
         ax.text(x0 + val, y0 + bar_h * 1.5, label, fontsize=6.5, ha="center", color=_INK, zorder=19)
     ax.text(x0 + total, y0 - bar_h * 1.4, "km" if unit_km else "m",
             fontsize=6.5, ha="center", va="top", color=_INK, zorder=19)
+
+
+# --------------------------------------------------------------------------- #
+# Minimapa de localizacao (padrao IMAP): municipios do estado em bege, o
+# municipio do projeto em laranja com rotulo, retangulo vermelho no imovel e
+# caixinha do estado (UF) no canto. Dados: malhas municipais do IBGE (cache local).
+# --------------------------------------------------------------------------- #
+
+def _malha_municipios_uf(uf_code: str) -> dict | None:
+    """GeoJSON das malhas municipais da UF (IBGE, qualidade minima), com cache
+    em ~/.nexogeo/malhas. Devolve None se nao houver cache nem internet."""
+    cache_dir = os.path.join(os.path.expanduser("~"), ".nexogeo", "malhas")
+    cache = os.path.join(cache_dir, f"municipios_{uf_code}.geojson")
+    if os.path.exists(cache):
+        try:
+            with open(cache, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    try:
+        import requests
+        url = (f"https://servicodados.ibge.gov.br/api/v3/malhas/estados/{uf_code}"
+               "?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=municipio")
+        resp = requests.get(url, timeout=20)
+        resp.raise_for_status()
+        data = resp.json()
+        if not (data.get("features")):
+            return None
+        os.makedirs(cache_dir, exist_ok=True)
+        with open(cache, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        return data
+    except Exception:
+        return None
+
+
+def _draw_minimap_municipios(fig, rect, project, area, map_rect=None) -> bool:
+    """Minimapa IMAP com municipios do IBGE. Devolve False p/ acionar o fallback."""
+    ibge = str(getattr(project.municipio, "ibge", "") or "")
+    if len(ibge) < 2:
+        return False
+    geojson = _malha_municipios_uf(ibge[:2])
+    if not geojson:
+        return False
+    try:
+        from pyproj import CRS, Transformer
+        from shapely.geometry import shape
+        from shapely.ops import transform as shp_transform, unary_union
+
+        to_utm = Transformer.from_crs(CRS.from_epsg(project.crs.geografico),
+                                      CRS.from_epsg(project.crs.utm), always_xy=True).transform
+        muni_geoms, alvo = [], None
+        for feat in geojson.get("features", []):
+            geom = shape(feat.get("geometry"))
+            cod = str((feat.get("properties") or {}).get("codarea") or "")
+            muni_geoms.append(geom)
+            if cod and (cod == ibge or cod.startswith(ibge) or ibge.startswith(cod)):
+                alvo = geom
+        if alvo is None:
+            # sem codigo casado: usa o municipio que contem o centroide do imovel
+            to_geo = Transformer.from_crs(CRS.from_epsg(project.crs.utm),
+                                          CRS.from_epsg(project.crs.geografico),
+                                          always_xy=True).transform
+            centro_geo = shp_transform(to_geo, area.union_utm.centroid)
+            alvo = next((g for g in muni_geoms if g.contains(centro_geo)), None)
+        if alvo is None:
+            return False
+
+        mini = fig.add_axes(rect)
+        mini.set_aspect("equal")
+        mini.set_facecolor("white")
+        mini.set_xticks([])
+        mini.set_yticks([])
+        for spine in mini.spines.values():
+            spine.set_color(_INK)
+            spine.set_linewidth(1.0)
+
+        # extent: municipio alvo + vizinhanca (em coordenadas geograficas)
+        gx0, gy0, gx1, gy1 = alvo.bounds
+        cx, cy = (gx0 + gx1) / 2, (gy0 + gy1) / 2
+        half = max(gx1 - gx0, gy1 - gy0) * 0.85
+        mini.set_xlim(cx - half, cx + half)
+        mini.set_ylim(cy - half, cy + half)
+
+        for geom in muni_geoms:
+            for poly in iter_polygons(geom):
+                mini.fill(*poly.exterior.xy, facecolor="#fdf3d7", edgecolor="#1f2937",
+                          linewidth=0.4, zorder=2)
+        for poly in iter_polygons(alvo):
+            mini.fill(*poly.exterior.xy, facecolor="#f59a4b", edgecolor="#1f2937",
+                      linewidth=0.6, zorder=3)
+        nome = getattr(project.municipio, "nome", "") or ""
+        if nome:
+            rp = alvo.representative_point()
+            txt = mini.text(rp.x, rp.y, nome, fontsize=6.8, fontweight="bold", color=_INK,
+                            ha="center", va="center", zorder=6)
+            txt.set_path_effects([patheffects.withStroke(linewidth=2.0, foreground="white")])
+
+        # retangulo vermelho na posicao do imovel (bbox em geografico, tamanho minimo visivel)
+        to_geo = Transformer.from_crs(CRS.from_epsg(project.crs.utm),
+                                      CRS.from_epsg(project.crs.geografico),
+                                      always_xy=True).transform
+        area_geo = shp_transform(to_geo, area.union_utm)
+        ax0, ay0, ax1, ay1 = area_geo.bounds
+        min_sz = half * 0.05
+        bw = max(ax1 - ax0, min_sz)
+        bh = max(ay1 - ay0, min_sz)
+        bcx, bcy = (ax0 + ax1) / 2, (ay0 + ay1) / 2
+        mini.add_patch(patches.Rectangle((bcx - bw / 2, bcy - bh / 2), bw, bh,
+                                         facecolor="none", edgecolor="#e01717",
+                                         linewidth=1.2, zorder=7))
+
+        # linha-guia vermelha do imovel (no inset) ate a moldura do mapa principal
+        if map_rect:
+            try:
+                pt_fig = fig.transFigure.inverted().transform(
+                    mini.transData.transform((bcx, bcy + bh / 2)))
+                x_fig = min(max(pt_fig[0], map_rect[0] + 0.01), map_rect[0] + map_rect[2] - 0.01)
+                fig.add_artist(Line2D([pt_fig[0], x_fig], [pt_fig[1], map_rect[1]],
+                                      color="#e01717", linewidth=0.9, zorder=30))
+            except Exception:
+                pass
+
+        # caixinha do estado (UF) no canto inferior-esquerdo do inset
+        try:
+            uf_union = unary_union([g.simplify(0.02) for g in muni_geoms])
+            box = fig.add_axes((rect[0] + rect[2] * 0.02, rect[1] + rect[3] * 0.02,
+                                rect[2] * 0.30, rect[3] * 0.34))
+            box.set_aspect("equal")
+            box.set_facecolor("white")
+            box.set_xticks([])
+            box.set_yticks([])
+            for spine in box.spines.values():
+                spine.set_color(_INK)
+                spine.set_linewidth(0.7)
+            for poly in iter_polygons(uf_union):
+                box.fill(*poly.exterior.xy, facecolor="#d8ecc8", edgecolor="#4b5563",
+                         linewidth=0.4, zorder=2)
+            for poly in iter_polygons(alvo):
+                box.fill(*poly.exterior.xy, facecolor="#f59a4b", edgecolor="#7c2d12",
+                         linewidth=0.3, zorder=3)
+            ux0, uy0, ux1, uy1 = uf_union.bounds
+            um = max(ux1 - ux0, uy1 - uy0) * 0.05
+            box.set_xlim(ux0 - um, ux1 + um)
+            box.set_ylim(uy0 - um, uy1 + um)
+            uf = getattr(project.municipio, "uf", "") or ""
+            if uf:
+                box.text(0.10, 0.12, uf, transform=box.transAxes, fontsize=6.5,
+                         fontweight="bold", color=_INK, ha="left", va="bottom",
+                         bbox=dict(boxstyle="square,pad=0.15", fc="white", ec=_INK, lw=0.5))
+        except Exception:
+            pass
+        return True
+    except Exception:
+        return False
 
 
 def _draw_minimap(fig, rect, area, extent: tuple, utm_epsg: int, basemap_style: str):
@@ -419,22 +601,24 @@ def _draw_title_box(ax, titulo: str, subtitulo: str, x: float = 0.5, y: float = 
     """
     texto = titulo + (("\n" + subtitulo) if subtitulo else "")
     if borda is None:
-        borda = "#9ca3af" if fundo in ("white", "#fff", "#ffffff") else "white"
+        # padrao IMAP: caixa branca com BORDA PRETA fina (nao cinza)
+        borda = _INK if fundo in ("white", "#fff", "#ffffff") else "white"
     ax.text(x, y, texto, transform=ax.transAxes, ha=ha, va=va,
             fontsize=tamanho, fontweight="bold", color=cor, linespacing=1.25, zorder=26,
-            bbox=dict(boxstyle="round,pad=0.55", fc=fundo, ec=borda, lw=1.3, alpha=0.93))
+            bbox=dict(boxstyle="round,pad=0.45,rounding_size=0.18", fc=fundo, ec=borda,
+                      lw=1.4, alpha=0.97))
 
 
 def _draw_legend_swatches(fig, rect, entries, titulo="Legenda", ncols=1, fontsize=8.0):
     """Legenda com swatches (patches/linhas) — usada na faixa inferior do flagship."""
     axl = fig.add_axes(rect)
     axl.axis("off")
-    axl.text(0.0, 1.0, titulo, fontsize=11, fontweight="bold", va="top", color=_INK,
+    axl.text(0.0, 1.0, titulo, fontsize=12, fontweight="bold", va="top", color=_INK,
              transform=axl.transAxes)
     if entries:
-        axl.legend(handles=entries, loc="upper left", bbox_to_anchor=(0.0, 0.84),
+        axl.legend(handles=entries, loc="upper left", bbox_to_anchor=(0.0, 0.86),
                    frameon=False, fontsize=fontsize, ncols=max(1, int(ncols)),
-                   handlelength=1.9, handleheight=1.4, borderaxespad=0)
+                   handlelength=2.4, handleheight=1.5, labelspacing=0.55, borderaxespad=0)
 
 
 # --------------------------------------------------------------------------- #
@@ -461,8 +645,9 @@ def _legend_swatch(item: dict, label: str):
         fill_final = "none" if hachura else cor
     else:
         fill_final = fill
+    # largura da borda respeitada (padrao IMAP: perimetros = retangulo vazado grosso)
     return patches.Patch(facecolor=fill_final, edgecolor=cor, alpha=max(opacidade, 0.35),
-                         hatch=hachura or None, label=label)
+                         hatch=hachura or None, linewidth=largura, label=label)
 
 
 def _linked_item_swatch(item: dict, layer):
@@ -589,25 +774,26 @@ def _draw_metadados_imagem(ax_or_fig, x: float, y: float, meta: dict, transform=
 
 
 def _draw_metadados_imagem_band(fig, rect, meta: dict, scale: int):
-    """Bloco 'METADADOS IMAGEM' centralizado da faixa inferior (rotulos em negrito)."""
+    """Bloco 'METADADOS IMAGEM' da faixa inferior, no padrao IMAP: titulo e
+    linhas centralizados como bloco, rotulos em negrito com acentos, sem escala."""
     axm = fig.add_axes(rect)
     axm.axis("off")
-    axm.text(0.5, 1.0, "METADADOS IMAGEM", ha="center", va="top", fontsize=9.5,
-             fontweight="bold", color=_INK, transform=axm.transAxes)
     linhas = [
-        ("Satelite/Sensor", meta.get("satelite_sensor") or meta.get("satelite") or "-"),
+        ("Satélite", meta.get("satelite_sensor") or meta.get("satelite") or "-"),
+        ("Órbita/Ponto", meta.get("orbita_ponto") or meta.get("orbita") or "Não se aplica"),
         ("Data da imagem", meta.get("data_aquisicao") or meta.get("data") or "-"),
-        ("Orbita/Ponto", meta.get("orbita_ponto") or meta.get("orbita") or "-"),
         ("Datum", meta.get("datum") or "SIRGAS 2000"),
-        ("Escala", f"1:{scale:,}".replace(",", ".")),
     ]
-    y = 0.78
+    axm.text(0.5, 0.97, "METADADOS IMAGEM", ha="center", va="top", fontsize=11,
+             fontweight="bold", color=_INK, transform=axm.transAxes)
+    y = 0.72
     for k, v in linhas:
-        axm.text(0.49, y, k + ":", ha="right", va="top", fontsize=7.4, fontweight="bold",
+        # rotulo em negrito + valor normal, centralizados como uma linha unica
+        axm.text(0.5, y, k + ":", ha="right", va="top", fontsize=10, fontweight="bold",
                  color=_INK, transform=axm.transAxes)
-        axm.text(0.51, y, str(v), ha="left", va="top", fontsize=7.4, color=_INK,
+        axm.text(0.515, y, " " + str(v), ha="left", va="top", fontsize=10, color=_INK,
                  transform=axm.transAxes)
-        y -= 0.165
+        y -= 0.21
 
 
 def _default_logo_path(project) -> str:
@@ -636,7 +822,8 @@ def _draw_logo(fig, rect, logo_path: str) -> bool:
 
 
 def _draw_table(fig, rect, tabela: dict):
-    """Tabela de dados no padrao IMAP (cabecalho azul, zebra).
+    """Tabela de dados no padrao IMAP/ArcMap: fundo branco opaco, grade preta
+    fina, cabecalho em negrito centralizado e linha TOTAL em negrito.
 
     ``tabela`` = {titulo, colunas[], linhas[[]], colunas_grupos?[]}.
 
@@ -680,21 +867,18 @@ def _draw_table(fig, rect, tabela: dict):
         header_rows = [grupo_row, sub_labels]
         full_text = [list(map(str, sub_labels))] + cell_text
         t = axt.table(cellText=full_text, loc="center", cellLoc="center")
-        # Style: first row (sub_labels) = blue header, data rows = zebra
         t.auto_set_font_size(False)
         t.set_fontsize(6.6)
         t.scale(1, 1.35)
-        n_data_rows = len(cell_text)
+        n_rows_total = len(full_text)
         for (r, c), cell in t.get_celld().items():
-            cell.set_edgecolor("#9ca3af")
-            cell.set_linewidth(0.5)
+            cell.set_edgecolor(_INK)
+            cell.set_linewidth(0.6)
+            cell.set_facecolor("white")
             if r == 0:
-                # sub-label header row
-                cell.set_facecolor("#1f4e78")
-                cell.set_text_props(color="white", weight="bold", fontsize=6.2)
-            else:
-                # zebra for data rows
-                cell.set_facecolor("#eef3f8" if r % 2 else "white")
+                cell.set_text_props(color=_INK, weight="bold", fontsize=6.4)
+            elif r == n_rows_total - 1 and str(full_text[r][0]).strip().upper() == "TOTAL":
+                cell.set_text_props(color=_INK, weight="bold")
 
         # ── Mesclar células dos grupos (row acima dos sub-labels) ──
         # As células de grupo são desenhadas como um texto extra acima da tabela
@@ -727,24 +911,33 @@ def _draw_table(fig, rect, tabela: dict):
             # acima da tabela
             axt.text(cx / tw if tw else 0.5, ty1 + 0.02, tit,
                      ha="center", va="bottom", fontsize=7.2,
-                     fontweight="bold", color="#1f4e78",
+                     fontweight="bold", color=_INK,
                      transform=axt.transAxes)
             col_offset += nsub
     else:
         # ── cabeçalho simples (retrocompatível) ──
+        # larguras: 1a coluna (nomes) mais larga, 2a intermediaria, resto igual
+        ncols_t = len(colunas)
+        pesos = [2.0] + [1.5] + [1.0] * (ncols_t - 2) if ncols_t > 2 else [1.0] * ncols_t
+        soma = sum(pesos[:ncols_t])
+        widths = [p / soma for p in pesos[:ncols_t]]
         t = axt.table(cellText=[[str(c) for c in row] for row in linhas],
-                      colLabels=[str(c) for c in colunas], loc="center", cellLoc="center")
+                      colLabels=[str(c) for c in colunas], colWidths=widths,
+                      loc="center", cellLoc="center")
         t.auto_set_font_size(False)
         t.set_fontsize(6.6)
         t.scale(1, 1.35)
+        n_linhas = len(linhas)
+        ultima_total = n_linhas and str(linhas[-1][0]).strip().upper() == "TOTAL"
         for (r, c), cell in t.get_celld().items():
-            cell.set_edgecolor("#9ca3af")
-            cell.set_linewidth(0.5)
+            cell.set_edgecolor(_INK)
+            cell.set_linewidth(0.6)
+            cell.set_facecolor("white")
             if r == 0:
-                cell.set_facecolor("#1f4e78")
-                cell.set_text_props(color="white", weight="bold")
-            else:
-                cell.set_facecolor("#eef3f8" if r % 2 else "white")
+                cell.set_height(cell.get_height() * 1.7)  # cabecalho com 2 linhas
+                cell.set_text_props(color=_INK, weight="bold")
+            elif ultima_total and r == n_linhas:
+                cell.set_text_props(color=_INK, weight="bold")
     return axt
 
 
@@ -823,9 +1016,9 @@ def _flagship_furniture(fig, ax, spec, project, area, scale, extent,
             regioes[elemento] = r
         return r
 
-    # rosa-dos-ventos no canto superior direito
+    # norte no canto superior direito: seta ArcMap (padrao IMAP) ou rosa-dos-ventos
     if on("norte"):
-        if on("rosa_dos_ventos", True):
+        if on("rosa_dos_ventos", False):
             _draw_compass_rose(fig, rect_de("rosa_dos_ventos",
                                             (mx + mw - 0.048, my + mh - 0.060, 0.042, 0.058)))
         else:
@@ -839,8 +1032,9 @@ def _flagship_furniture(fig, ax, spec, project, area, scale, extent,
         est = ((layout.get("elementos") or {}).get("titulo") or {}).get("estilo") or {}
         _draw_title_box(ax, spec.titulo, spec.subtitulo, x=tx, y=ty, ha=tha, va=tva,
                         fundo=est.get("fundo", "white"), cor=est.get("cor", "#111827"),
-                        tamanho=float(est.get("tamanho", 16) or 16))
-    if on("escala_grafica"):
+                        tamanho=float(est.get("tamanho", 20) or 20))
+    # padrao IMAP nao usa barra de escala nos mapas flagship (ligavel por spec)
+    if on("escala_grafica", False):
         pos = None
         cfg = (layout.get("elementos") or {}).get("escala")
         if isinstance(cfg, dict) and cfg:
@@ -850,8 +1044,8 @@ def _flagship_furniture(fig, ax, spec, project, area, scale, extent,
             pos = (ex, ey, eha, eva)
         _draw_scale_bar(ax, extent, scale, pos=pos)
 
-    # inset "Tipologia vegetal" (topo esquerdo)
-    if on("inset_tipologia", True):
+    # inset "Tipologia vegetal" (topo esquerdo) — so em mapas de tipologia
+    if on("inset_tipologia", False):
         tipo_layers = [l for l in drawn_layers if getattr(l, "tema", "") == "tipologia" and l.features]
         _draw_tipologia_inset(fig, rect_de("inset_tipologia",
                                            (mx + 0.006, my + mh - 0.232, 0.205, 0.222)),
@@ -866,15 +1060,16 @@ def _flagship_furniture(fig, ax, spec, project, area, scale, extent,
     if band_rect is not None:
         bx, by, bw, bh = band_rect
         if on("minimapa", True):
-            _draw_minimap(fig, rect_de("minimapa", (0.02, by + 0.012, 0.10, bh - 0.02)),
-                          area, extent, project.crs.utm, "light")
+            mini_rect = rect_de("minimapa", (0.012, by + 0.012, 0.165, bh - 0.02))
+            if not _draw_minimap_municipios(fig, mini_rect, project, area, map_rect=map_rect):
+                _draw_minimap(fig, mini_rect, area, extent, project.crs.utm, "light")
         if on("metadados_imagem", True) and spec.metadados_imagem:
             _draw_metadados_imagem_band(fig, rect_de("metadados_imagem",
-                                                     (0.19, by + 0.005, 0.24, bh - 0.01)),
+                                                     (0.21, by + 0.008, 0.32, bh - 0.016)),
                                         spec.metadados_imagem, scale)
         if on("legenda") and legend_entries:
             leg_cfg = spec.legenda or {}
-            leg_rect = rect_de("legenda", (0.52, by + 0.012, 0.30, bh - 0.02))
+            leg_rect = rect_de("legenda", (0.565, by + 0.012, 0.27, bh - 0.02))
             pos_cfg = leg_cfg.get("posicao")
             if isinstance(pos_cfg, dict) and pos_cfg:
                 leg_rect = element_rect({"elementos": {"legenda": pos_cfg}}, "legenda",
@@ -885,7 +1080,7 @@ def _flagship_furniture(fig, ax, spec, project, area, scale, extent,
                                   ncols=int(leg_cfg.get("colunas", 1) or 1),
                                   fontsize=float(leg_cfg.get("fonte_tamanho", 8.0) or 8.0))
         if on("logo", True):
-            logo_rect = rect_de("logo", (0.85, by + 0.01, 0.12, bh - 0.02))
+            logo_rect = rect_de("logo", (0.845, by + 0.02, 0.145, bh - 0.04))
             marca = spec.marca or {}
             logo_path = _resolver_caminho(project, str(marca.get("logo", "")))
             if not (logo_path and os.path.exists(logo_path)):
@@ -1008,9 +1203,11 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
     # geometria do layout (fracoes da pagina)
     landscape = page_w_mm >= page_h_mm
     if landscape and flagship:
-        map_rect = (0.035, 0.155, 0.935, 0.80)   # full-bleed
+        # proporcoes do PDF-modelo IMAP (A4 paisagem): mapa full-bleed com
+        # margens minimas e faixa inferior alta (minimapa/metadados/legenda/logo)
+        map_rect = (0.022, 0.245, 0.956, 0.725)
         panel_rect = None
-        band_rect = (0.0, 0.0, 1.0, 0.135)        # faixa inferior full-width
+        band_rect = (0.0, 0.0, 1.0, 0.20)         # faixa inferior full-width
     elif landscape:
         map_rect = (0.045, 0.075, 0.655, 0.83)
         panel_rect = (0.725, 0.075, 0.245, 0.83)
@@ -1112,10 +1309,12 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
             spec.legenda or {}, auto_entries, {l.id: l for l in drawn_layers})
         render_warnings.extend(legend_avisos)
 
-        # grade de coordenadas: DMS (padrao IMAP) ou UTM
+        # grade de coordenadas: DMS (padrao IMAP) ou UTM. No padrao IMAP nao ha
+        # linhas dentro do mapa — so rotulos/ticks; "grade_linhas" liga as linhas.
         mostrar_grade = bool(spec.elementos_layout.get("grade", True))
+        grade_linhas = bool(spec.elementos_layout.get("grade_linhas", not flagship))
         if spec.grade_tipo == "utm":
-            if mostrar_grade:
+            if mostrar_grade and grade_linhas:
                 ax.grid(True, color="#64748b", alpha=0.35, linewidth=0.5, linestyle=(0, (6, 4)))
             ax.xaxis.set_major_locator(MaxNLocator(5, steps=[1, 2, 5]))
             ax.yaxis.set_major_locator(MaxNLocator(6, steps=[1, 2, 5]))
@@ -1123,11 +1322,12 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
             ax.yaxis.set_major_formatter(FuncFormatter(_fmt_coord))
             ax.tick_params(labelsize=6.5, colors=_MUTED, length=3)
             plt.setp(ax.get_yticklabels(), rotation=90, va="center")
-        else:
-            _draw_graticule_dms(ax, extent, project.crs.utm, project.crs.geografico, mostrar_grade)
+        elif mostrar_grade:
+            _draw_graticule_dms(ax, extent, project.crs.utm, project.crs.geografico,
+                                mostrar_grade and grade_linhas)
         for spine in ax.spines.values():
             spine.set_color(_INK)
-            spine.set_linewidth(1.2)
+            spine.set_linewidth(2.0 if flagship else 1.2)
 
         # ============================================================= #
         # Mobiliario do mapa — TODOS os elementos sao ligaveis/desligaveis
@@ -1151,14 +1351,16 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
                                  band_rect, landscape, on,
                                  avisos=render_warnings, regioes=regioes_elementos)
 
-        # rodape de creditos
-        fontes = sorted({layer.nome for layer in drawn_layers})
-        credito = "Fontes: " + ("; ".join(fontes) if fontes else "area do projeto")
-        if credito_basemap:
-            credito += f".  {credito_basemap}"
-        credito += ".  Gerado pelo NexoGeo Ambiental (motor nativo, sem ArcMap)."
-        cred_y = 0.006 if band_rect is None else 0.001
-        fig.text(map_rect[0], cred_y, credito, fontsize=6.0, color="#6b7280", va="bottom")
+        # rodape de creditos — o PDF-modelo IMAP nao tem essa linha; nos mapas
+        # flagship ela so entra se o spec pedir (elementos_layout.creditos=true)
+        if bool(el.get("creditos", not flagship)):
+            fontes = sorted({layer.nome for layer in drawn_layers})
+            credito = "Fontes: " + ("; ".join(fontes) if fontes else "area do projeto")
+            if credito_basemap:
+                credito += f".  {credito_basemap}"
+            credito += ".  Gerado pelo NexoGeo Ambiental (motor nativo, sem ArcMap)."
+            cred_y = 0.006 if band_rect is None else 0.001
+            fig.text(map_rect[0], cred_y, credito, fontsize=6.0, color="#6b7280", va="bottom")
 
         # relatorio de layout (sobreposicao/corte de texto) antes de salvar
         regioes = {"mapa": map_rect, "painel": panel_rect, "faixa": band_rect}

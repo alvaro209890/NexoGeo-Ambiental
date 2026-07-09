@@ -177,6 +177,34 @@ padrão IMAP, com **layout dirigido pela IA** (nada fixo no código). Detalhes c
 - **Verificação:** flagship "Dinâmica 2000" reproduzido na área ATP real com Landsat 224/071 —
   10/10 checks OK; `pytest` 25 passed; loop DeepSeek gerar+editar validado ao vivo.
 
+## 2026-07-09 — Paridade visual com o PDF-modelo IMAP (A4)
+
+Renderer flagship calibrado **contra os PDFs reais do cliente** (série Dinâmica/Tipologia/
+Embargos feitos no ArcMap, A4 paisagem) até ficar visualmente indistinguível. Guia completo:
+[`docs/PADRAO_IMAP_RENDERER.md`](docs/PADRAO_IMAP_RENDERER.md).
+
+- **Grade DMS estilo ArcMap:** rótulos sempre `g°m's"` (ex.: `52°15'0"W`), ~3 por eixo, ticks
+  pretos na moldura; **sem linhas internas** por default (novo flag `grade_linhas`). Moldura preta 2.0.
+- **Seta de norte ArcMap** (triângulo dividido preto/branco + "N"); rosa-dos-ventos vira opt-in.
+- **Tabela padrão IMAP:** branca com grade preta, cabeçalho (2 linhas, altura 1.7×) e linha
+  TOTAL em negrito, 1ª coluna mais larga — substitui o estilo web (cabeçalho azul + zebra).
+- **METADADOS IMAGEM** centralizado com acentos (Satélite/Órbita/Ponto/Data/Datum), sem escala.
+- **Minimapa de municípios (novo):** malhas municipais do IBGE (cache `~/.nexogeo/malhas/`),
+  município do projeto em laranja rotulado, caixinha da UF, retângulo vermelho no imóvel +
+  linha-guia até a moldura. Fallback para tiles sem internet.
+- **Defaults IMAP no flagship:** sem barra de escala, sem rodapé "Fontes:", `inset_tipologia`
+  desligado (tudo religável via `elementos_layout`). Caixa de título com borda preta.
+- **Template novo `dinamica_a4_paisagem`** (297×210) — o padrão do cliente é A4; o teste rodava
+  em A3 e abria demais o enquadramento. `NICE_SCALES` ganhou 20k/30k/40k (Lauri sai 1:20.000,
+  modelo ≈1:22.000).
+- **Estilos oficiais** propagados (script exemplo, `projeto.json` do lauri_teste, prompt do
+  agente): lotes `#c00000`/`#00b0f0` 2.8, AVN `xxx` verde vazada, AC magenta vazada, AUAS `///`
+  laranja; legenda dos lotes como retângulo vazado (swatch respeita `largura`).
+- **Edição via chat validada ao vivo** (DeepSeek): "muda a cor da atp para amarelo" →
+  `editar_camada` + `editar_legenda` + `validar_mapa` → nova versão do job com linhagem.
+- **Verificação:** série completa regenerada (Dinâmica/Uso Consolidado/Tipologia) a 1:20.000;
+  comparação lado a lado com o PDF-modelo; `pytest` 117 passed, 9 skipped.
+
 ## Pendências/decisões registradas
 
 - **Matrícula 6350 (817,0640 ha)** — **Resolvido (2026-06-17):** é da *Fazenda Gabriela II*

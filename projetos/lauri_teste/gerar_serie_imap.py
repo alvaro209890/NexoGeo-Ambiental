@@ -35,7 +35,7 @@ METADADOS = {"satelite_sensor": "PLANET", "data_aquisicao": "Maio/2026",
              "orbita_ponto": "Não se aplica", "datum": "SIRGAS 2000 UTM 22S"}
 TITULO_LAYOUT = {"elementos": {"titulo": {"ancora": "in-map-top-center", "x": 0.5, "y": 0.972,
                                           "estilo": {"fundo": "white", "cor": "#111827", "tamanho": 22}}}}
-ELEMS = {"legenda": True, "escala_grafica": True, "norte": True, "grade": True, "minimapa": True,
+ELEMS = {"legenda": True, "escala_grafica": False, "norte": True, "grade": True, "minimapa": True,
          "metadados_imagem": True, "tabela": True, "inset_tipologia": False, "titulo_caixa": True,
          "logo": True, "rosa_dos_ventos": False}
 
@@ -47,21 +47,23 @@ def tabela_matriz(classes):
                        "classes": classes, "area_total_col": True, "linha_total": True}}
 
 LEGENDA_LOTES = [
-    {"rotulo": "Fazenda Trevisol (Lote 65)", "tipo": "linha", "cor": "#ff2d00", "largura": 2.6},
-    {"rotulo": "Lote Rural nº 66-A", "tipo": "linha", "cor": "#00b0f0", "largura": 2.6},
+    {"rotulo": "Fazenda Trevisol (Lote 65)", "tipo": "poligono", "cor": "#c00000",
+     "preenchimento": "none", "largura": 2.8},
+    {"rotulo": "Lote Rural nº 66-A", "tipo": "poligono", "cor": "#00b0f0",
+     "preenchimento": "none", "largura": 2.8},
 ]
 
-# Estilos IMAP (padrão oficial — alinhados com catalogo/modelos_mapas.json)
-# AVN: verde #16a34a preenchido 0.45 | AC: âmbar #f59e0b preenchido 0.4 | AUAS: transparente hachura ....
-ESTILO_AVN = {"preenchimento": "#16a34a", "opacidade": 0.45, "linha": "#166534", "largura": 1.2}
-ESTILO_AC  = {"preenchimento": "#f59e0b", "opacidade": 0.4,  "linha": "#b45309", "largura": 1.4}
-ESTILO_AUAS = {"preenchimento": "transparente", "hachura": "....", "linha": "#c2410c", "largura": 1.4, "opacidade": 0.95}
+# Estilos IMAP (padrão oficial validado contra os PDFs-modelo do cliente)
+# AVN: hachura xxx verde vazada | AC: contorno magenta vazado | AUAS: hachura /// laranja vazada
+ESTILO_AVN = {"preenchimento": "transparente", "hachura": "xxx", "linha": "#00b050", "largura": 0.7, "opacidade": 0.95}
+ESTILO_AC  = {"preenchimento": "none", "linha": "#ff00ff", "largura": 1.6, "opacidade": 1.0}
+ESTILO_AUAS = {"preenchimento": "transparente", "hachura": "///", "linha": "#ffa500", "largura": 0.7, "opacidade": 0.95}
 ESTILO_TIPOLOGIA = {"preenchimento": "transparente", "hachura": "----", "linha": "#059669", "largura": 1.2, "opacidade": 0.65}
 
 
 def base(titulo, camadas, tabela=None, legenda_itens=None):
     spec = {"titulo": titulo, "tipo": "imap", "area_base": "projeto.area_base",
-            "layout_template": "dinamica_a3_paisagem", "escala": "auto", "basemap": "satellite",
+            "layout_template": "dinamica_a4_paisagem", "escala": "auto", "basemap": "satellite",
             "grade_tipo": "dms", "camadas": camadas, "metadados_imagem": METADADOS,
             "marca": {"logo": os.path.join("assets", "logo_imap.png"), "texto": "IMAP"},
             "layout": TITULO_LAYOUT, "elementos_layout": dict(ELEMS),
@@ -87,12 +89,12 @@ MAPAS = {
                               {"rotulo": "AC", "camada": "ac"},
                               {"rotulo": "AUAS", "camada": "auas"}]),
         legenda_itens=LEGENDA_LOTES + [
-            {"rotulo": "Área de Vegetação Nativa (AVN)", "tipo": "poligono",
-             "cor": "#166534", "preenchimento": "#16a34a", "opacidade": 0.45},
-            {"rotulo": "Área Consolidada Cultivável (AC)", "tipo": "poligono",
-             "cor": "#b45309", "preenchimento": "#f59e0b", "opacidade": 0.4},
-            {"rotulo": "Área de Uso Alt. do Solo (AUAS)", "tipo": "poligono",
-             "cor": "#c2410c", "preenchimento": "transparente", "hachura": "...."},
+            {"rotulo": "Área consolidada cultivável", "tipo": "poligono",
+             "cor": "#ff00ff", "preenchimento": "none", "largura": 1.6},
+            {"rotulo": "Área de desmate após 2008 a ser regularizada", "tipo": "poligono",
+             "cor": "#ffa500", "preenchimento": "transparente", "hachura": "///"},
+            {"rotulo": "Área de Vegetação Nativa", "tipo": "poligono",
+             "cor": "#00b050", "preenchimento": "transparente", "hachura": "xxx"},
         ]),
     "Uso_Consolidado": base(
         "Uso Consolidado",
@@ -102,12 +104,12 @@ MAPAS = {
                               {"rotulo": "AC", "camada": "ac"},
                               {"rotulo": "AUAS", "camada": "auas"}]),
         legenda_itens=LEGENDA_LOTES + [
-            {"rotulo": "Área de Vegetação Nativa (AVN)", "tipo": "poligono",
-             "cor": "#166534", "preenchimento": "#16a34a", "opacidade": 0.45},
-            {"rotulo": "Área Consolidada Cultivável (AC)", "tipo": "poligono",
-             "cor": "#b45309", "preenchimento": "#f59e0b", "opacidade": 0.4},
-            {"rotulo": "Área de Uso Alt. do Solo (AUAS)", "tipo": "poligono",
-             "cor": "#c2410c", "preenchimento": "transparente", "hachura": "...."},
+            {"rotulo": "Área consolidada cultivável", "tipo": "poligono",
+             "cor": "#ff00ff", "preenchimento": "none", "largura": 1.6},
+            {"rotulo": "Área de desmate após 2008 a ser regularizada", "tipo": "poligono",
+             "cor": "#ffa500", "preenchimento": "transparente", "hachura": "///"},
+            {"rotulo": "Área de Vegetação Nativa", "tipo": "poligono",
+             "cor": "#00b050", "preenchimento": "transparente", "hachura": "xxx"},
         ]),
     "Tipologia_Vegetal": base(
         "Tipologia Vegetal",
