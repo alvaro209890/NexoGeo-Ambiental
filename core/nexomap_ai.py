@@ -217,6 +217,48 @@ def _call_edit_provider(current: dict, instruction: str, project: NexoMapProject
         raise NexoMapError(f"resposta de IA invalida: {e}") from e
 
 
+def run_tools(prompt: str, project: NexoMapProject, catalog: dict, manifest: dict,
+              secrets: dict, spec_dict: dict | None = None, timeout: int = 90,
+              max_steps: int = 12):
+    """Opera o mapa via function calling (plano 00): loop IA<->tools.
+
+    Usa o campo ``tools``/``tool_choice`` da API OpenAI-compativel (DeepSeek).
+    ``thinking`` fica desligado no modo tools (JSON estruturado confiavel).
+    Sem chave configurada: levanta NexoMapError (o chamador decide o fallback).
+    """
+    from core.nexomap_agent import run_tool_loop
+    from core.nexomap_tools import ToolContext
+
+    cfg = _provider_config(secrets)
+    if not cfg.get("api_key") or not cfg.get("api_url") or not cfg.get("model"):
+        raise NexoMapError("provedor de IA nao configurado em secrets.local.json")
+    headers = {"Authorization": f"Bearer {cfg['api_key']}", "Content-Type": "application/json",
+               "Accept": "application/json"}
+
+    def call_provider(messages: list[dict], tools: list[dict]) -> dict:
+        payload = {
+            "model": cfg["model"],
+            "messages": messages,
+            "tools": tools,
+            "tool_choice": "auto",
+            "temperature": 0,
+            "max_tokens": cfg.get("max_tokens", 4096),
+        }
+        if cfg.get("provider") == "deepseek":
+            payload["thinking"] = {"type": "disabled"}
+        response = requests.post(cfg["api_url"], headers=headers, json=payload, timeout=timeout)
+        if not response.ok:
+            raise NexoMapError(f"IA HTTP {response.status_code}: {response.text[:300]}")
+        return response.json()
+
+    ctx = ToolContext(catalog=catalog, manifest=manifest, secrets=secrets,
+                      project_name=project.nome)
+    result = run_tool_loop(prompt, ctx, call_provider, spec_dict=spec_dict,
+                           max_steps=max_steps)
+    result.provider = cfg.get("provider", "ai")
+    return result
+
+
 def spec_edit_from_prompt(current: MapSpec, instruction: str, project: NexoMapProject,
                           catalog: dict, manifest: dict, secrets: dict,
                           allow_local_fallback: bool = True) -> ChatSpecResult:

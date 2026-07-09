@@ -77,29 +77,31 @@ validar(mapspec); render(mapspec)
 
 ## Checklist de implementação
 
-- [ ] Especificar `TOOL_SCHEMAS` (JSON Schema de cada tool) em `core/nexomap_tools.py`.
-- [ ] Implementar cada tool como função pura `tool(mapspec_dict, **args) -> (mapspec_dict, msg)`.
-- [ ] Reaproveitar validações de `mapspec.py` dentro de cada tool (rejeitar camada/elemento inválido).
-- [ ] Implementar `core/nexomap_agent.py` com o loop IA↔tools + limite de passos + timeout.
-- [ ] Adicionar `run_tools()` em `nexomap_ai.py` (campo `tools`, `tool_choice:"auto"`).
-- [ ] Fallback sem IA: mapear frases comuns → sequência de tools (reusar `apply_rule_based_edit`).
-- [ ] Registrar cada tool_call no `chat_history.jsonl` e na linhagem de versões.
+- [x] Especificar `TOOL_SCHEMAS` (JSON Schema de cada tool) em `core/nexomap_tools.py`. (2026-07-08)
+- [x] Implementar cada tool como função pura `tool(mapspec_dict, ctx, **args) -> (mapspec_dict, msg)`. (2026-07-08)
+- [x] Reaproveitar validações de `mapspec.py` dentro de cada tool (rejeitar camada/elemento inválido). (2026-07-08)
+- [x] Implementar `core/nexomap_agent.py` com o loop IA↔tools + limite de passos + timeout. (2026-07-08)
+- [x] Adicionar `run_tools()` em `nexomap_ai.py` (campo `tools`, `tool_choice:"auto"`). (2026-07-08)
+- [x] Fallback sem IA: `run_rule_based` reusa `apply_rule_based_edit` como pseudo-tool_call auditável. (2026-07-08)
+- [x] Registrar cada tool_call no `chat_history.jsonl` e na linhagem de versões (`chat_tools` no generator). (2026-07-08)
 - [ ] Endpoint `POST /api/nexomap/chat-tools` (ver plano 05).
 
 ## Plano de testes
 
 **Unit (`tests/test_tools.py`)**
-- [ ] Cada tool aplica o efeito esperado e rejeita argumentos inválidos.
-- [ ] `mover_elemento` altera só a posição do elemento alvo.
-- [ ] `adicionar_camada`/`remover_camada` mantêm o MapSpec válido.
-- [ ] Sequência de tools converge para um MapSpec válido.
+- [x] Cada tool aplica o efeito esperado e rejeita argumentos inválidos. (2026-07-08)
+- [x] `mover_elemento` altera só a posição do elemento alvo. (2026-07-08)
+- [x] `adicionar_camada`/`remover_camada` mantêm o MapSpec válido. (2026-07-08)
+- [x] Sequência de tools converge para um MapSpec válido. (2026-07-08)
 
 **Integração (mock do provedor)**
-- [ ] Simular `tool_calls` do provedor e verificar que o orquestrador aplica e encerra.
-- [ ] Limite de passos respeitado; sem loop infinito.
+- [x] Simular `tool_calls` do provedor e verificar que o orquestrador aplica e encerra. (2026-07-08)
+- [x] Limite de passos respeitado; sem loop infinito. (2026-07-08)
 
 **Ao vivo (DeepSeek, chave em secrets)**
-- [ ] "Adicione embargos da SEMA e mova a legenda para o rodapé" → 2 tools corretas + render OK.
+- [x] "Adicione embargos da SEMA e mova a legenda para o rodapé" → tools corretas + render OK.
+  (2026-07-08, `tests/live/test_deepseek_tools.py`, 1 passed — DeepSeek V4 Pro suporta
+  function calling; risco do plano resolvido)
 
 ## Critérios de aceite
 

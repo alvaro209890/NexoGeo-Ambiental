@@ -169,6 +169,78 @@ def edit_map(project_path: str, parent_job_id: str, prompt: str,
     return result
 
 
+def chat_tools(project_path: str, prompt: str, parent_job_id: str | None = None,
+               allow_local_ai_fallback: bool = True, use_basemap: bool = True,
+               max_steps: int = 12) -> dict:
+    """Opera o mapa via tools/function calling (plano 00).
+
+    Com ``parent_job_id``: edita o MapSpec do job pai gerando NOVA versao com
+    linhagem. Sem: a IA cria o mapa do zero (tool ``criar_mapa``). Cada tool_call
+    e registrado no ``chat_history.jsonl`` e no ``tool_calls`` do resultado.
+    """
+    from core.nexomap_agent import run_rule_based
+    from core.nexomap_ai import run_tools
+
+    project = load_nexomap_project(project_path)
+    catalog = load_layer_catalog(project.catalog_path())
+    manifest = load_template_manifest(project.template_manifest_path())
+    secrets = secrets_loader.load_secrets(project)
+
+    parent_dict = None
+    if parent_job_id:
+        parent_dict = _load_job_mapspec(project, parent_job_id)
+
+    try:
+        agent = run_tools(prompt, project, catalog, manifest, secrets,
+                          spec_dict=parent_dict, max_steps=max_steps)
+    except Exception as e:
+        if not allow_local_ai_fallback:
+            raise
+        if parent_dict is None:
+            # sem mapa-pai o fallback e o parser local de geracao
+            return generate(project_path, prompt=prompt,
+                            allow_local_ai_fallback=True, use_basemap=use_basemap)
+        from core.nexomap_tools import ToolContext
+        ctx = ToolContext(catalog=catalog, manifest=manifest, secrets=secrets,
+                          project_name=project.nome)
+        agent = run_rule_based(prompt, ctx, parent_dict)
+        agent.warnings.append(f"tools indisponiveis: {e}")
+
+    spec = agent.spec
+    if parent_job_id:
+        spec.parent_job_id = parent_job_id
+        spec.versao = int((parent_dict or {}).get("versao", 1) or 1) + 1
+
+    warnings = list(agent.warnings)
+    warnings.extend(validate_mapspec(spec, catalog, manifest, secrets))
+
+    result = _run_pipeline(project, catalog, manifest, secrets, spec,
+                           prompt=prompt, provider=agent.provider or "tools",
+                           ai_raw=json.dumps(agent.tool_log, ensure_ascii=False),
+                           ai_warnings=warnings, use_basemap=use_basemap)
+    result["tool_calls"] = agent.tool_log
+    result["resumo"] = agent.resumo
+    _append_history(project, {
+        "ts": datetime.now().isoformat(timespec="seconds"),
+        "job_id": result["job_id"],
+        "modo": "tools",
+        "prompt": prompt,
+        "provider": agent.provider or "tools",
+        "tool_calls": agent.tool_log,
+    })
+    if parent_job_id:
+        _append_versions(project, {
+            "ts": datetime.now().isoformat(timespec="seconds"),
+            "job_id": result["job_id"], "parent_job_id": parent_job_id,
+            "versao": spec.versao, "prompt": prompt,
+            "provider": agent.provider or "tools",
+            "tool_calls": [t["tool"] for t in agent.tool_log],
+        })
+    with open(os.path.join(result["job_dir"], "resultado.json"), "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2, ensure_ascii=False)
+    return result
+
+
 def generate_stream(project_path: str, prompt: str | None = None,
                     mapspec: dict | None = None) -> Iterator[dict]:
     yield {"status": "started", "stage": "carregar_projeto"}
