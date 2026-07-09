@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   Layers,
   Loader2,
+  LogOut,
   Map,
   MapPin,
   MessageSquareText,
@@ -35,6 +36,8 @@ import {
 import './index.css'
 import { ChatView } from './ChatView.jsx'
 import { CarMapaView } from './CarMapaView.jsx'
+import { AuthScreen } from './AuthScreen.jsx'
+import { loadAuth, clearAuth } from './auth.js'
 
 // Em producao (Vercel) aponta para o backend via VITE_API_URL; vazio = mesma
 // origem (dev usa o proxy do vite para 127.0.0.1:8000).
@@ -231,9 +234,17 @@ function NewAnalysisForm({ onCancel, onCreate }) {
   )
 }
 
-function ProjectsLobby({ recentes, onOpen, onNew, onCar, erro }) {
+function ProjectsLobby({ recentes, onOpen, onNew, onCar, usuario, onLogout, erro }) {
   return (
     <main className="lobby">
+      {usuario ? (
+        <div style={{ position: 'absolute', top: 18, right: 22, display: 'flex', alignItems: 'center', gap: 10, fontSize: '.82rem', opacity: 0.85 }}>
+          <span>{usuario.nome || usuario.email}</span>
+          <button type="button" onClick={onLogout} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: '1px solid #2b3444', color: 'inherit', borderRadius: 8, padding: '5px 10px', cursor: 'pointer' }}>
+            <LogOut size={14} /> Sair
+          </button>
+        </div>
+      ) : null}
       <section className="lobby-header">
         <div className="brand-mark large"><Globe2 size={34} /></div>
         <h1>NexoGeo Ambiental</h1>
@@ -773,6 +784,7 @@ function ManualView() {
 }
 
 export default function App() {
+  const [auth, setAuth] = useState(loadAuth)
   const [appView, setAppView] = useState('lobby')
   const [activeView, setActiveView] = useState('pre')
   const [recentes, setRecentes] = useState([])
@@ -936,10 +948,15 @@ export default function App() {
     refreshDoctor('')
   }, [])
 
+  // Cadastro/login vem ANTES de qualquer mapa ou projeto.
+  if (!auth) {
+    return <AuthScreen onAuth={setAuth} />
+  }
+
   if (appView === 'car') {
     return (
       <div className="app-shell lobby-shell">
-        <CarMapaView onBack={() => setAppView('lobby')} />
+        <CarMapaView onBack={() => setAppView('lobby')} usuario={auth} onLogout={() => { clearAuth(); setAuth(null) }} />
       </div>
     )
   }
@@ -950,7 +967,7 @@ export default function App() {
         {showNewForm ? (
           <NewAnalysisForm onCancel={() => setShowNewForm(false)} onCreate={carregar} />
         ) : (
-          <ProjectsLobby recentes={recentes} onOpen={carregar} onNew={() => setShowNewForm(true)} onCar={() => setAppView('car')} erro={erro} />
+          <ProjectsLobby recentes={recentes} onOpen={carregar} onNew={() => setShowNewForm(true)} onCar={() => setAppView('car')} usuario={auth} onLogout={() => { clearAuth(); setAuth(null) }} erro={erro} />
         )}
       </div>
     )

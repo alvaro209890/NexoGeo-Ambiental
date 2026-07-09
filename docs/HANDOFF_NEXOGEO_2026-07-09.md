@@ -122,6 +122,12 @@ referencias/
 - **Suite: 114 offline + 8 skipped; net 7 (busca CAR ao vivo).**
 - **Deploy**: frontend buildado com `VITE_API_URL=https://nexogeo-api.cursar.space`; backend+tunnel no ar.
 
+### ✅ 2026-07-09 (2ª rodada) — cadastro-primeiro + fix "load failed" + persistência
+- **Auth antes dos mapas**: `ui/src/AuthScreen.jsx`+`auth.js`; `App.jsx` gateia tudo até logar. Validado ao vivo (registrar+login via tunnel).
+- **"Load failed" (raiz infra)**: backend agora é serviço systemd persistente (`deploy/nexogeo-backend.service`, Restart=always, linger); tunnel `saldopro-cloudflared.service` roda pelo UUID (ingress LOCAL c/ nexogeo-api→:8000) em vez do nome (ingress remoto sem a rota → 404 intermitente). `deploy/README.md`. 6/6 200; saldopro inalterado.
+- **Redeploy Vercel** (público `ui-kappa-eight-82.vercel.app`) + push main.
+- GOTCHA infra: NÃO subir uvicorn/cloudflared manual — usar os serviços systemd (`systemctl --user`). Backend persiste via linger.
+
 ### Próximo
 1. **Schema JSON** (plano 05): campos novos (subtitulo, grade_tipo, raster_fundo, metadados_imagem, tabela, marca, layout, legenda, versao, parent_job_id)
 2. **Endpoint de edição versionada** (plano 05): `POST /api/nexomap/edit` com SSE

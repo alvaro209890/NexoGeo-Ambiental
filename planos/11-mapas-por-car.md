@@ -46,6 +46,21 @@ ARL, AVN, AUAS...) e monta o mapa no padrao IMAP — sem precisar de shapefile.
   Validado ao vivo: CAR `MT313839/2025` -> Fazenda Boa Vista V (253,97 ha), modelos
   `car`/`tipologia` gerados com camadas recortadas + quantitativos, conformidade IMAP ok.
 
+## Ajustes 2026-07-09 (2ª rodada)
+
+- **Cadastro/login vem ANTES dos mapas**: `ui/src/AuthScreen.jsx` + `ui/src/auth.js`
+  (localStorage `nexogeo_auth`); `App.jsx` bloqueia tudo até autenticar. Logout no lobby e no
+  CarMapaView. ChatView reusa a mesma sessão (mesma chave) — sem duplo login.
+- **"Load failed" corrigido (raiz = infra)**:
+  1. Backend virou serviço systemd persistente (`deploy/nexogeo-backend.service`, `Restart=always`,
+     `loginctl enable-linger`) — antes rodava manual e caía ao fim da sessão.
+  2. Tunnel: `saldopro-cloudflared.service` passou a rodar pelo **UUID** (usa o ingress LOCAL do
+     `saldopro-config.yml`, que tem `nexogeo-api -> :8000`); antes rodava pelo nome e usava ingress
+     remoto SEM a rota → 404 intermitente / round-robin entre conectores divergentes.
+  Ver `deploy/README.md`. Validado: 6/6 `200` via tunnel; saldopro inalterado.
+- **UX resiliente**: CarMapaView mostra erro amigável + "Tentar novamente" ao falhar o fetch dos
+  modelos; `authError()` traduz "Load failed"/"Failed to fetch" para PT.
+
 ## Proximos passos
 - Tipologia por **classe de vegetacao** (atributo), nao a camada inteira como 1 classe.
 - Cache da ATP por numero de CAR; desambiguacao quando ha >1 registro (PRA antigo + atual).

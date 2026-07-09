@@ -7,6 +7,7 @@ import {
   Download,
   Layers,
   Loader2,
+  LogOut,
   Map,
   MapPin,
   RefreshCw,
@@ -14,8 +15,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react'
-
-const API = import.meta.env.VITE_API_URL || ''
+import { API, authError } from './auth.js'
 
 // Icone por modelo (usa nomes garantidos do lucide para evitar import quebrado).
 const ICONES = {
@@ -32,25 +32,29 @@ function fileUrl(path) {
   return `${API}/api/nexomap/file?path=${encodeURIComponent(path)}`
 }
 
-export function CarMapaView({ onBack }) {
+export function CarMapaView({ onBack, usuario, onLogout }) {
   const [modelos, setModelos] = useState([])
   const [carregandoModelos, setCarregandoModelos] = useState(true)
+  const [erroModelos, setErroModelos] = useState('')
   const [modeloSel, setModeloSel] = useState(null)
   const [numeroCar, setNumeroCar] = useState('')
   const [rodando, setRodando] = useState(false)
   const [etapa, setEtapa] = useState('')
   const [erro, setErro] = useState('')
   const [resultado, setResultado] = useState(null)
+  const [tentativa, setTentativa] = useState(0)
 
   useEffect(() => {
     let vivo = true
+    setCarregandoModelos(true)
+    setErroModelos('')
     fetch(`${API}/api/nexomap/modelos`)
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json() })
       .then((d) => { if (vivo) setModelos(d.modelos || []) })
-      .catch(() => { if (vivo) setErro('Nao foi possivel carregar os modelos (backend offline?).') })
+      .catch((e) => { if (vivo) setErroModelos(authError(e)) })
       .finally(() => { if (vivo) setCarregandoModelos(false) })
     return () => { vivo = false }
-  }, [])
+  }, [tentativa])
 
   const tabela = useMemo(() => {
     const t = resultado?.mapspec?.tabela
@@ -93,7 +97,7 @@ export function CarMapaView({ onBack }) {
         }
       }
     } catch (e) {
-      setErro(cleanErr(e))
+      setErro(authError(e))
     } finally {
       setRodando(false)
       setEtapa('')
@@ -114,12 +118,28 @@ export function CarMapaView({ onBack }) {
           <h1>Mapas por CAR</h1>
           <p>Escolha um modelo, informe o numero do CAR estadual e o sistema busca a propriedade no SIMCAR digital e monta o mapa no padrao IMAP.</p>
         </div>
+        {usuario ? (
+          <div className="carmap-user">
+            <span>{usuario.nome || usuario.email}</span>
+            {onLogout ? (
+              <button type="button" className="carmap-back" onClick={onLogout}><LogOut size={14} /> Sair</button>
+            ) : null}
+          </div>
+        ) : <span />}
       </header>
 
       {/* Cards de modelos */}
       <section className="carmap-cards" aria-label="Modelos de mapa">
         {carregandoModelos ? (
           <div className="carmap-loading"><Loader2 size={20} className="spin" /> Carregando modelos…</div>
+        ) : erroModelos ? (
+          <div className="carmap-erro-box">
+            <AlertTriangle size={18} />
+            <span>{erroModelos}</span>
+            <button type="button" onClick={() => setTentativa((n) => n + 1)}>
+              <RefreshCw size={15} /> Tentar novamente
+            </button>
+          </div>
         ) : modelos.map((m) => {
           const Icon = ICONES[m.id] || Map
           const ativo = modeloSel?.id === m.id
@@ -224,11 +244,6 @@ function fmtHa(v) {
   return `${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha`
 }
 
-function cleanErr(error) {
-  const raw = error?.message || String(error)
-  try { return JSON.parse(raw).detail || raw } catch { return raw }
-}
-
 function Estilos() {
   return (
     <style>{`
@@ -239,6 +254,11 @@ function Estilos() {
     .carmap-title h1 { margin:.2rem 0; font-size:1.6rem; }
     .carmap-title .eyebrow { font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; opacity:.6; }
     .carmap-title p { opacity:.75; max-width:640px; font-size:.9rem; }
+    .carmap-user { margin-left:auto; display:flex; align-items:center; gap:10px; font-size:.82rem; opacity:.85; }
+    .carmap-erro-box { grid-column:1/-1; display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:16px;
+      border:1px solid #7f1d1d; background:rgba(248,113,113,.08); border-radius:14px; color:#fca5a5; font-size:.9rem; }
+    .carmap-erro-box button { display:inline-flex; align-items:center; gap:6px; margin-left:auto; padding:8px 14px;
+      border:0; border-radius:10px; background:#2563eb; color:#fff; cursor:pointer; font-weight:600; }
     .carmap-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; margin-bottom:22px; }
     .carmap-card { text-align:left; display:flex; flex-direction:column; gap:6px; padding:16px; border-radius:16px; border:1px solid var(--line,#2b3444); background:var(--panel,#141a24); cursor:pointer; transition:.15s; position:relative; color:inherit; }
     .carmap-card:hover { transform:translateY(-2px); border-color:var(--cor,#3b82f6); box-shadow:0 8px 24px rgba(0,0,0,.18); }
