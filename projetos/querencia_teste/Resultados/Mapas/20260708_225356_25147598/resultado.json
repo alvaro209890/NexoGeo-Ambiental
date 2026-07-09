@@ -1,0 +1,452 @@
+{
+  "ok": true,
+  "job_id": "20260708_225356_25147598",
+  "job_dir": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598",
+  "provider": "deepseek",
+  "ai_raw": "[{\"tool\": \"estado_atual\", \"args\": {}, \"resultado\": \"{\\\"mapspec\\\": {}, \\\"elementos_posicionaveis\\\": [\\\"titulo\\\", \\\"legenda\\\", \\\"tabela\\\", \\\"inset_tipologia\\\", \\\"minimapa\\\", \\\"rosa_dos_ventos\\\", \\\"escala\\\", \\\"metadados\\\", \\\"metadados_imagem\\\", \\\"logo\\\"], \\\"elementos_visibilidade\\\": [\\\"grade\\\", \\\"norte\\\", \\\"rosa_dos_ventos\\\", \\\"escala_grafica\\\", \\\"legenda\\\", \\\"metadados\\\", \\\"minimapa\\\", \\\"titulo_caixa\\\", \\\"inset_tipologia\\\", \\\"tabela\\\", \\\"metadados_imagem\\\", \\\"logo\\\"], \\\"ancoras\\\": [\\\"top-left\\\", \\\"top-center\\\", \\\"top-right\\\", \\\"center-left\\\", \\\"center\\\", \\\"center-right\\\", \\\"bottom-left\\\", \\\"bottom-center\\\", \\\"bottom-right\\\", \\\"in-map-top-left\\\", \\\"in-map-top-center\\\", \\\"in-map-top-right\\\", \\\"in-map-center-left\\\", \\\"in-map-center\\\", \\\"in-map-center-right\\\", \\\"in-map-bottom-left\\\", \\\"in-map-bottom-center\\\", \\\"in-map-bottom-right\\\"]}\"}, {\"tool\": \"listar_camadas\", \"args\": {}, \"resultado\": \"{\\\"camadas\\\": [{\\\"id\\\": \\\"car_sema\\\", \\\"nome\\\": \\\"CAR SEMA-MT (requerimentos)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Requerimentos de CAR no SIMCAR (area total requerida). Use para mostrar CARs vizinhos/sobrepostos.\\\"}, {\\\"id\\\": \\\"car_atp\\\", \\\"nome\\\": \\\"CAR - Area Total da Propriedade (ATP)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Perimetros de CAR validados (CAR digital SEMA-MT). Base oficial do imovel no CAR.\\\"}, {\\\"id\\\": \\\"car_app\\\", \\\"nome\\\": \\\"CAR - Area de Preservacao Permanente (APP)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"APPs do CAR validado (CAR digital).\\\"}, {\\\"id\\\": \\\"car_appd\\\", \\\"nome\\\": \\\"CAR - APP Degradada (APPD)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"APPs degradadas do CAR validado (passivo ambiental).\\\"}, {\\\"id\\\": \\\"car_arl\\\", \\\"nome\\\": \\\"CAR - Area de Reserva Legal (ARL)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Reservas Legais do CAR validado (CAR digital).\\\"}, {\\\"id\\\": \\\"car_avn\\\", \\\"nome\\\": \\\"CAR - Area de Vegetacao Nativa (AVN)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Vegetacao nativa remanescente do CAR validado. Use em mapas de dinamica/AVN.\\\"}, {\\\"id\\\": \\\"car_auas\\\", \\\"nome\\\": \\\"CAR - Area de Uso Antropizado (AUAS)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Areas antropizadas/desmatadas do CAR validado. Use em mapas de dinamica/desmatamento.\\\"}, {\\\"id\\\": \\\"car_nascentes\\\", \\\"nome\\\": \\\"CAR - Nascentes\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Nascentes do CAR validado (pontos).\\\"}, {\\\"id\\\": \\\"embargos_sema\\\", \\\"nome\\\": \\\"Embargos SEMA\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Areas embargadas pela SEMA-MT (base historica).\\\"}, {\\\"id\\\": \\\"embargos_siga\\\", \\\"nome\\\": \\\"Embargos SIGA (poligonos)\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Areas embargadas no SIGA (sistema atual da SEMA-MT). Prefira esta em mapas de embargo recentes.\\\"}, {\\\"id\\\": \\\"desembargos_sema\\\", \\\"nome\\\": \\\"Areas desembargadas SEMA\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Areas ja desembargadas pela SEMA-MT (contraponto dos embargos).\\\"}, {\\\"id\\\": \\\"autos_siga\\\", \\\"nome\\\": \\\"Autos de infracao SIGA (poligonos)\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Autos de infracao ambientais lavrados no SIGA (SEMA-MT).\\\"}, {\\\"id\\\": \\\"embargos_ibama\\\", \\\"nome\\\": \\\"Embargos IBAMA\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"arcgis_rest\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Areas embargadas pelo IBAMA (PAMGIA, GeoJSON). Fonte federal principal de embargos.\\\"}, {\\\"id\\\": \\\"embargos_ibama_siscom\\\", \\\"nome\\\": \\\"Embargos IBAMA (SISCOM, imagem WMS)\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"wms_raster\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Overlay raster (WMS GetMap) dos embargos do SISCOM/IBAMA. Alternativa quando o PAMGIA cair; o servidor pode bloquear acessos fora do navegador (Cloudflare).\\\"}, {\\\"id\\\": \\\"terras_indigenas_funai\\\", \\\"nome\\\": \\\"Terras Indigenas FUNAI\\\", \\\"tema\\\": \\\"areas_protegidas\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Terras indigenas oficiais da FUNAI (todas as fases).\\\"}, {\\\"id\\\": \\\"unidades_conservacao\\\", \\\"nome\\\": \\\"Unidades de Conservacao\\\", \\\"tema\\\": \\\"areas_protegidas\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Unidades de conservacao estaduais/federais em MT (SEMA).\\\"}, {\\\"id\\\": \\\"alertas_mapbiomas\\\", \\\"nome\\\": \\\"Alertas MapBiomas\\\", \\\"tema\\\": \\\"desmatamento\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Alertas de desmatamento do MapBiomas Alerta (ultimo status, poligonos validados).\\\"}, {\\\"id\\\": \\\"alertas_mapbiomas_simpl\\\", \\\"nome\\\": \\\"Alertas MapBiomas (simplificados)\\\", \\\"tema\\\": \\\"desmatamento\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Alertas simplificados do MapBiomas (mais leves; fallback dos alertas completos).\\\"}, {\\\"id\\\": \\\"prodes_inpe\\\", \\\"nome\\\": \\\"PRODES INPE\\\", \\\"tema\\\": \\\"desmatamento\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Desmatamento consolidado PRODES/INPE (Amazonia Legal).\\\"}, {\\\"id\\\": \\\"tipologia_sema\\\", \\\"nome\\\": \\\"Tipologia vegetal (SIMCAR)\\\", \\\"tema\\\": \\\"tipologia\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Tipologia vegetal (Floresta/Cerrado etc.) do SIMCAR digital. Corrigido em 2026-07-08: o layer antigo Geoportal:TIPOLOGIA nao existe no GeoServer.\\\"}, {\\\"id\\\": \\\"sigef_particular_mt\\\", \\\"nome\\\": \\\"SIGEF - Certificadas particulares (INCRA)\\\", \\\"tema\\\": \\\"fundiario\\\", \\\"tipo\\\": \\\"wfs_gml\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Parcelas certificadas SIGEF particulares em MT (acervo INCRA, GML lon/lat).\\\"}, {\\\"id\\\": \\\"sigef_publico_mt\\\", \\\"nome\\\": \\\"SIGEF - Certificadas publicas (INCRA)\\\", \\\"tema\\\": \\\"fundiario\\\", \\\"tipo\\\": \\\"wfs_gml\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Parcelas certificadas SIGEF publicas em MT (acervo INCRA, GML lon/lat).\\\"}, {\\\"id\\\": \\\"snci_particular_mt\\\", \\\"nome\\\": \\\"SNCI - Imoveis certificados particulares (INCRA)\\\", \\\"tema\\\": \\\"fundiario\\\", \\\"tipo\\\": \\\"wfs_gml\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Imoveis certificados SNCI (sistema anterior ao SIGEF) em MT. Tema corrigido em 2026-07-08 conforme servicos_geo.json.\\\"}, {\\\"id\\\": \\\"assentamentos_incra\\\", \\\"nome\\\": \\\"Assentamentos (INCRA)\\\", \\\"tema\\\": \\\"fundiario\\\", \\\"tipo\\\": \\\"wfs_gml\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Assentamentos de reforma agraria (acervo INCRA, GML lon/lat).\\\"}]}\"}, {\"tool\": \"criar_mapa\", \"args\": {\"titulo\": \"MAPA DE CAR - QUERÊNCIA/MT\", \"tipo\": \"temático\", \"template\": \"tematico_a3_retrato\", \"basemap\": \"satellite\", \"grade_tipo\": \"dms\"}, \"resultado\": \"mapa criado: 'MAPA DE CAR - QUERÊNCIA/MT' (template tematico_a3_retrato)\"}, {\"tool\": \"adicionar_camada\", \"args\": {\"fonte\": \"catalogo.car_atp\", \"estilo\": {\"linha\": \"#1E40AF\", \"preenchimento\": \"transparente\", \"opacidade\": 0.9, \"largura\": 2}, \"rotulo\": false}, \"resultado\": \"camada 'car_atp' adicionada\"}, {\"tool\": \"adicionar_camada\", \"args\": {\"fonte\": \"catalogo.embargos_sema\", \"estilo\": {\"linha\": \"#DC2626\", \"preenchimento\": \"#FCA5A5\", \"opacidade\": 0.55, \"largura\": 1.5}, \"rotulo\": false}, \"resultado\": \"camada 'embargos_sema' adicionada\"}, {\"tool\": \"adicionar_camada\", \"args\": {\"fonte\": \"catalogo.tipologia_sema\", \"estilo\": {\"linha\": \"#374151\", \"preenchimento\": \"transparente\", \"opacidade\": 0.7, \"largura\": 0.8}, \"rotulo\": true}, \"resultado\": \"camada 'tipologia_sema' adicionada\"}, {\"tool\": \"definir_titulo\", \"args\": {\"titulo\": \"MAPA DE CADASTRO AMBIENTAL RURAL\", \"subtitulo\": \"Querência/MT — Áreas de CAR, Embargos SEMA e Tipologia Vegetal\"}, \"resultado\": \"titulo atualizado\"}, {\"tool\": \"editar_estilo_elemento\", \"args\": {\"elemento\": \"titulo\", \"props\": {\"fundo\": \"white\", \"cor\": \"#111827\", \"tamanho\": 15, \"borda\": \"#D1D5DB\"}}, \"resultado\": \"estilo de 'titulo' atualizado: ['borda', 'cor', 'fundo', 'tamanho']\"}, {\"tool\": \"alternar_elemento\", \"args\": {\"elemento\": \"legenda\", \"visivel\": true}, \"resultado\": \"elemento 'legenda' ligado\"}, {\"tool\": \"editar_legenda\", \"args\": {\"titulo\": \"LEGENDA\", \"modo\": \"manual\", \"itens\": [{\"rotulo\": \"Área Total da Propriedade (CAR ATP)\", \"tipo\": \"poligono\", \"cor\": \"#1E40AF\", \"preenchimento\": \"transparente\", \"largura\": 2}, {\"rotulo\": \"Embargos SEMA-MT\", \"tipo\": \"poligono\", \"cor\": \"#DC2626\", \"preenchimento\": \"#FCA5A5\", \"opacidade\": 0.55, \"largura\": 1.5}, {\"rotulo\": \"Tipologia Vegetal (SIMCAR)\", \"tipo\": \"poligono\", \"cor\": \"#374151\", \"preenchimento\": \"transparente\", \"largura\": 0.8}], \"posicao\": {\"ancora\": \"in-map-bottom-left\", \"x\": 0.02, \"y\": 0.02}, \"colunas\": 1, \"fonte_tamanho\": 9}, \"resultado\": \"legenda atualizada\"}, {\"tool\": \"mover_elemento\", \"args\": {\"elemento\": \"titulo\", \"posicao\": {\"ancora\": \"top-center\", \"x\": 0.5, \"y\": 0.97}}, \"resultado\": \"elemento 'titulo' ancorado em top-center (0.500, 0.970)\"}, {\"tool\": \"alternar_elemento\", \"args\": {\"elemento\": \"escala_grafica\", \"visivel\": true}, \"resultado\": \"elemento 'escala_grafica' ligado\"}, {\"tool\": \"alternar_elemento\", \"args\": {\"elemento\": \"rosa_dos_ventos\", \"visivel\": true}, \"resultado\": \"elemento 'rosa_dos_ventos' ligado\"}, {\"tool\": \"mover_elemento\", \"args\": {\"posicao\": {\"ancora\": \"in-map-top-right\", \"x\": 0.96, \"y\": 0.94}, \"elemento\": \"rosa_dos_ventos\"}, \"resultado\": \"elemento 'rosa_dos_ventos' ancorado em in-map-top-right (0.960, 0.940)\"}, {\"tool\": \"mover_elemento\", \"args\": {\"posicao\": {\"ancora\": \"in-map-bottom-right\", \"x\": 0.96, \"y\": 0.06}, \"elemento\": \"escala\"}, \"resultado\": \"elemento 'escala' ancorado em in-map-bottom-right (0.960, 0.060)\"}, {\"tool\": \"finalizar\", \"args\": {\"resumo\": \"Mapa temático A3 retrato criado para Querência/MT com: (1) CAR ATP — perímetro azul com preenchimento transparente; (2) Embargos SEMA-MT — preenchimento vermelho claro semitransparente; (3) Tipologia Vegetal SIMCAR — contorno cinza com rótulos. Título profissional em caixa branca no topo-centro, legenda manual no canto inferior esquerdo do mapa, rosa dos ventos no topo direito e escala gráfica no canto inferior direito. Basemap satélite, grade DMS.\"}, \"resultado\": \"Mapa temático A3 retrato criado para Querência/MT com: (1) CAR ATP — perímetro azul com preenchimento transparente; (2) Embargos SEMA-MT — preenchimento vermelho claro semitransparente; (3) Tipologia Vegetal SIMCAR — contorno cinza com rótulos. Título profissional em caixa branca no topo-centro, legenda manual no canto inferior esquerdo do mapa, rosa dos ventos no topo direito e escala gráfica no canto inferior direito. Basemap satélite, grade DMS.\"}]",
+  "versao": 1,
+  "parent_job_id": "",
+  "mapspec": {
+    "titulo": "MAPA DE CADASTRO AMBIENTAL RURAL",
+    "subtitulo": "Querência/MT — Áreas de CAR, Embargos SEMA e Tipologia Vegetal",
+    "tipo": "temático",
+    "area_base": "projeto.area_base",
+    "layout_template": "tematico_a3_retrato",
+    "escala": "auto",
+    "basemap": "satellite",
+    "grade_tipo": "dms",
+    "raster_fundo": "",
+    "camadas": [
+      {
+        "id": "perimetro",
+        "fonte": "area_base",
+        "filtro": "",
+        "estilo": {
+          "linha": "#ff2d00",
+          "largura": 2.4,
+          "preenchimento": "transparente"
+        },
+        "rotulo": true
+      },
+      {
+        "id": "car_atp",
+        "fonte": "catalogo.car_atp",
+        "filtro": "intersecta_area_base",
+        "estilo": {
+          "linha": "#1E40AF",
+          "preenchimento": "transparente",
+          "opacidade": 0.9,
+          "largura": 2
+        },
+        "rotulo": false
+      },
+      {
+        "id": "embargos_sema",
+        "fonte": "catalogo.embargos_sema",
+        "filtro": "intersecta_area_base",
+        "estilo": {
+          "linha": "#DC2626",
+          "preenchimento": "#FCA5A5",
+          "opacidade": 0.55,
+          "largura": 1.5
+        },
+        "rotulo": false
+      },
+      {
+        "id": "tipologia_sema",
+        "fonte": "catalogo.tipologia_sema",
+        "filtro": "intersecta_area_base",
+        "estilo": {
+          "linha": "#374151",
+          "preenchimento": "transparente",
+          "opacidade": 0.7,
+          "largura": 0.8
+        },
+        "rotulo": true
+      }
+    ],
+    "elementos_layout": {
+      "legenda": true,
+      "escala_grafica": true,
+      "norte": true,
+      "grade": true,
+      "minimapa": true,
+      "metadados": true,
+      "rosa_dos_ventos": true
+    },
+    "metadados_imagem": {},
+    "tabela": {},
+    "marca": {},
+    "layout": {
+      "elementos": {
+        "titulo": {
+          "estilo": {
+            "fundo": "white",
+            "cor": "#111827",
+            "tamanho": 15,
+            "borda": "#D1D5DB"
+          },
+          "ancora": "top-center",
+          "x": 0.5,
+          "y": 0.97
+        },
+        "rosa_dos_ventos": {
+          "ancora": "in-map-top-right",
+          "x": 0.96,
+          "y": 0.94
+        },
+        "escala": {
+          "ancora": "in-map-bottom-right",
+          "x": 0.96,
+          "y": 0.06
+        }
+      }
+    },
+    "legenda": {
+      "modo": "manual",
+      "titulo": "LEGENDA",
+      "itens": [
+        {
+          "rotulo": "Área Total da Propriedade (CAR ATP)",
+          "tipo": "poligono",
+          "cor": "#1E40AF",
+          "preenchimento": "transparente",
+          "largura": 2
+        },
+        {
+          "rotulo": "Embargos SEMA-MT",
+          "tipo": "poligono",
+          "cor": "#DC2626",
+          "preenchimento": "#FCA5A5",
+          "opacidade": 0.55,
+          "largura": 1.5
+        },
+        {
+          "rotulo": "Tipologia Vegetal (SIMCAR)",
+          "tipo": "poligono",
+          "cor": "#374151",
+          "preenchimento": "transparente",
+          "largura": 0.8
+        }
+      ],
+      "posicao": {
+        "ancora": "in-map-bottom-left",
+        "x": 0.02,
+        "y": 0.02
+      },
+      "colunas": 1,
+      "fonte_tamanho": 9.0
+    },
+    "saidas": [
+      "pdf",
+      "png_validacao",
+      "geojson"
+    ],
+    "versao": 1,
+    "parent_job_id": ""
+  },
+  "area": {
+    "area_ha": 36057.46514503405,
+    "bbox_geo": [
+      -52.3,
+      -12.599999999999998,
+      -52.1,
+      -12.449999999999992
+    ],
+    "bbox_utm": [
+      358711.187533456,
+      8606748.600474909,
+      380519.6706019474,
+      8623438.009012943
+    ],
+    "centroid_geo": [
+      -52.20000000000001,
+      -12.524999999999993
+    ],
+    "centroid_utm": [
+      369618.44089531625,
+      8615094.380056037
+    ],
+    "feature_count": 1,
+    "crs_origem": 4674,
+    "avisos": []
+  },
+  "escala": 100000,
+  "outputs": {
+    "pdf": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/mapa.pdf",
+    "preview_png": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/preview.png",
+    "png_validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/png_validacao.png",
+    "validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/validacao.json",
+    "camadas": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/camadas"
+  },
+  "validacao": {
+    "ok": true,
+    "pdf": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/mapa.pdf",
+    "png_validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/png_validacao.png",
+    "checks": [
+      {
+        "name": "pdf_existe",
+        "ok": true,
+        "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/mapa.pdf"
+      },
+      {
+        "name": "pdf_tamanho_minimo",
+        "ok": true,
+        "detail": "1330124 bytes"
+      },
+      {
+        "name": "pdf_abre",
+        "ok": true,
+        "detail": "1 pagina(s)"
+      },
+      {
+        "name": "pdf_tem_pagina",
+        "ok": true,
+        "detail": "1"
+      },
+      {
+        "name": "titulo_presente",
+        "ok": true,
+        "detail": "MAPA DE CADASTRO AMBIENTAL RURAL"
+      },
+      {
+        "name": "png_validacao_salvo",
+        "ok": true,
+        "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/png_validacao.png"
+      },
+      {
+        "name": "pagina_nao_vazia",
+        "ok": true,
+        "detail": "amostras_unicas=222"
+      },
+      {
+        "name": "mapa_tem_imagem",
+        "ok": true,
+        "detail": "std_cor=24.6 (1764 amostras)"
+      },
+      {
+        "name": "sem_sobreposicao_elementos",
+        "ok": true,
+        "detail": "ok"
+      },
+      {
+        "name": "sem_texto_cortado",
+        "ok": true,
+        "detail": "ok"
+      }
+    ],
+    "escala": 100000,
+    "camadas_desenhadas": [
+      {
+        "id": "car_atp",
+        "nome": "CAR - Area Total da Propriedade (ATP)",
+        "feicoes": 411
+      },
+      {
+        "id": "embargos_sema",
+        "nome": "Embargos SEMA",
+        "feicoes": 11
+      },
+      {
+        "id": "tipologia_sema",
+        "nome": "Tipologia vegetal (SIMCAR)",
+        "feicoes": 87
+      }
+    ],
+    "render_warnings": []
+  },
+  "warnings": [],
+  "tool_calls": [
+    {
+      "tool": "estado_atual",
+      "args": {},
+      "resultado": "{\"mapspec\": {}, \"elementos_posicionaveis\": [\"titulo\", \"legenda\", \"tabela\", \"inset_tipologia\", \"minimapa\", \"rosa_dos_ventos\", \"escala\", \"metadados\", \"metadados_imagem\", \"logo\"], \"elementos_visibilidade\": [\"grade\", \"norte\", \"rosa_dos_ventos\", \"escala_grafica\", \"legenda\", \"metadados\", \"minimapa\", \"titulo_caixa\", \"inset_tipologia\", \"tabela\", \"metadados_imagem\", \"logo\"], \"ancoras\": [\"top-left\", \"top-center\", \"top-right\", \"center-left\", \"center\", \"center-right\", \"bottom-left\", \"bottom-center\", \"bottom-right\", \"in-map-top-left\", \"in-map-top-center\", \"in-map-top-right\", \"in-map-center-left\", \"in-map-center\", \"in-map-center-right\", \"in-map-bottom-left\", \"in-map-bottom-center\", \"in-map-bottom-right\"]}"
+    },
+    {
+      "tool": "listar_camadas",
+      "args": {},
+      "resultado": "{\"camadas\": [{\"id\": \"car_sema\", \"nome\": \"CAR SEMA-MT (requerimentos)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Requerimentos de CAR no SIMCAR (area total requerida). Use para mostrar CARs vizinhos/sobrepostos.\"}, {\"id\": \"car_atp\", \"nome\": \"CAR - Area Total da Propriedade (ATP)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Perimetros de CAR validados (CAR digital SEMA-MT). Base oficial do imovel no CAR.\"}, {\"id\": \"car_app\", \"nome\": \"CAR - Area de Preservacao Permanente (APP)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"APPs do CAR validado (CAR digital).\"}, {\"id\": \"car_appd\", \"nome\": \"CAR - APP Degradada (APPD)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"APPs degradadas do CAR validado (passivo ambiental).\"}, {\"id\": \"car_arl\", \"nome\": \"CAR - Area de Reserva Legal (ARL)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Reservas Legais do CAR validado (CAR digital).\"}, {\"id\": \"car_avn\", \"nome\": \"CAR - Area de Vegetacao Nativa (AVN)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Vegetacao nativa remanescente do CAR validado. Use em mapas de dinamica/AVN.\"}, {\"id\": \"car_auas\", \"nome\": \"CAR - Area de Uso Antropizado (AUAS)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Areas antropizadas/desmatadas do CAR validado. Use em mapas de dinamica/desmatamento.\"}, {\"id\": \"car_nascentes\", \"nome\": \"CAR - Nascentes\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Nascentes do CAR validado (pontos).\"}, {\"id\": \"embargos_sema\", \"nome\": \"Embargos SEMA\", \"tema\": \"embargos\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Areas embargadas pela SEMA-MT (base historica).\"}, {\"id\": \"embargos_siga\", \"nome\": \"Embargos SIGA (poligonos)\", \"tema\": \"embargos\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Areas embargadas no SIGA (sistema atual da SEMA-MT). Prefira esta em mapas de embargo recentes.\"}, {\"id\": \"desembargos_sema\", \"nome\": \"Areas desembargadas SEMA\", \"tema\": \"embargos\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Areas ja desembargadas pela SEMA-MT (contraponto dos embargos).\"}, {\"id\": \"autos_siga\", \"nome\": \"Autos de infracao SIGA (poligonos)\", \"tema\": \"embargos\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Autos de infracao ambientais lavrados no SIGA (SEMA-MT).\"}, {\"id\": \"embargos_ibama\", \"nome\": \"Embargos IBAMA\", \"tema\": \"embargos\", \"tipo\": \"arcgis_rest\", \"auth\": null, \"descricao\": \"Areas embargadas pelo IBAMA (PAMGIA, GeoJSON). Fonte federal principal de embargos.\"}, {\"id\": \"embargos_ibama_siscom\", \"nome\": \"Embargos IBAMA (SISCOM, imagem WMS)\", \"tema\": \"embargos\", \"tipo\": \"wms_raster\", \"auth\": null, \"descricao\": \"Overlay raster (WMS GetMap) dos embargos do SISCOM/IBAMA. Alternativa quando o PAMGIA cair; o servidor pode bloquear acessos fora do navegador (Cloudflare).\"}, {\"id\": \"terras_indigenas_funai\", \"nome\": \"Terras Indigenas FUNAI\", \"tema\": \"areas_protegidas\", \"tipo\": \"wms_wfs\", \"auth\": null, \"descricao\": \"Terras indigenas oficiais da FUNAI (todas as fases).\"}, {\"id\": \"unidades_conservacao\", \"nome\": \"Unidades de Conservacao\", \"tema\": \"areas_protegidas\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Unidades de conservacao estaduais/federais em MT (SEMA).\"}, {\"id\": \"alertas_mapbiomas\", \"nome\": \"Alertas MapBiomas\", \"tema\": \"desmatamento\", \"tipo\": \"wms_wfs\", \"auth\": null, \"descricao\": \"Alertas de desmatamento do MapBiomas Alerta (ultimo status, poligonos validados).\"}, {\"id\": \"alertas_mapbiomas_simpl\", \"nome\": \"Alertas MapBiomas (simplificados)\", \"tema\": \"desmatamento\", \"tipo\": \"wms_wfs\", \"auth\": null, \"descricao\": \"Alertas simplificados do MapBiomas (mais leves; fallback dos alertas completos).\"}, {\"id\": \"prodes_inpe\", \"nome\": \"PRODES INPE\", \"tema\": \"desmatamento\", \"tipo\": \"wms_wfs\", \"auth\": null, \"descricao\": \"Desmatamento consolidado PRODES/INPE (Amazonia Legal).\"}, {\"id\": \"tipologia_sema\", \"nome\": \"Tipologia vegetal (SIMCAR)\", \"tema\": \"tipologia\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Tipologia vegetal (Floresta/Cerrado etc.) do SIMCAR digital. Corrigido em 2026-07-08: o layer antigo Geoportal:TIPOLOGIA nao existe no GeoServer.\"}, {\"id\": \"sigef_particular_mt\", \"nome\": \"SIGEF - Certificadas particulares (INCRA)\", \"tema\": \"fundiario\", \"tipo\": \"wfs_gml\", \"auth\": null, \"descricao\": \"Parcelas certificadas SIGEF particulares em MT (acervo INCRA, GML lon/lat).\"}, {\"id\": \"sigef_publico_mt\", \"nome\": \"SIGEF - Certificadas publicas (INCRA)\", \"tema\": \"fundiario\", \"tipo\": \"wfs_gml\", \"auth\": null, \"descricao\": \"Parcelas certificadas SIGEF publicas em MT (acervo INCRA, GML lon/lat).\"}, {\"id\": \"snci_particular_mt\", \"nome\": \"SNCI - Imoveis certificados particulares (INCRA)\", \"tema\": \"fundiario\", \"tipo\": \"wfs_gml\", \"auth\": null, \"descricao\": \"Imoveis certificados SNCI (sistema anterior ao SIGEF) em MT. Tema corrigido em 2026-07-08 conforme servicos_geo.json.\"}, {\"id\": \"assentamentos_incra\", \"nome\": \"Assentamentos (INCRA)\", \"tema\": \"fundiario\", \"tipo\": \"wfs_gml\", \"auth\": null, \"descricao\": \"Assentamentos de reforma agraria (acervo INCRA, GML lon/lat).\"}]}"
+    },
+    {
+      "tool": "criar_mapa",
+      "args": {
+        "titulo": "MAPA DE CAR - QUERÊNCIA/MT",
+        "tipo": "temático",
+        "template": "tematico_a3_retrato",
+        "basemap": "satellite",
+        "grade_tipo": "dms"
+      },
+      "resultado": "mapa criado: 'MAPA DE CAR - QUERÊNCIA/MT' (template tematico_a3_retrato)"
+    },
+    {
+      "tool": "adicionar_camada",
+      "args": {
+        "fonte": "catalogo.car_atp",
+        "estilo": {
+          "linha": "#1E40AF",
+          "preenchimento": "transparente",
+          "opacidade": 0.9,
+          "largura": 2
+        },
+        "rotulo": false
+      },
+      "resultado": "camada 'car_atp' adicionada"
+    },
+    {
+      "tool": "adicionar_camada",
+      "args": {
+        "fonte": "catalogo.embargos_sema",
+        "estilo": {
+          "linha": "#DC2626",
+          "preenchimento": "#FCA5A5",
+          "opacidade": 0.55,
+          "largura": 1.5
+        },
+        "rotulo": false
+      },
+      "resultado": "camada 'embargos_sema' adicionada"
+    },
+    {
+      "tool": "adicionar_camada",
+      "args": {
+        "fonte": "catalogo.tipologia_sema",
+        "estilo": {
+          "linha": "#374151",
+          "preenchimento": "transparente",
+          "opacidade": 0.7,
+          "largura": 0.8
+        },
+        "rotulo": true
+      },
+      "resultado": "camada 'tipologia_sema' adicionada"
+    },
+    {
+      "tool": "definir_titulo",
+      "args": {
+        "titulo": "MAPA DE CADASTRO AMBIENTAL RURAL",
+        "subtitulo": "Querência/MT — Áreas de CAR, Embargos SEMA e Tipologia Vegetal"
+      },
+      "resultado": "titulo atualizado"
+    },
+    {
+      "tool": "editar_estilo_elemento",
+      "args": {
+        "elemento": "titulo",
+        "props": {
+          "fundo": "white",
+          "cor": "#111827",
+          "tamanho": 15,
+          "borda": "#D1D5DB"
+        }
+      },
+      "resultado": "estilo de 'titulo' atualizado: ['borda', 'cor', 'fundo', 'tamanho']"
+    },
+    {
+      "tool": "alternar_elemento",
+      "args": {
+        "elemento": "legenda",
+        "visivel": true
+      },
+      "resultado": "elemento 'legenda' ligado"
+    },
+    {
+      "tool": "editar_legenda",
+      "args": {
+        "titulo": "LEGENDA",
+        "modo": "manual",
+        "itens": [
+          {
+            "rotulo": "Área Total da Propriedade (CAR ATP)",
+            "tipo": "poligono",
+            "cor": "#1E40AF",
+            "preenchimento": "transparente",
+            "largura": 2
+          },
+          {
+            "rotulo": "Embargos SEMA-MT",
+            "tipo": "poligono",
+            "cor": "#DC2626",
+            "preenchimento": "#FCA5A5",
+            "opacidade": 0.55,
+            "largura": 1.5
+          },
+          {
+            "rotulo": "Tipologia Vegetal (SIMCAR)",
+            "tipo": "poligono",
+            "cor": "#374151",
+            "preenchimento": "transparente",
+            "largura": 0.8
+          }
+        ],
+        "posicao": {
+          "ancora": "in-map-bottom-left",
+          "x": 0.02,
+          "y": 0.02
+        },
+        "colunas": 1,
+        "fonte_tamanho": 9
+      },
+      "resultado": "legenda atualizada"
+    },
+    {
+      "tool": "mover_elemento",
+      "args": {
+        "elemento": "titulo",
+        "posicao": {
+          "ancora": "top-center",
+          "x": 0.5,
+          "y": 0.97
+        }
+      },
+      "resultado": "elemento 'titulo' ancorado em top-center (0.500, 0.970)"
+    },
+    {
+      "tool": "alternar_elemento",
+      "args": {
+        "elemento": "escala_grafica",
+        "visivel": true
+      },
+      "resultado": "elemento 'escala_grafica' ligado"
+    },
+    {
+      "tool": "alternar_elemento",
+      "args": {
+        "elemento": "rosa_dos_ventos",
+        "visivel": true
+      },
+      "resultado": "elemento 'rosa_dos_ventos' ligado"
+    },
+    {
+      "tool": "mover_elemento",
+      "args": {
+        "posicao": {
+          "ancora": "in-map-top-right",
+          "x": 0.96,
+          "y": 0.94
+        },
+        "elemento": "rosa_dos_ventos"
+      },
+      "resultado": "elemento 'rosa_dos_ventos' ancorado em in-map-top-right (0.960, 0.940)"
+    },
+    {
+      "tool": "mover_elemento",
+      "args": {
+        "posicao": {
+          "ancora": "in-map-bottom-right",
+          "x": 0.96,
+          "y": 0.06
+        },
+        "elemento": "escala"
+      },
+      "resultado": "elemento 'escala' ancorado em in-map-bottom-right (0.960, 0.060)"
+    },
+    {
+      "tool": "finalizar",
+      "args": {
+        "resumo": "Mapa temático A3 retrato criado para Querência/MT com: (1) CAR ATP — perímetro azul com preenchimento transparente; (2) Embargos SEMA-MT — preenchimento vermelho claro semitransparente; (3) Tipologia Vegetal SIMCAR — contorno cinza com rótulos. Título profissional em caixa branca no topo-centro, legenda manual no canto inferior esquerdo do mapa, rosa dos ventos no topo direito e escala gráfica no canto inferior direito. Basemap satélite, grade DMS."
+      },
+      "resultado": "Mapa temático A3 retrato criado para Querência/MT com: (1) CAR ATP — perímetro azul com preenchimento transparente; (2) Embargos SEMA-MT — preenchimento vermelho claro semitransparente; (3) Tipologia Vegetal SIMCAR — contorno cinza com rótulos. Título profissional em caixa branca no topo-centro, legenda manual no canto inferior esquerdo do mapa, rosa dos ventos no topo direito e escala gráfica no canto inferior direito. Basemap satélite, grade DMS."
+    }
+  ],
+  "resumo": "Mapa temático A3 retrato criado para Querência/MT com: (1) CAR ATP — perímetro azul com preenchimento transparente; (2) Embargos SEMA-MT — preenchimento vermelho claro semitransparente; (3) Tipologia Vegetal SIMCAR — contorno cinza com rótulos. Título profissional em caixa branca no topo-centro, legenda manual no canto inferior esquerdo do mapa, rosa dos ventos no topo direito e escala gráfica no canto inferior direito. Basemap satélite, grade DMS."
+}

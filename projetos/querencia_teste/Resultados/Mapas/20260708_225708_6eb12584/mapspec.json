@@ -1,0 +1,118 @@
+{
+  "titulo": "Mapa de Tipologia Vegetal - Querência/MT",
+  "subtitulo": "",
+  "tipo": "tematico",
+  "area_base": "projeto.area_base",
+  "layout_template": "tematico_a3_retrato",
+  "escala": "auto",
+  "basemap": "satellite",
+  "grade_tipo": "dms",
+  "raster_fundo": "",
+  "camadas": [
+    {
+      "id": "perimetro",
+      "fonte": "area_base",
+      "filtro": "",
+      "estilo": {
+        "linha": "#ff2d00",
+        "largura": 2.4,
+        "preenchimento": "transparente"
+      },
+      "rotulo": true
+    },
+    {
+      "id": "tipologia_sema",
+      "fonte": "catalogo.tipologia_sema",
+      "filtro": "intersecta_area_base",
+      "estilo": {
+        "preenchimento": "transparente",
+        "linha": "#1F8C3C",
+        "opacidade": 0.7,
+        "largura": 0.5
+      },
+      "rotulo": true
+    },
+    {
+      "id": "car_atp",
+      "fonte": "catalogo.car_atp",
+      "filtro": "intersecta_area_base",
+      "estilo": {
+        "preenchimento": "transparente",
+        "linha": "#E67E22",
+        "opacidade": 0.8,
+        "largura": 1.2
+      },
+      "rotulo": false
+    },
+    {
+      "id": "car_avn",
+      "fonte": "catalogo.car_avn",
+      "filtro": "intersecta_area_base",
+      "estilo": {
+        "preenchimento": "#2ECC71",
+        "linha": "#27AE60",
+        "opacidade": 0.5,
+        "largura": 0.3
+      },
+      "rotulo": false
+    }
+  ],
+  "elementos_layout": {
+    "legenda": true,
+    "escala_grafica": true,
+    "norte": true,
+    "grade": true,
+    "minimapa": true,
+    "metadados": true,
+    "tabela": true,
+    "titulo_caixa": true
+  },
+  "metadados_imagem": {},
+  "tabela": {
+    "titulo": "Quantitativos por Tipologia Vegetal",
+    "fonte": "quantitativos",
+    "config": {}
+  },
+  "marca": {},
+  "layout": {
+    "elementos": {
+      "legenda": {
+        "ancora": "in-map-bottom-left",
+        "x": 0.02,
+        "y": 0.02
+      },
+      "tabela": {
+        "ancora": "bottom-right",
+        "x": 0.98,
+        "y": 0.02
+      },
+      "titulo": {
+        "estilo": {
+          "fundo": "white",
+          "cor": "#111827",
+          "tamanho": 15
+        },
+        "ancora": "top-center",
+        "x": 0.5,
+        "y": 0.98
+      },
+      "escala": {
+        "ancora": "in-map-bottom-right",
+        "x": 0.98,
+        "y": 0.02
+      }
+    }
+  },
+  "legenda": {
+    "modo": "auto",
+    "titulo": "Legenda",
+    "colunas": 1
+  },
+  "saidas": [
+    "pdf",
+    "png_validacao",
+    "geojson"
+  ],
+  "versao": 1,
+  "parent_job_id": ""
+}

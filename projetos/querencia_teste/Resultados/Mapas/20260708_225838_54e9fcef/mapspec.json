@@ -1,0 +1,97 @@
+{
+  "titulo": "Querência - Teste CAR",
+  "subtitulo": "Mapa Rápido",
+  "tipo": "tematico",
+  "area_base": "projeto.area_base",
+  "layout_template": "tematico_a4_paisagem",
+  "escala": 50000,
+  "basemap": "satellite",
+  "grade_tipo": "dms",
+  "raster_fundo": "",
+  "camadas": [
+    {
+      "id": "car_atp",
+      "fonte": "catalogo.car_atp",
+      "filtro": "None",
+      "estilo": {
+        "linha": "#FF0000",
+        "preenchimento": "none",
+        "opacidade": 1,
+        "largura": 2
+      },
+      "rotulo": true
+    },
+    {
+      "id": "car_arl",
+      "fonte": "catalogo.car_arl",
+      "filtro": "None",
+      "estilo": {
+        "linha": "#006400",
+        "preenchimento": "#006400",
+        "opacidade": 0.3,
+        "largura": 1
+      },
+      "rotulo": false
+    },
+    {
+      "id": "car_app",
+      "fonte": "catalogo.car_app",
+      "filtro": "None",
+      "estilo": {
+        "linha": "#0000FF",
+        "preenchimento": "#0000FF",
+        "opacidade": 0.2,
+        "largura": 1
+      },
+      "rotulo": false
+    },
+    {
+      "id": "car_auas",
+      "fonte": "catalogo.car_auas",
+      "filtro": "None",
+      "estilo": {
+        "linha": "#FFA500",
+        "preenchimento": "#FFA500",
+        "opacidade": 0.4,
+        "largura": 1
+      },
+      "rotulo": false
+    }
+  ],
+  "elementos_layout": {
+    "grade": true,
+    "norte": true,
+    "rosa_dos_ventos": false,
+    "escala_grafica": true,
+    "legenda": true,
+    "metadados": true,
+    "minimapa": true,
+    "titulo_caixa": true,
+    "inset_tipologia": false,
+    "tabela": false,
+    "metadados_imagem": false,
+    "logo": false
+  },
+  "metadados_imagem": {},
+  "tabela": {},
+  "marca": {},
+  "layout": {},
+  "legenda": {
+    "modo": "auto",
+    "titulo": "Legenda",
+    "colunas": 1,
+    "fonte_tamanho": 8,
+    "posicao": {
+      "ancora": "bottom-right",
+      "x": 0.95,
+      "y": 0.05,
+      "largura": 0.25
+    }
+  },
+  "saidas": [
+    "pdf",
+    "png_validacao"
+  ],
+  "versao": 1,
+  "parent_job_id": ""
+}

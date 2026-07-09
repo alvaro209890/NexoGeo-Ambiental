@@ -820,34 +820,35 @@ def _flagship_furniture(fig, ax, spec, project, area, scale, extent,
         _draw_table(fig, rect_de("tabela", (mx + mw - tw - 0.005, my + 0.006, tw, th)), spec.tabela)
 
     # ---- faixa inferior: [localizacao] [METADADOS IMAGEM] [Legenda] [logo] ----
-    bx, by, bw, bh = band_rect
-    if on("minimapa", True):
-        _draw_minimap(fig, rect_de("minimapa", (0.02, by + 0.012, 0.10, bh - 0.02)),
-                      area, extent, project.crs.utm, "light")
-    if on("metadados_imagem", True) and spec.metadados_imagem:
-        _draw_metadados_imagem_band(fig, rect_de("metadados_imagem",
-                                                 (0.19, by + 0.005, 0.24, bh - 0.01)),
-                                    spec.metadados_imagem, scale)
-    if on("legenda") and legend_entries:
-        leg_cfg = spec.legenda or {}
-        leg_rect = rect_de("legenda", (0.52, by + 0.012, 0.30, bh - 0.02))
-        pos_cfg = leg_cfg.get("posicao")
-        if isinstance(pos_cfg, dict) and pos_cfg:  # legenda.posicao > layout.elementos
-            leg_rect = element_rect({"elementos": {"legenda": pos_cfg}}, "legenda",
-                                    leg_rect, map_rect=map_rect, avisos=avisos)
-            if regioes is not None:
-                regioes["legenda"] = leg_rect
-        _draw_legend_swatches(fig, leg_rect, legend_entries, titulo=_legend_title(spec),
-                              ncols=int(leg_cfg.get("colunas", 1) or 1),
-                              fontsize=float(leg_cfg.get("fonte_tamanho", 8.0) or 8.0))
-    if on("logo", True) and spec.marca:
-        logo_rect = rect_de("logo", (0.85, by + 0.01, 0.12, bh - 0.02))
-        logo_path = _resolver_caminho(project, str(spec.marca.get("logo", "")))
-        logo_ok = _draw_logo(fig, logo_rect, logo_path) if logo_path else False
-        if not logo_ok and spec.marca.get("texto"):
-            fig.text(logo_rect[0] + logo_rect[2] / 2, logo_rect[1] + logo_rect[3] / 2,
-                     str(spec.marca.get("texto")), ha="center", va="center",
-                     fontsize=13, fontweight="bold", color="#17324d")
+    if band_rect is not None:
+        bx, by, bw, bh = band_rect
+        if on("minimapa", True):
+            _draw_minimap(fig, rect_de("minimapa", (0.02, by + 0.012, 0.10, bh - 0.02)),
+                          area, extent, project.crs.utm, "light")
+        if on("metadados_imagem", True) and spec.metadados_imagem:
+            _draw_metadados_imagem_band(fig, rect_de("metadados_imagem",
+                                                     (0.19, by + 0.005, 0.24, bh - 0.01)),
+                                        spec.metadados_imagem, scale)
+        if on("legenda") and legend_entries:
+            leg_cfg = spec.legenda or {}
+            leg_rect = rect_de("legenda", (0.52, by + 0.012, 0.30, bh - 0.02))
+            pos_cfg = leg_cfg.get("posicao")
+            if isinstance(pos_cfg, dict) and pos_cfg:
+                leg_rect = element_rect({"elementos": {"legenda": pos_cfg}}, "legenda",
+                                        leg_rect, map_rect=map_rect, avisos=avisos)
+                if regioes is not None:
+                    regioes["legenda"] = leg_rect
+            _draw_legend_swatches(fig, leg_rect, legend_entries, titulo=_legend_title(spec),
+                                  ncols=int(leg_cfg.get("colunas", 1) or 1),
+                                  fontsize=float(leg_cfg.get("fonte_tamanho", 8.0) or 8.0))
+        if on("logo", True) and spec.marca:
+            logo_rect = rect_de("logo", (0.85, by + 0.01, 0.12, bh - 0.02))
+            logo_path = _resolver_caminho(project, str(spec.marca.get("logo", "")))
+            logo_ok = _draw_logo(fig, logo_rect, logo_path) if logo_path else False
+            if not logo_ok and spec.marca.get("texto"):
+                fig.text(logo_rect[0] + logo_rect[2] / 2, logo_rect[1] + logo_rect[3] / 2,
+                         str(spec.marca.get("texto")), ha="center", va="center",
+                         fontsize=13, fontweight="bold", color="#17324d")
 
 
 def _legend_title(spec) -> str:

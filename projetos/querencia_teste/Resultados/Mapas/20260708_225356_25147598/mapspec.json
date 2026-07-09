@@ -1,0 +1,139 @@
+{
+  "titulo": "MAPA DE CADASTRO AMBIENTAL RURAL",
+  "subtitulo": "Querência/MT — Áreas de CAR, Embargos SEMA e Tipologia Vegetal",
+  "tipo": "temático",
+  "area_base": "projeto.area_base",
+  "layout_template": "tematico_a3_retrato",
+  "escala": "auto",
+  "basemap": "satellite",
+  "grade_tipo": "dms",
+  "raster_fundo": "",
+  "camadas": [
+    {
+      "id": "perimetro",
+      "fonte": "area_base",
+      "filtro": "",
+      "estilo": {
+        "linha": "#ff2d00",
+        "largura": 2.4,
+        "preenchimento": "transparente"
+      },
+      "rotulo": true
+    },
+    {
+      "id": "car_atp",
+      "fonte": "catalogo.car_atp",
+      "filtro": "intersecta_area_base",
+      "estilo": {
+        "linha": "#1E40AF",
+        "preenchimento": "transparente",
+        "opacidade": 0.9,
+        "largura": 2
+      },
+      "rotulo": false
+    },
+    {
+      "id": "embargos_sema",
+      "fonte": "catalogo.embargos_sema",
+      "filtro": "intersecta_area_base",
+      "estilo": {
+        "linha": "#DC2626",
+        "preenchimento": "#FCA5A5",
+        "opacidade": 0.55,
+        "largura": 1.5
+      },
+      "rotulo": false
+    },
+    {
+      "id": "tipologia_sema",
+      "fonte": "catalogo.tipologia_sema",
+      "filtro": "intersecta_area_base",
+      "estilo": {
+        "linha": "#374151",
+        "preenchimento": "transparente",
+        "opacidade": 0.7,
+        "largura": 0.8
+      },
+      "rotulo": true
+    }
+  ],
+  "elementos_layout": {
+    "legenda": true,
+    "escala_grafica": true,
+    "norte": true,
+    "grade": true,
+    "minimapa": true,
+    "metadados": true,
+    "rosa_dos_ventos": true
+  },
+  "metadados_imagem": {},
+  "tabela": {},
+  "marca": {},
+  "layout": {
+    "elementos": {
+      "titulo": {
+        "estilo": {
+          "fundo": "white",
+          "cor": "#111827",
+          "tamanho": 15,
+          "borda": "#D1D5DB"
+        },
+        "ancora": "top-center",
+        "x": 0.5,
+        "y": 0.97
+      },
+      "rosa_dos_ventos": {
+        "ancora": "in-map-top-right",
+        "x": 0.96,
+        "y": 0.94
+      },
+      "escala": {
+        "ancora": "in-map-bottom-right",
+        "x": 0.96,
+        "y": 0.06
+      }
+    }
+  },
+  "legenda": {
+    "modo": "manual",
+    "titulo": "LEGENDA",
+    "itens": [
+      {
+        "rotulo": "Área Total da Propriedade (CAR ATP)",
+        "tipo": "poligono",
+        "cor": "#1E40AF",
+        "preenchimento": "transparente",
+        "largura": 2
+      },
+      {
+        "rotulo": "Embargos SEMA-MT",
+        "tipo": "poligono",
+        "cor": "#DC2626",
+        "preenchimento": "#FCA5A5",
+        "opacidade": 0.55,
+        "largura": 1.5
+      },
+      {
+        "rotulo": "Tipologia Vegetal (SIMCAR)",
+        "tipo": "poligono",
+        "cor": "#374151",
+        "preenchimento": "transparente",
+        "largura": 0.8
+      }
+    ],
+    "posicao": {
+      "ancora": "in-map-bottom-left",
+      "x": 0.02,
+      "y": 0.02
+    },
+    "colunas": 1,
+    "fonte_tamanho": 9.0
+  },
+  "saidas": [
+    "pdf",
+    "png_validacao",
+    "geojson"
+  ],
+  "versao": 1,
+  "parent_job_id": ""
+}

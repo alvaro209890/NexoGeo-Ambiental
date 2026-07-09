@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "pdf": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/mapa.pdf",
+  "png_validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/png_validacao.png",
+  "checks": [
+    {
+      "name": "pdf_existe",
+      "ok": true,
+      "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/mapa.pdf"
+    },
+    {
+      "name": "pdf_tamanho_minimo",
+      "ok": true,
+      "detail": "1330124 bytes"
+    },
+    {
+      "name": "pdf_abre",
+      "ok": true,
+      "detail": "1 pagina(s)"
+    },
+    {
+      "name": "pdf_tem_pagina",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "name": "titulo_presente",
+      "ok": true,
+      "detail": "MAPA DE CADASTRO AMBIENTAL RURAL"
+    },
+    {
+      "name": "png_validacao_salvo",
+      "ok": true,
+      "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225356_25147598/png_validacao.png"
+    },
+    {
+      "name": "pagina_nao_vazia",
+      "ok": true,
+      "detail": "amostras_unicas=222"
+    },
+    {
+      "name": "mapa_tem_imagem",
+      "ok": true,
+      "detail": "std_cor=24.6 (1764 amostras)"
+    },
+    {
+      "name": "sem_sobreposicao_elementos",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "sem_texto_cortado",
+      "ok": true,
+      "detail": "ok"
+    }
+  ],
+  "escala": 100000,
+  "camadas_desenhadas": [
+    {
+      "id": "car_atp",
+      "nome": "CAR - Area Total da Propriedade (ATP)",
+      "feicoes": 411
+    },
+    {
+      "id": "embargos_sema",
+      "nome": "Embargos SEMA",
+      "feicoes": 11
+    },
+    {
+      "id": "tipologia_sema",
+      "nome": "Tipologia vegetal (SIMCAR)",
+      "feicoes": 87
+    }
+  ],
+  "render_warnings": []
+}

@@ -1,0 +1,81 @@
+{
+  "ok": false,
+  "pdf": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225838_54e9fcef/mapa.pdf",
+  "png_validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225838_54e9fcef/png_validacao.png",
+  "checks": [
+    {
+      "name": "pdf_existe",
+      "ok": true,
+      "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225838_54e9fcef/mapa.pdf"
+    },
+    {
+      "name": "pdf_tamanho_minimo",
+      "ok": true,
+      "detail": "737864 bytes"
+    },
+    {
+      "name": "pdf_abre",
+      "ok": true,
+      "detail": "1 pagina(s)"
+    },
+    {
+      "name": "pdf_tem_pagina",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "name": "titulo_presente",
+      "ok": true,
+      "detail": "Querência - Teste CAR"
+    },
+    {
+      "name": "png_validacao_salvo",
+      "ok": true,
+      "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225838_54e9fcef/png_validacao.png"
+    },
+    {
+      "name": "pagina_nao_vazia",
+      "ok": true,
+      "detail": "amostras_unicas=254"
+    },
+    {
+      "name": "mapa_tem_imagem",
+      "ok": true,
+      "detail": "std_cor=59.3 (1764 amostras)"
+    },
+    {
+      "name": "sem_sobreposicao_elementos",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "sem_texto_cortado",
+      "ok": false,
+      "detail": "1 artefato(s): CAR - Area de Preservaca"
+    }
+  ],
+  "escala": 50000,
+  "camadas_desenhadas": [
+    {
+      "id": "car_atp",
+      "nome": "CAR - Area Total da Propriedade (ATP)",
+      "feicoes": 411
+    },
+    {
+      "id": "car_arl",
+      "nome": "CAR - Area de Reserva Legal (ARL)",
+      "feicoes": 500
+    },
+    {
+      "id": "car_app",
+      "nome": "CAR - Area de Preservacao Permanente (APP)",
+      "feicoes": 500
+    },
+    {
+      "id": "car_auas",
+      "nome": "CAR - Area de Uso Antropizado (AUAS)",
+      "feicoes": 268
+    }
+  ],
+  "render_warnings": []
+}

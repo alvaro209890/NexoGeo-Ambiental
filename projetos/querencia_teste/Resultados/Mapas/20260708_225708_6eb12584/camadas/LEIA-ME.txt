@@ -1,0 +1,2 @@
+Camadas exportadas pelo NexoMap AI (EPSG:4674 / SIRGAS 2000).
+Abra os .geojson direto no QGIS (arraste para o mapa) — nao requer ArcMap.

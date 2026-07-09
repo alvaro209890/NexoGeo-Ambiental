@@ -1,0 +1,26 @@
+{
+  "versao_schema": 1,
+  "nome": "Querência - Teste CAR",
+  "cliente": "Teste",
+  "municipio": {
+    "nome": "Querência",
+    "uf": "MT",
+    "ibge": "5107065"
+  },
+  "crs": {
+    "utm": 31982,
+    "geografico": 4674
+  },
+  "raiz_dados": ".",
+  "pastas": {
+    "shapes": "Shapes",
+    "resultados": "Resultados",
+    "mapas": "Resultados/Mapas"
+  },
+  "area_base": {
+    "tipo": "shapefile_zip",
+    "path": "Shapes/area.zip"
+  },
+  "catalogo_camadas": "/home/acer/Documentos/NexoGeo-Ambiental/catalogo/camadas.json",
+  "templates_layouts": "/home/acer/Documentos/NexoGeo-Ambiental/templates/layouts/MANIFEST.json"
+}

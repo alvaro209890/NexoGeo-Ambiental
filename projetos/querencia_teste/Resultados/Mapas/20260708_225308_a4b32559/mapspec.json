@@ -1,0 +1,147 @@
+{
+  "titulo": "Mapa de CAR e Embargos",
+  "subtitulo": "Querência - MT",
+  "tipo": "tematico",
+  "area_base": "projeto.area_base",
+  "layout_template": "tematico_a3_retrato",
+  "escala": 50000,
+  "basemap": "satellite",
+  "grade_tipo": "dms",
+  "raster_fundo": "",
+  "camadas": [
+    {
+      "id": "car_atp",
+      "fonte": "catalogo.car_atp",
+      "filtro": "None",
+      "estilo": {
+        "linha": "#FF0000",
+        "preenchimento": "none",
+        "opacidade": 1,
+        "largura": 2
+      },
+      "rotulo": true
+    },
+    {
+      "id": "car_app",
+      "fonte": "catalogo.car_app",
+      "filtro": "None",
+      "estilo": {
+        "linha": "#00FF00",
+        "preenchimento": "#00FF00",
+        "opacidade": 0.3,
+        "largura": 1
+      },
+      "rotulo": true
+    },
+    {
+      "id": "car_arl",
+      "fonte": "catalogo.car_arl",
+      "filtro": "None",
+      "estilo": {
+        "linha": "#006400",
+        "preenchimento": "#006400",
+        "opacidade": 0.3,
+        "largura": 1
+      },
+      "rotulo": true
+    },
+    {
+      "id": "embargos_siga",
+      "fonte": "catalogo.embargos_siga",
+      "filtro": "None",
+      "estilo": {
+        "linha": "#FFA500",
+        "preenchimento": "#FFA500",
+        "opacidade": 0.5,
+        "largura": 1,
+        "hachura": "////"
+      },
+      "rotulo": true
+    },
+    {
+      "id": "embargos_ibama",
+      "fonte": "catalogo.embargos_ibama",
+      "filtro": "None",
+      "estilo": {
+        "linha": "#FF0000",
+        "preenchimento": "#FF0000",
+        "opacidade": 0.5,
+        "largura": 1,
+        "hachura": "\\\\\\\\"
+      },
+      "rotulo": true
+    }
+  ],
+  "elementos_layout": {
+    "grade": true,
+    "norte": true,
+    "rosa_dos_ventos": false,
+    "escala_grafica": true,
+    "legenda": true,
+    "metadados": true,
+    "minimapa": true,
+    "titulo_caixa": true,
+    "inset_tipologia": false,
+    "tabela": false,
+    "metadados_imagem": false,
+    "logo": false
+  },
+  "metadados_imagem": {},
+  "tabela": {},
+  "marca": {},
+  "layout": {
+    "elementos": {
+      "titulo": {
+        "ancora": "top-center",
+        "x": 0.5,
+        "y": 0.95,
+        "estilo": {
+          "fundo": "white",
+          "cor": "#111827",
+          "tamanho": 14
+        }
+      },
+      "legenda": {
+        "ancora": "bottom-right",
+        "x": 0.95,
+        "y": 0.05,
+        "largura": 0.25,
+        "altura": 0.3
+      },
+      "minimapa": {
+        "ancora": "bottom-left",
+        "x": 0.05,
+        "y": 0.05,
+        "largura": 0.15,
+        "altura": 0.15
+      },
+      "escala": {
+        "ancora": "bottom-center",
+        "x": 0.5,
+        "y": 0.05
+      },
+      "metadados": {
+        "ancora": "bottom-left",
+        "x": 0.05,
+        "y": 0.25
+      }
+    }
+  },
+  "legenda": {
+    "modo": "auto",
+    "titulo": "Legenda",
+    "colunas": 1,
+    "fonte_tamanho": 8,
+    "posicao": {
+      "ancora": "bottom-right",
+      "x": 0.95,
+      "y": 0.05,
+      "largura": 0.25
+    }
+  },
+  "saidas": [
+    "pdf"
+  ],
+  "versao": 1,
+  "parent_job_id": ""
+}

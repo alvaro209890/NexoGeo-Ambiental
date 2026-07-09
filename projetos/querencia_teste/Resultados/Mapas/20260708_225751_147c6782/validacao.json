@@ -1,0 +1,71 @@
+{
+  "ok": true,
+  "pdf": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225751_147c6782/mapa.pdf",
+  "png_validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225751_147c6782/png_validacao.png",
+  "checks": [
+    {
+      "name": "pdf_existe",
+      "ok": true,
+      "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225751_147c6782/mapa.pdf"
+    },
+    {
+      "name": "pdf_tamanho_minimo",
+      "ok": true,
+      "detail": "2255755 bytes"
+    },
+    {
+      "name": "pdf_abre",
+      "ok": true,
+      "detail": "1 pagina(s)"
+    },
+    {
+      "name": "pdf_tem_pagina",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "name": "titulo_presente",
+      "ok": true,
+      "detail": "Teste Quantitativos - Querência/MT"
+    },
+    {
+      "name": "png_validacao_salvo",
+      "ok": true,
+      "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225751_147c6782/png_validacao.png"
+    },
+    {
+      "name": "pagina_nao_vazia",
+      "ok": true,
+      "detail": "amostras_unicas=227"
+    },
+    {
+      "name": "mapa_tem_imagem",
+      "ok": true,
+      "detail": "std_cor=52.7 (1764 amostras)"
+    },
+    {
+      "name": "sem_sobreposicao_elementos",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "sem_texto_cortado",
+      "ok": true,
+      "detail": "ok"
+    }
+  ],
+  "escala": 250000,
+  "camadas_desenhadas": [
+    {
+      "id": "tipologia_sema",
+      "nome": "Tipologia vegetal (SIMCAR)",
+      "feicoes": 87
+    },
+    {
+      "id": "car_atp",
+      "nome": "CAR - Area Total da Propriedade (ATP)",
+      "feicoes": 411
+    }
+  ],
+  "render_warnings": []
+}

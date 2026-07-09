@@ -1,0 +1,88 @@
+{
+  "ok": true,
+  "pdf": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/mapa.pdf",
+  "png_validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/png_validacao.png",
+  "checks": [
+    {
+      "name": "pdf_existe",
+      "ok": true,
+      "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/mapa.pdf"
+    },
+    {
+      "name": "pdf_tamanho_minimo",
+      "ok": true,
+      "detail": "719482 bytes"
+    },
+    {
+      "name": "pdf_abre",
+      "ok": true,
+      "detail": "1 pagina(s)"
+    },
+    {
+      "name": "pdf_tem_pagina",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "name": "titulo_presente",
+      "ok": true,
+      "detail": "Mapa de CAR e Embargos"
+    },
+    {
+      "name": "png_validacao_salvo",
+      "ok": true,
+      "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/png_validacao.png"
+    },
+    {
+      "name": "pagina_nao_vazia",
+      "ok": true,
+      "detail": "amostras_unicas=227"
+    },
+    {
+      "name": "mapa_tem_imagem",
+      "ok": true,
+      "detail": "std_cor=64.4 (1764 amostras)"
+    },
+    {
+      "name": "sem_sobreposicao_elementos",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "sem_texto_cortado",
+      "ok": true,
+      "detail": "ok"
+    }
+  ],
+  "escala": 50000,
+  "camadas_desenhadas": [
+    {
+      "id": "car_atp",
+      "nome": "CAR - Area Total da Propriedade (ATP)",
+      "feicoes": 411
+    },
+    {
+      "id": "car_app",
+      "nome": "CAR - Area de Preservacao Permanente (APP)",
+      "feicoes": 500
+    },
+    {
+      "id": "car_arl",
+      "nome": "CAR - Area de Reserva Legal (ARL)",
+      "feicoes": 500
+    },
+    {
+      "id": "embargos_siga",
+      "nome": "Embargos SIGA (poligonos)",
+      "feicoes": 1
+    },
+    {
+      "id": "embargos_ibama",
+      "nome": "Embargos IBAMA",
+      "feicoes": 12
+    }
+  ],
+  "render_warnings": [
+    "layout.elementos.escala: ponto fora do quadro do mapa; ajustado"
+  ]
+}

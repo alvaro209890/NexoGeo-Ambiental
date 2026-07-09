@@ -1,0 +1,100 @@
+{
+  "titulo": "Teste Quantitativos - Querência/MT",
+  "subtitulo": "",
+  "tipo": "tipologia",
+  "area_base": "projeto.area_base",
+  "layout_template": "tematico_a3_retrato",
+  "escala": 250000,
+  "basemap": "light",
+  "grade_tipo": "dms",
+  "raster_fundo": "",
+  "camadas": [
+    {
+      "id": "perimetro",
+      "fonte": "area_base",
+      "filtro": "",
+      "estilo": {
+        "linha": "#ff3b30",
+        "largura": 2.4,
+        "preenchimento": "transparente"
+      },
+      "rotulo": true
+    },
+    {
+      "id": "tipologia_sema",
+      "fonte": "catalogo.tipologia_sema",
+      "filtro": "",
+      "estilo": {
+        "preenchimento": "#16a34a",
+        "opacidade": 0.35
+      },
+      "rotulo": false
+    },
+    {
+      "id": "car_atp",
+      "fonte": "catalogo.car_atp",
+      "filtro": "",
+      "estilo": {
+        "preenchimento": "#1d4ed8",
+        "opacidade": 0.18
+      },
+      "rotulo": false
+    }
+  ],
+  "elementos_layout": {
+    "tabela": true,
+    "legenda": true,
+    "escala_grafica": true
+  },
+  "metadados_imagem": {},
+  "tabela": {
+    "titulo": "Quantitativo (ha)",
+    "fonte": "quantitativos",
+    "config": {
+      "classes": [
+        {
+          "rotulo": "Tipologia Vegetal",
+          "camada": "tipologia_sema"
+        },
+        {
+          "rotulo": "CAR (ATP)",
+          "camada": "car_atp"
+        }
+      ],
+      "percentual": true,
+      "linha_total": true
+    },
+    "colunas": [
+      "Classe",
+      "Área (ha)",
+      "%"
+    ],
+    "linhas": [
+      [
+        "Tipologia Vegetal",
+        "35.962,21",
+        "56,1"
+      ],
+      [
+        "CAR (ATP)",
+        "28.187,02",
+        "43,9"
+      ],
+      [
+        "Total",
+        "64.149,23",
+        "100,0"
+      ]
+    ],
+    "_resolved": true
+  },
+  "marca": {},
+  "layout": {},
+  "legenda": {},
+  "saidas": [
+    "pdf",
+    "png_validacao"
+  ],
+  "versao": 1,
+  "parent_job_id": ""
+}

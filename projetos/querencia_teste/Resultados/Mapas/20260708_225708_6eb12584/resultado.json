@@ -1,0 +1,431 @@
+{
+  "ok": true,
+  "job_id": "20260708_225708_6eb12584",
+  "job_dir": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225708_6eb12584",
+  "provider": "deepseek",
+  "ai_raw": "[{\"tool\": \"estado_atual\", \"args\": {}, \"resultado\": \"{\\\"mapspec\\\": {}, \\\"elementos_posicionaveis\\\": [\\\"titulo\\\", \\\"legenda\\\", \\\"tabela\\\", \\\"inset_tipologia\\\", \\\"minimapa\\\", \\\"rosa_dos_ventos\\\", \\\"escala\\\", \\\"metadados\\\", \\\"metadados_imagem\\\", \\\"logo\\\"], \\\"elementos_visibilidade\\\": [\\\"grade\\\", \\\"norte\\\", \\\"rosa_dos_ventos\\\", \\\"escala_grafica\\\", \\\"legenda\\\", \\\"metadados\\\", \\\"minimapa\\\", \\\"titulo_caixa\\\", \\\"inset_tipologia\\\", \\\"tabela\\\", \\\"metadados_imagem\\\", \\\"logo\\\"], \\\"ancoras\\\": [\\\"top-left\\\", \\\"top-center\\\", \\\"top-right\\\", \\\"center-left\\\", \\\"center\\\", \\\"center-right\\\", \\\"bottom-left\\\", \\\"bottom-center\\\", \\\"bottom-right\\\", \\\"in-map-top-left\\\", \\\"in-map-top-center\\\", \\\"in-map-top-right\\\", \\\"in-map-center-left\\\", \\\"in-map-center\\\", \\\"in-map-center-right\\\", \\\"in-map-bottom-left\\\", \\\"in-map-bottom-center\\\", \\\"in-map-bottom-right\\\"]}\"}, {\"tool\": \"listar_camadas\", \"args\": {}, \"resultado\": \"{\\\"camadas\\\": [{\\\"id\\\": \\\"car_sema\\\", \\\"nome\\\": \\\"CAR SEMA-MT (requerimentos)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Requerimentos de CAR no SIMCAR (area total requerida). Use para mostrar CARs vizinhos/sobrepostos.\\\"}, {\\\"id\\\": \\\"car_atp\\\", \\\"nome\\\": \\\"CAR - Area Total da Propriedade (ATP)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Perimetros de CAR validados (CAR digital SEMA-MT). Base oficial do imovel no CAR.\\\"}, {\\\"id\\\": \\\"car_app\\\", \\\"nome\\\": \\\"CAR - Area de Preservacao Permanente (APP)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"APPs do CAR validado (CAR digital).\\\"}, {\\\"id\\\": \\\"car_appd\\\", \\\"nome\\\": \\\"CAR - APP Degradada (APPD)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"APPs degradadas do CAR validado (passivo ambiental).\\\"}, {\\\"id\\\": \\\"car_arl\\\", \\\"nome\\\": \\\"CAR - Area de Reserva Legal (ARL)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Reservas Legais do CAR validado (CAR digital).\\\"}, {\\\"id\\\": \\\"car_avn\\\", \\\"nome\\\": \\\"CAR - Area de Vegetacao Nativa (AVN)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Vegetacao nativa remanescente do CAR validado. Use em mapas de dinamica/AVN.\\\"}, {\\\"id\\\": \\\"car_auas\\\", \\\"nome\\\": \\\"CAR - Area de Uso Antropizado (AUAS)\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Areas antropizadas/desmatadas do CAR validado. Use em mapas de dinamica/desmatamento.\\\"}, {\\\"id\\\": \\\"car_nascentes\\\", \\\"nome\\\": \\\"CAR - Nascentes\\\", \\\"tema\\\": \\\"car\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Nascentes do CAR validado (pontos).\\\"}, {\\\"id\\\": \\\"embargos_sema\\\", \\\"nome\\\": \\\"Embargos SEMA\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Areas embargadas pela SEMA-MT (base historica).\\\"}, {\\\"id\\\": \\\"embargos_siga\\\", \\\"nome\\\": \\\"Embargos SIGA (poligonos)\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Areas embargadas no SIGA (sistema atual da SEMA-MT). Prefira esta em mapas de embargo recentes.\\\"}, {\\\"id\\\": \\\"desembargos_sema\\\", \\\"nome\\\": \\\"Areas desembargadas SEMA\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Areas ja desembargadas pela SEMA-MT (contraponto dos embargos).\\\"}, {\\\"id\\\": \\\"autos_siga\\\", \\\"nome\\\": \\\"Autos de infracao SIGA (poligonos)\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Autos de infracao ambientais lavrados no SIGA (SEMA-MT).\\\"}, {\\\"id\\\": \\\"embargos_ibama\\\", \\\"nome\\\": \\\"Embargos IBAMA\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"arcgis_rest\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Areas embargadas pelo IBAMA (PAMGIA, GeoJSON). Fonte federal principal de embargos.\\\"}, {\\\"id\\\": \\\"embargos_ibama_siscom\\\", \\\"nome\\\": \\\"Embargos IBAMA (SISCOM, imagem WMS)\\\", \\\"tema\\\": \\\"embargos\\\", \\\"tipo\\\": \\\"wms_raster\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Overlay raster (WMS GetMap) dos embargos do SISCOM/IBAMA. Alternativa quando o PAMGIA cair; o servidor pode bloquear acessos fora do navegador (Cloudflare).\\\"}, {\\\"id\\\": \\\"terras_indigenas_funai\\\", \\\"nome\\\": \\\"Terras Indigenas FUNAI\\\", \\\"tema\\\": \\\"areas_protegidas\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Terras indigenas oficiais da FUNAI (todas as fases).\\\"}, {\\\"id\\\": \\\"unidades_conservacao\\\", \\\"nome\\\": \\\"Unidades de Conservacao\\\", \\\"tema\\\": \\\"areas_protegidas\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Unidades de conservacao estaduais/federais em MT (SEMA).\\\"}, {\\\"id\\\": \\\"alertas_mapbiomas\\\", \\\"nome\\\": \\\"Alertas MapBiomas\\\", \\\"tema\\\": \\\"desmatamento\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Alertas de desmatamento do MapBiomas Alerta (ultimo status, poligonos validados).\\\"}, {\\\"id\\\": \\\"alertas_mapbiomas_simpl\\\", \\\"nome\\\": \\\"Alertas MapBiomas (simplificados)\\\", \\\"tema\\\": \\\"desmatamento\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Alertas simplificados do MapBiomas (mais leves; fallback dos alertas completos).\\\"}, {\\\"id\\\": \\\"prodes_inpe\\\", \\\"nome\\\": \\\"PRODES INPE\\\", \\\"tema\\\": \\\"desmatamento\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Desmatamento consolidado PRODES/INPE (Amazonia Legal).\\\"}, {\\\"id\\\": \\\"tipologia_sema\\\", \\\"nome\\\": \\\"Tipologia vegetal (SIMCAR)\\\", \\\"tema\\\": \\\"tipologia\\\", \\\"tipo\\\": \\\"wms_wfs\\\", \\\"auth\\\": \\\"sema_authkey\\\", \\\"descricao\\\": \\\"Tipologia vegetal (Floresta/Cerrado etc.) do SIMCAR digital. Corrigido em 2026-07-08: o layer antigo Geoportal:TIPOLOGIA nao existe no GeoServer.\\\"}, {\\\"id\\\": \\\"sigef_particular_mt\\\", \\\"nome\\\": \\\"SIGEF - Certificadas particulares (INCRA)\\\", \\\"tema\\\": \\\"fundiario\\\", \\\"tipo\\\": \\\"wfs_gml\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Parcelas certificadas SIGEF particulares em MT (acervo INCRA, GML lon/lat).\\\"}, {\\\"id\\\": \\\"sigef_publico_mt\\\", \\\"nome\\\": \\\"SIGEF - Certificadas publicas (INCRA)\\\", \\\"tema\\\": \\\"fundiario\\\", \\\"tipo\\\": \\\"wfs_gml\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Parcelas certificadas SIGEF publicas em MT (acervo INCRA, GML lon/lat).\\\"}, {\\\"id\\\": \\\"snci_particular_mt\\\", \\\"nome\\\": \\\"SNCI - Imoveis certificados particulares (INCRA)\\\", \\\"tema\\\": \\\"fundiario\\\", \\\"tipo\\\": \\\"wfs_gml\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Imoveis certificados SNCI (sistema anterior ao SIGEF) em MT. Tema corrigido em 2026-07-08 conforme servicos_geo.json.\\\"}, {\\\"id\\\": \\\"assentamentos_incra\\\", \\\"nome\\\": \\\"Assentamentos (INCRA)\\\", \\\"tema\\\": \\\"fundiario\\\", \\\"tipo\\\": \\\"wfs_gml\\\", \\\"auth\\\": null, \\\"descricao\\\": \\\"Assentamentos de reforma agraria (acervo INCRA, GML lon/lat).\\\"}]}\"}, {\"tool\": \"criar_mapa\", \"args\": {\"titulo\": \"Mapa de Tipologia Vegetal - Querência/MT\", \"tipo\": \"tematico\", \"template\": \"tematico_a3_retrato\", \"basemap\": \"satellite\", \"grade_tipo\": \"dms\"}, \"resultado\": \"mapa criado: 'Mapa de Tipologia Vegetal - Querência/MT' (template tematico_a3_retrato)\"}, {\"tool\": \"adicionar_camada\", \"args\": {\"fonte\": \"catalogo.tipologia_sema\", \"estilo\": {\"preenchimento\": \"transparente\", \"linha\": \"#1F8C3C\", \"opacidade\": 0.7, \"largura\": 0.5}, \"rotulo\": true}, \"resultado\": \"camada 'tipologia_sema' adicionada\"}, {\"tool\": \"adicionar_camada\", \"args\": {\"fonte\": \"catalogo.car_atp\", \"estilo\": {\"preenchimento\": \"transparente\", \"linha\": \"#E67E22\", \"opacidade\": 0.8, \"largura\": 1.2}, \"rotulo\": false}, \"resultado\": \"camada 'car_atp' adicionada\"}, {\"tool\": \"adicionar_camada\", \"args\": {\"fonte\": \"catalogo.car_avn\", \"estilo\": {\"preenchimento\": \"#2ECC71\", \"linha\": \"#27AE60\", \"opacidade\": 0.5, \"largura\": 0.3}, \"rotulo\": false}, \"resultado\": \"camada 'car_avn' adicionada\"}, {\"tool\": \"criar_tabela\", \"args\": {\"titulo\": \"Quantitativos por Tipologia Vegetal\", \"fonte\": \"quantitativos\"}, \"resultado\": \"tabela calculada 'Quantitativos por Tipologia Vegetal' registrada (fonte quantitativos); as linhas sao calculadas por overlay no render\"}, {\"tool\": \"editar_legenda\", \"args\": {\"titulo\": \"Legenda\", \"modo\": \"auto\", \"colunas\": 1}, \"resultado\": \"legenda atualizada\"}, {\"tool\": \"definir_escala\", \"args\": {\"escala\": \"auto\"}, \"resultado\": \"escala definida: auto\"}, {\"tool\": \"mover_elemento\", \"args\": {\"elemento\": \"legenda\", \"posicao\": {\"ancora\": \"in-map-bottom-left\", \"x\": 0.02, \"y\": 0.02}}, \"resultado\": \"elemento 'legenda' ancorado em in-map-bottom-left (0.020, 0.020)\"}, {\"tool\": \"mover_elemento\", \"args\": {\"elemento\": \"tabela\", \"posicao\": {\"ancora\": \"bottom-right\", \"x\": 0.98, \"y\": 0.02}}, \"resultado\": \"elemento 'tabela' ancorado em bottom-right (0.980, 0.020)\"}, {\"tool\": \"alternar_elemento\", \"args\": {\"elemento\": \"legenda\", \"visivel\": true}, \"resultado\": \"elemento 'legenda' ligado\"}, {\"tool\": \"alternar_elemento\", \"args\": {\"elemento\": \"tabela\", \"visivel\": true}, \"resultado\": \"elemento 'tabela' ligado\"}, {\"tool\": \"alternar_elemento\", \"args\": {\"elemento\": \"escala_grafica\", \"visivel\": true}, \"resultado\": \"elemento 'escala_grafica' ligado\"}, {\"tool\": \"alternar_elemento\", \"args\": {\"elemento\": \"titulo_caixa\", \"visivel\": true}, \"resultado\": \"elemento 'titulo_caixa' ligado\"}, {\"tool\": \"editar_estilo_elemento\", \"args\": {\"elemento\": \"titulo\", \"props\": {\"fundo\": \"white\", \"cor\": \"#111827\", \"tamanho\": 15}}, \"resultado\": \"estilo de 'titulo' atualizado: ['cor', 'fundo', 'tamanho']\"}, {\"tool\": \"mover_elemento\", \"args\": {\"elemento\": \"titulo\", \"posicao\": {\"ancora\": \"top-center\", \"x\": 0.5, \"y\": 0.98}}, \"resultado\": \"elemento 'titulo' ancorado em top-center (0.500, 0.980)\"}, {\"tool\": \"mover_elemento\", \"args\": {\"elemento\": \"escala\", \"posicao\": {\"ancora\": \"in-map-bottom-right\", \"x\": 0.98, \"y\": 0.02}}, \"resultado\": \"elemento 'escala' ancorado em in-map-bottom-right (0.980, 0.020)\"}, {\"tool\": \"finalizar\", \"args\": {\"resumo\": \"Mapa de Tipologia Vegetal - Querência/MT criado (template A3 retrato). Camadas: Tipologia vegetal SIMCAR (polígonos com rótulos), CAR ATP (perímetros laranja) e CAR AVN (vegetação nativa verde). Tabela de quantitativos por classe de vegetação (fonte quantitativos). Legenda automática no canto inferior esquerdo do mapa. Título em caixa branca no topo-centro (padrão IMAP). Escala automática com escala gráfica visível.\"}, \"resultado\": \"Mapa de Tipologia Vegetal - Querência/MT criado (template A3 retrato). Camadas: Tipologia vegetal SIMCAR (polígonos com rótulos), CAR ATP (perímetros laranja) e CAR AVN (vegetação nativa verde). Tabela de quantitativos por classe de vegetação (fonte quantitativos). Legenda automática no canto inferior esquerdo do mapa. Título em caixa branca no topo-centro (padrão IMAP). Escala automática com escala gráfica visível.\"}]",
+  "versao": 1,
+  "parent_job_id": "",
+  "mapspec": {
+    "titulo": "Mapa de Tipologia Vegetal - Querência/MT",
+    "subtitulo": "",
+    "tipo": "tematico",
+    "area_base": "projeto.area_base",
+    "layout_template": "tematico_a3_retrato",
+    "escala": "auto",
+    "basemap": "satellite",
+    "grade_tipo": "dms",
+    "raster_fundo": "",
+    "camadas": [
+      {
+        "id": "perimetro",
+        "fonte": "area_base",
+        "filtro": "",
+        "estilo": {
+          "linha": "#ff2d00",
+          "largura": 2.4,
+          "preenchimento": "transparente"
+        },
+        "rotulo": true
+      },
+      {
+        "id": "tipologia_sema",
+        "fonte": "catalogo.tipologia_sema",
+        "filtro": "intersecta_area_base",
+        "estilo": {
+          "preenchimento": "transparente",
+          "linha": "#1F8C3C",
+          "opacidade": 0.7,
+          "largura": 0.5
+        },
+        "rotulo": true
+      },
+      {
+        "id": "car_atp",
+        "fonte": "catalogo.car_atp",
+        "filtro": "intersecta_area_base",
+        "estilo": {
+          "preenchimento": "transparente",
+          "linha": "#E67E22",
+          "opacidade": 0.8,
+          "largura": 1.2
+        },
+        "rotulo": false
+      },
+      {
+        "id": "car_avn",
+        "fonte": "catalogo.car_avn",
+        "filtro": "intersecta_area_base",
+        "estilo": {
+          "preenchimento": "#2ECC71",
+          "linha": "#27AE60",
+          "opacidade": 0.5,
+          "largura": 0.3
+        },
+        "rotulo": false
+      }
+    ],
+    "elementos_layout": {
+      "legenda": true,
+      "escala_grafica": true,
+      "norte": true,
+      "grade": true,
+      "minimapa": true,
+      "metadados": true,
+      "tabela": true,
+      "titulo_caixa": true
+    },
+    "metadados_imagem": {},
+    "tabela": {
+      "titulo": "Quantitativos por Tipologia Vegetal",
+      "fonte": "quantitativos",
+      "config": {}
+    },
+    "marca": {},
+    "layout": {
+      "elementos": {
+        "legenda": {
+          "ancora": "in-map-bottom-left",
+          "x": 0.02,
+          "y": 0.02
+        },
+        "tabela": {
+          "ancora": "bottom-right",
+          "x": 0.98,
+          "y": 0.02
+        },
+        "titulo": {
+          "estilo": {
+            "fundo": "white",
+            "cor": "#111827",
+            "tamanho": 15
+          },
+          "ancora": "top-center",
+          "x": 0.5,
+          "y": 0.98
+        },
+        "escala": {
+          "ancora": "in-map-bottom-right",
+          "x": 0.98,
+          "y": 0.02
+        }
+      }
+    },
+    "legenda": {
+      "modo": "auto",
+      "titulo": "Legenda",
+      "colunas": 1
+    },
+    "saidas": [
+      "pdf",
+      "png_validacao",
+      "geojson"
+    ],
+    "versao": 1,
+    "parent_job_id": ""
+  },
+  "area": {
+    "area_ha": 36057.46514503405,
+    "bbox_geo": [
+      -52.3,
+      -12.599999999999998,
+      -52.1,
+      -12.449999999999992
+    ],
+    "bbox_utm": [
+      358711.187533456,
+      8606748.600474909,
+      380519.6706019474,
+      8623438.009012943
+    ],
+    "centroid_geo": [
+      -52.20000000000001,
+      -12.524999999999993
+    ],
+    "centroid_utm": [
+      369618.44089531625,
+      8615094.380056037
+    ],
+    "feature_count": 1,
+    "crs_origem": 4674,
+    "avisos": []
+  },
+  "escala": 100000,
+  "outputs": {
+    "pdf": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225708_6eb12584/mapa.pdf",
+    "preview_png": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225708_6eb12584/preview.png",
+    "png_validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225708_6eb12584/png_validacao.png",
+    "validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225708_6eb12584/validacao.json",
+    "camadas": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225708_6eb12584/camadas"
+  },
+  "validacao": {
+    "ok": true,
+    "pdf": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225708_6eb12584/mapa.pdf",
+    "png_validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225708_6eb12584/png_validacao.png",
+    "checks": [
+      {
+        "name": "pdf_existe",
+        "ok": true,
+        "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225708_6eb12584/mapa.pdf"
+      },
+      {
+        "name": "pdf_tamanho_minimo",
+        "ok": true,
+        "detail": "2211957 bytes"
+      },
+      {
+        "name": "pdf_abre",
+        "ok": true,
+        "detail": "1 pagina(s)"
+      },
+      {
+        "name": "pdf_tem_pagina",
+        "ok": true,
+        "detail": "1"
+      },
+      {
+        "name": "titulo_presente",
+        "ok": true,
+        "detail": "Mapa de Tipologia Vegetal - Querência/MT"
+      },
+      {
+        "name": "png_validacao_salvo",
+        "ok": true,
+        "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225708_6eb12584/png_validacao.png"
+      },
+      {
+        "name": "pagina_nao_vazia",
+        "ok": true,
+        "detail": "amostras_unicas=229"
+      },
+      {
+        "name": "mapa_tem_imagem",
+        "ok": true,
+        "detail": "std_cor=45.3 (1764 amostras)"
+      },
+      {
+        "name": "sem_sobreposicao_elementos",
+        "ok": true,
+        "detail": "ok"
+      },
+      {
+        "name": "sem_texto_cortado",
+        "ok": true,
+        "detail": "ok"
+      }
+    ],
+    "escala": 100000,
+    "camadas_desenhadas": [
+      {
+        "id": "tipologia_sema",
+        "nome": "Tipologia vegetal (SIMCAR)",
+        "feicoes": 87
+      },
+      {
+        "id": "car_atp",
+        "nome": "CAR - Area Total da Propriedade (ATP)",
+        "feicoes": 411
+      },
+      {
+        "id": "car_avn",
+        "nome": "CAR - Area de Vegetacao Nativa (AVN)",
+        "feicoes": 500
+      }
+    ],
+    "render_warnings": [
+      "layout.elementos.titulo: ponto fora do quadro do mapa; ajustado"
+    ]
+  },
+  "warnings": [
+    "layout.elementos.titulo: ponto fora do quadro do mapa; ajustado"
+  ],
+  "tool_calls": [
+    {
+      "tool": "estado_atual",
+      "args": {},
+      "resultado": "{\"mapspec\": {}, \"elementos_posicionaveis\": [\"titulo\", \"legenda\", \"tabela\", \"inset_tipologia\", \"minimapa\", \"rosa_dos_ventos\", \"escala\", \"metadados\", \"metadados_imagem\", \"logo\"], \"elementos_visibilidade\": [\"grade\", \"norte\", \"rosa_dos_ventos\", \"escala_grafica\", \"legenda\", \"metadados\", \"minimapa\", \"titulo_caixa\", \"inset_tipologia\", \"tabela\", \"metadados_imagem\", \"logo\"], \"ancoras\": [\"top-left\", \"top-center\", \"top-right\", \"center-left\", \"center\", \"center-right\", \"bottom-left\", \"bottom-center\", \"bottom-right\", \"in-map-top-left\", \"in-map-top-center\", \"in-map-top-right\", \"in-map-center-left\", \"in-map-center\", \"in-map-center-right\", \"in-map-bottom-left\", \"in-map-bottom-center\", \"in-map-bottom-right\"]}"
+    },
+    {
+      "tool": "listar_camadas",
+      "args": {},
+      "resultado": "{\"camadas\": [{\"id\": \"car_sema\", \"nome\": \"CAR SEMA-MT (requerimentos)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Requerimentos de CAR no SIMCAR (area total requerida). Use para mostrar CARs vizinhos/sobrepostos.\"}, {\"id\": \"car_atp\", \"nome\": \"CAR - Area Total da Propriedade (ATP)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Perimetros de CAR validados (CAR digital SEMA-MT). Base oficial do imovel no CAR.\"}, {\"id\": \"car_app\", \"nome\": \"CAR - Area de Preservacao Permanente (APP)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"APPs do CAR validado (CAR digital).\"}, {\"id\": \"car_appd\", \"nome\": \"CAR - APP Degradada (APPD)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"APPs degradadas do CAR validado (passivo ambiental).\"}, {\"id\": \"car_arl\", \"nome\": \"CAR - Area de Reserva Legal (ARL)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Reservas Legais do CAR validado (CAR digital).\"}, {\"id\": \"car_avn\", \"nome\": \"CAR - Area de Vegetacao Nativa (AVN)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Vegetacao nativa remanescente do CAR validado. Use em mapas de dinamica/AVN.\"}, {\"id\": \"car_auas\", \"nome\": \"CAR - Area de Uso Antropizado (AUAS)\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Areas antropizadas/desmatadas do CAR validado. Use em mapas de dinamica/desmatamento.\"}, {\"id\": \"car_nascentes\", \"nome\": \"CAR - Nascentes\", \"tema\": \"car\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Nascentes do CAR validado (pontos).\"}, {\"id\": \"embargos_sema\", \"nome\": \"Embargos SEMA\", \"tema\": \"embargos\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Areas embargadas pela SEMA-MT (base historica).\"}, {\"id\": \"embargos_siga\", \"nome\": \"Embargos SIGA (poligonos)\", \"tema\": \"embargos\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Areas embargadas no SIGA (sistema atual da SEMA-MT). Prefira esta em mapas de embargo recentes.\"}, {\"id\": \"desembargos_sema\", \"nome\": \"Areas desembargadas SEMA\", \"tema\": \"embargos\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Areas ja desembargadas pela SEMA-MT (contraponto dos embargos).\"}, {\"id\": \"autos_siga\", \"nome\": \"Autos de infracao SIGA (poligonos)\", \"tema\": \"embargos\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Autos de infracao ambientais lavrados no SIGA (SEMA-MT).\"}, {\"id\": \"embargos_ibama\", \"nome\": \"Embargos IBAMA\", \"tema\": \"embargos\", \"tipo\": \"arcgis_rest\", \"auth\": null, \"descricao\": \"Areas embargadas pelo IBAMA (PAMGIA, GeoJSON). Fonte federal principal de embargos.\"}, {\"id\": \"embargos_ibama_siscom\", \"nome\": \"Embargos IBAMA (SISCOM, imagem WMS)\", \"tema\": \"embargos\", \"tipo\": \"wms_raster\", \"auth\": null, \"descricao\": \"Overlay raster (WMS GetMap) dos embargos do SISCOM/IBAMA. Alternativa quando o PAMGIA cair; o servidor pode bloquear acessos fora do navegador (Cloudflare).\"}, {\"id\": \"terras_indigenas_funai\", \"nome\": \"Terras Indigenas FUNAI\", \"tema\": \"areas_protegidas\", \"tipo\": \"wms_wfs\", \"auth\": null, \"descricao\": \"Terras indigenas oficiais da FUNAI (todas as fases).\"}, {\"id\": \"unidades_conservacao\", \"nome\": \"Unidades de Conservacao\", \"tema\": \"areas_protegidas\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Unidades de conservacao estaduais/federais em MT (SEMA).\"}, {\"id\": \"alertas_mapbiomas\", \"nome\": \"Alertas MapBiomas\", \"tema\": \"desmatamento\", \"tipo\": \"wms_wfs\", \"auth\": null, \"descricao\": \"Alertas de desmatamento do MapBiomas Alerta (ultimo status, poligonos validados).\"}, {\"id\": \"alertas_mapbiomas_simpl\", \"nome\": \"Alertas MapBiomas (simplificados)\", \"tema\": \"desmatamento\", \"tipo\": \"wms_wfs\", \"auth\": null, \"descricao\": \"Alertas simplificados do MapBiomas (mais leves; fallback dos alertas completos).\"}, {\"id\": \"prodes_inpe\", \"nome\": \"PRODES INPE\", \"tema\": \"desmatamento\", \"tipo\": \"wms_wfs\", \"auth\": null, \"descricao\": \"Desmatamento consolidado PRODES/INPE (Amazonia Legal).\"}, {\"id\": \"tipologia_sema\", \"nome\": \"Tipologia vegetal (SIMCAR)\", \"tema\": \"tipologia\", \"tipo\": \"wms_wfs\", \"auth\": \"sema_authkey\", \"descricao\": \"Tipologia vegetal (Floresta/Cerrado etc.) do SIMCAR digital. Corrigido em 2026-07-08: o layer antigo Geoportal:TIPOLOGIA nao existe no GeoServer.\"}, {\"id\": \"sigef_particular_mt\", \"nome\": \"SIGEF - Certificadas particulares (INCRA)\", \"tema\": \"fundiario\", \"tipo\": \"wfs_gml\", \"auth\": null, \"descricao\": \"Parcelas certificadas SIGEF particulares em MT (acervo INCRA, GML lon/lat).\"}, {\"id\": \"sigef_publico_mt\", \"nome\": \"SIGEF - Certificadas publicas (INCRA)\", \"tema\": \"fundiario\", \"tipo\": \"wfs_gml\", \"auth\": null, \"descricao\": \"Parcelas certificadas SIGEF publicas em MT (acervo INCRA, GML lon/lat).\"}, {\"id\": \"snci_particular_mt\", \"nome\": \"SNCI - Imoveis certificados particulares (INCRA)\", \"tema\": \"fundiario\", \"tipo\": \"wfs_gml\", \"auth\": null, \"descricao\": \"Imoveis certificados SNCI (sistema anterior ao SIGEF) em MT. Tema corrigido em 2026-07-08 conforme servicos_geo.json.\"}, {\"id\": \"assentamentos_incra\", \"nome\": \"Assentamentos (INCRA)\", \"tema\": \"fundiario\", \"tipo\": \"wfs_gml\", \"auth\": null, \"descricao\": \"Assentamentos de reforma agraria (acervo INCRA, GML lon/lat).\"}]}"
+    },
+    {
+      "tool": "criar_mapa",
+      "args": {
+        "titulo": "Mapa de Tipologia Vegetal - Querência/MT",
+        "tipo": "tematico",
+        "template": "tematico_a3_retrato",
+        "basemap": "satellite",
+        "grade_tipo": "dms"
+      },
+      "resultado": "mapa criado: 'Mapa de Tipologia Vegetal - Querência/MT' (template tematico_a3_retrato)"
+    },
+    {
+      "tool": "adicionar_camada",
+      "args": {
+        "fonte": "catalogo.tipologia_sema",
+        "estilo": {
+          "preenchimento": "transparente",
+          "linha": "#1F8C3C",
+          "opacidade": 0.7,
+          "largura": 0.5
+        },
+        "rotulo": true
+      },
+      "resultado": "camada 'tipologia_sema' adicionada"
+    },
+    {
+      "tool": "adicionar_camada",
+      "args": {
+        "fonte": "catalogo.car_atp",
+        "estilo": {
+          "preenchimento": "transparente",
+          "linha": "#E67E22",
+          "opacidade": 0.8,
+          "largura": 1.2
+        },
+        "rotulo": false
+      },
+      "resultado": "camada 'car_atp' adicionada"
+    },
+    {
+      "tool": "adicionar_camada",
+      "args": {
+        "fonte": "catalogo.car_avn",
+        "estilo": {
+          "preenchimento": "#2ECC71",
+          "linha": "#27AE60",
+          "opacidade": 0.5,
+          "largura": 0.3
+        },
+        "rotulo": false
+      },
+      "resultado": "camada 'car_avn' adicionada"
+    },
+    {
+      "tool": "criar_tabela",
+      "args": {
+        "titulo": "Quantitativos por Tipologia Vegetal",
+        "fonte": "quantitativos"
+      },
+      "resultado": "tabela calculada 'Quantitativos por Tipologia Vegetal' registrada (fonte quantitativos); as linhas sao calculadas por overlay no render"
+    },
+    {
+      "tool": "editar_legenda",
+      "args": {
+        "titulo": "Legenda",
+        "modo": "auto",
+        "colunas": 1
+      },
+      "resultado": "legenda atualizada"
+    },
+    {
+      "tool": "definir_escala",
+      "args": {
+        "escala": "auto"
+      },
+      "resultado": "escala definida: auto"
+    },
+    {
+      "tool": "mover_elemento",
+      "args": {
+        "elemento": "legenda",
+        "posicao": {
+          "ancora": "in-map-bottom-left",
+          "x": 0.02,
+          "y": 0.02
+        }
+      },
+      "resultado": "elemento 'legenda' ancorado em in-map-bottom-left (0.020, 0.020)"
+    },
+    {
+      "tool": "mover_elemento",
+      "args": {
+        "elemento": "tabela",
+        "posicao": {
+          "ancora": "bottom-right",
+          "x": 0.98,
+          "y": 0.02
+        }
+      },
+      "resultado": "elemento 'tabela' ancorado em bottom-right (0.980, 0.020)"
+    },
+    {
+      "tool": "alternar_elemento",
+      "args": {
+        "elemento": "legenda",
+        "visivel": true
+      },
+      "resultado": "elemento 'legenda' ligado"
+    },
+    {
+      "tool": "alternar_elemento",
+      "args": {
+        "elemento": "tabela",
+        "visivel": true
+      },
+      "resultado": "elemento 'tabela' ligado"
+    },
+    {
+      "tool": "alternar_elemento",
+      "args": {
+        "elemento": "escala_grafica",
+        "visivel": true
+      },
+      "resultado": "elemento 'escala_grafica' ligado"
+    },
+    {
+      "tool": "alternar_elemento",
+      "args": {
+        "elemento": "titulo_caixa",
+        "visivel": true
+      },
+      "resultado": "elemento 'titulo_caixa' ligado"
+    },
+    {
+      "tool": "editar_estilo_elemento",
+      "args": {
+        "elemento": "titulo",
+        "props": {
+          "fundo": "white",
+          "cor": "#111827",
+          "tamanho": 15
+        }
+      },
+      "resultado": "estilo de 'titulo' atualizado: ['cor', 'fundo', 'tamanho']"
+    },
+    {
+      "tool": "mover_elemento",
+      "args": {
+        "elemento": "titulo",
+        "posicao": {
+          "ancora": "top-center",
+          "x": 0.5,
+          "y": 0.98
+        }
+      },
+      "resultado": "elemento 'titulo' ancorado em top-center (0.500, 0.980)"
+    },
+    {
+      "tool": "mover_elemento",
+      "args": {
+        "elemento": "escala",
+        "posicao": {
+          "ancora": "in-map-bottom-right",
+          "x": 0.98,
+          "y": 0.02
+        }
+      },
+      "resultado": "elemento 'escala' ancorado em in-map-bottom-right (0.980, 0.020)"
+    },
+    {
+      "tool": "finalizar",
+      "args": {
+        "resumo": "Mapa de Tipologia Vegetal - Querência/MT criado (template A3 retrato). Camadas: Tipologia vegetal SIMCAR (polígonos com rótulos), CAR ATP (perímetros laranja) e CAR AVN (vegetação nativa verde). Tabela de quantitativos por classe de vegetação (fonte quantitativos). Legenda automática no canto inferior esquerdo do mapa. Título em caixa branca no topo-centro (padrão IMAP). Escala automática com escala gráfica visível."
+      },
+      "resultado": "Mapa de Tipologia Vegetal - Querência/MT criado (template A3 retrato). Camadas: Tipologia vegetal SIMCAR (polígonos com rótulos), CAR ATP (perímetros laranja) e CAR AVN (vegetação nativa verde). Tabela de quantitativos por classe de vegetação (fonte quantitativos). Legenda automática no canto inferior esquerdo do mapa. Título em caixa branca no topo-centro (padrão IMAP). Escala automática com escala gráfica visível."
+    }
+  ],
+  "resumo": "Mapa de Tipologia Vegetal - Querência/MT criado (template A3 retrato). Camadas: Tipologia vegetal SIMCAR (polígonos com rótulos), CAR ATP (perímetros laranja) e CAR AVN (vegetação nativa verde). Tabela de quantitativos por classe de vegetação (fonte quantitativos). Legenda automática no canto inferior esquerdo do mapa. Título em caixa branca no topo-centro (padrão IMAP). Escala automática com escala gráfica visível."
+}

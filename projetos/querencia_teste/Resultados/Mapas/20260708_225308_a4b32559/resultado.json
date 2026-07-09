@@ -1,0 +1,281 @@
+{
+  "ok": true,
+  "job_id": "20260708_225308_a4b32559",
+  "job_dir": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559",
+  "provider": "deepseek",
+  "ai_raw": "{\n  \"titulo\": \"Mapa de CAR e Embargos\",\n  \"subtitulo\": \"Querência - MT\",\n  \"tipo\": \"tematico\",\n  \"area_base\": \"projeto.area_base\",\n  \"layout_template\": \"tematico_a3_retrato\",\n  \"escala\": 50000,\n  \"basemap\": \"satellite\",\n  \"camadas\": [\n    {\n      \"id\": \"car_atp\",\n      \"fonte\": \"catalogo.car_atp\",\n      \"filtro\": null,\n      \"estilo\": {\n        \"linha\": \"#FF0000\",\n        \"preenchimento\": \"none\",\n        \"opacidade\": 1,\n        \"largura\": 2\n      },\n      \"rotulo\": \"CAR - Área Total da Propriedade\"\n    },\n    {\n      \"id\": \"car_app\",\n      \"fonte\": \"catalogo.car_app\",\n      \"filtro\": null,\n      \"estilo\": {\n        \"linha\": \"#00FF00\",\n        \"preenchimento\": \"#00FF00\",\n        \"opacidade\": 0.3,\n        \"largura\": 1\n      },\n      \"rotulo\": \"APP\"\n    },\n    {\n      \"id\": \"car_arl\",\n      \"fonte\": \"catalogo.car_arl\",\n      \"filtro\": null,\n      \"estilo\": {\n        \"linha\": \"#006400\",\n        \"preenchimento\": \"#006400\",\n        \"opacidade\": 0.3,\n        \"largura\": 1\n      },\n      \"rotulo\": \"Reserva Legal\"\n    },\n    {\n      \"id\": \"embargos_siga\",\n      \"fonte\": \"catalogo.embargos_siga\",\n      \"filtro\": null,\n      \"estilo\": {\n        \"linha\": \"#FFA500\",\n        \"preenchimento\": \"#FFA500\",\n        \"opacidade\": 0.5,\n        \"largura\": 1,\n        \"hachura\": \"////\"\n      },\n      \"rotulo\": \"Embargos SEMA\"\n    },\n    {\n      \"id\": \"embargos_ibama\",\n      \"fonte\": \"catalogo.embargos_ibama\",\n      \"filtro\": null,\n      \"estilo\": {\n        \"linha\": \"#FF0000\",\n        \"preenchimento\": \"#FF0000\",\n        \"opacidade\": 0.5,\n        \"largura\": 1,\n        \"hachura\": \"\\\\\\\\\\\\\\\\\"\n      },\n      \"rotulo\": \"Embargos IBAMA\"\n    }\n  ],\n  \"elementos_layout\": {\n    \"grade\": true,\n    \"norte\": true,\n    \"rosa_dos_ventos\": false,\n    \"escala_grafica\": true,\n    \"legenda\": true,\n    \"metadados\": true,\n    \"minimapa\": true,\n    \"titulo_caixa\": true,\n    \"inset_tipologia\": false,\n    \"tabela\": false,\n    \"metadados_imagem\": false,\n    \"logo\": false\n  },\n  \"saidas\": [\n    {\n      \"formato\": \"pdf\",\n      \"resolucao\": 300\n    }\n  ],\n  \"layout\": {\n    \"elementos\": {\n      \"titulo\": {\n        \"ancora\": \"top-center\",\n        \"x\": 0.5,\n        \"y\": 0.95,\n        \"estilo\": {\n          \"fundo\": \"white\",\n          \"cor\": \"#111827\",\n          \"tamanho\": 14\n        }\n      },\n      \"legenda\": {\n        \"ancora\": \"bottom-right\",\n        \"x\": 0.95,\n        \"y\": 0.05,\n        \"largura\": 0.25,\n        \"altura\": 0.3\n      },\n      \"minimapa\": {\n        \"ancora\": \"bottom-left\",\n        \"x\": 0.05,\n        \"y\": 0.05,\n        \"largura\": 0.15,\n        \"altura\": 0.15\n      },\n      \"escala\": {\n        \"ancora\": \"bottom-center\",\n        \"x\": 0.5,\n        \"y\": 0.05\n      },\n      \"metadados\": {\n        \"ancora\": \"bottom-left\",\n        \"x\": 0.05,\n        \"y\": 0.25\n      }\n    }\n  },\n  \"legenda\": {\n    \"modo\": \"auto\",\n    \"titulo\": \"Legenda\",\n    \"colunas\": 1,\n    \"fonte_tamanho\": 8,\n    \"posicao\": {\n      \"ancora\": \"bottom-right\",\n      \"x\": 0.95,\n      \"y\": 0.05,\n      \"largura\": 0.25\n    }\n  }\n}",
+  "versao": 1,
+  "parent_job_id": "",
+  "mapspec": {
+    "titulo": "Mapa de CAR e Embargos",
+    "subtitulo": "Querência - MT",
+    "tipo": "tematico",
+    "area_base": "projeto.area_base",
+    "layout_template": "tematico_a3_retrato",
+    "escala": 50000,
+    "basemap": "satellite",
+    "grade_tipo": "dms",
+    "raster_fundo": "",
+    "camadas": [
+      {
+        "id": "car_atp",
+        "fonte": "catalogo.car_atp",
+        "filtro": "None",
+        "estilo": {
+          "linha": "#FF0000",
+          "preenchimento": "none",
+          "opacidade": 1,
+          "largura": 2
+        },
+        "rotulo": true
+      },
+      {
+        "id": "car_app",
+        "fonte": "catalogo.car_app",
+        "filtro": "None",
+        "estilo": {
+          "linha": "#00FF00",
+          "preenchimento": "#00FF00",
+          "opacidade": 0.3,
+          "largura": 1
+        },
+        "rotulo": true
+      },
+      {
+        "id": "car_arl",
+        "fonte": "catalogo.car_arl",
+        "filtro": "None",
+        "estilo": {
+          "linha": "#006400",
+          "preenchimento": "#006400",
+          "opacidade": 0.3,
+          "largura": 1
+        },
+        "rotulo": true
+      },
+      {
+        "id": "embargos_siga",
+        "fonte": "catalogo.embargos_siga",
+        "filtro": "None",
+        "estilo": {
+          "linha": "#FFA500",
+          "preenchimento": "#FFA500",
+          "opacidade": 0.5,
+          "largura": 1,
+          "hachura": "////"
+        },
+        "rotulo": true
+      },
+      {
+        "id": "embargos_ibama",
+        "fonte": "catalogo.embargos_ibama",
+        "filtro": "None",
+        "estilo": {
+          "linha": "#FF0000",
+          "preenchimento": "#FF0000",
+          "opacidade": 0.5,
+          "largura": 1,
+          "hachura": "\\\\\\\\"
+        },
+        "rotulo": true
+      }
+    ],
+    "elementos_layout": {
+      "grade": true,
+      "norte": true,
+      "rosa_dos_ventos": false,
+      "escala_grafica": true,
+      "legenda": true,
+      "metadados": true,
+      "minimapa": true,
+      "titulo_caixa": true,
+      "inset_tipologia": false,
+      "tabela": false,
+      "metadados_imagem": false,
+      "logo": false
+    },
+    "metadados_imagem": {},
+    "tabela": {},
+    "marca": {},
+    "layout": {
+      "elementos": {
+        "titulo": {
+          "ancora": "top-center",
+          "x": 0.5,
+          "y": 0.95,
+          "estilo": {
+            "fundo": "white",
+            "cor": "#111827",
+            "tamanho": 14
+          }
+        },
+        "legenda": {
+          "ancora": "bottom-right",
+          "x": 0.95,
+          "y": 0.05,
+          "largura": 0.25,
+          "altura": 0.3
+        },
+        "minimapa": {
+          "ancora": "bottom-left",
+          "x": 0.05,
+          "y": 0.05,
+          "largura": 0.15,
+          "altura": 0.15
+        },
+        "escala": {
+          "ancora": "bottom-center",
+          "x": 0.5,
+          "y": 0.05
+        },
+        "metadados": {
+          "ancora": "bottom-left",
+          "x": 0.05,
+          "y": 0.25
+        }
+      }
+    },
+    "legenda": {
+      "modo": "auto",
+      "titulo": "Legenda",
+      "colunas": 1,
+      "fonte_tamanho": 8,
+      "posicao": {
+        "ancora": "bottom-right",
+        "x": 0.95,
+        "y": 0.05,
+        "largura": 0.25
+      }
+    },
+    "saidas": [
+      "pdf"
+    ],
+    "versao": 1,
+    "parent_job_id": ""
+  },
+  "area": {
+    "area_ha": 36057.46514503405,
+    "bbox_geo": [
+      -52.3,
+      -12.599999999999998,
+      -52.1,
+      -12.449999999999992
+    ],
+    "bbox_utm": [
+      358711.187533456,
+      8606748.600474909,
+      380519.6706019474,
+      8623438.009012943
+    ],
+    "centroid_geo": [
+      -52.20000000000001,
+      -12.524999999999993
+    ],
+    "centroid_utm": [
+      369618.44089531625,
+      8615094.380056037
+    ],
+    "feature_count": 1,
+    "crs_origem": 4674,
+    "avisos": []
+  },
+  "escala": 50000,
+  "outputs": {
+    "pdf": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/mapa.pdf",
+    "preview_png": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/preview.png",
+    "png_validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/png_validacao.png",
+    "validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/validacao.json",
+    "camadas": null
+  },
+  "validacao": {
+    "ok": true,
+    "pdf": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/mapa.pdf",
+    "png_validacao": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/png_validacao.png",
+    "checks": [
+      {
+        "name": "pdf_existe",
+        "ok": true,
+        "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/mapa.pdf"
+      },
+      {
+        "name": "pdf_tamanho_minimo",
+        "ok": true,
+        "detail": "719482 bytes"
+      },
+      {
+        "name": "pdf_abre",
+        "ok": true,
+        "detail": "1 pagina(s)"
+      },
+      {
+        "name": "pdf_tem_pagina",
+        "ok": true,
+        "detail": "1"
+      },
+      {
+        "name": "titulo_presente",
+        "ok": true,
+        "detail": "Mapa de CAR e Embargos"
+      },
+      {
+        "name": "png_validacao_salvo",
+        "ok": true,
+        "detail": "/home/acer/Documentos/NexoGeo-Ambiental/projetos/querencia_teste/Resultados/Mapas/20260708_225308_a4b32559/png_validacao.png"
+      },
+      {
+        "name": "pagina_nao_vazia",
+        "ok": true,
+        "detail": "amostras_unicas=227"
+      },
+      {
+        "name": "mapa_tem_imagem",
+        "ok": true,
+        "detail": "std_cor=64.4 (1764 amostras)"
+      },
+      {
+        "name": "sem_sobreposicao_elementos",
+        "ok": true,
+        "detail": "ok"
+      },
+      {
+        "name": "sem_texto_cortado",
+        "ok": true,
+        "detail": "ok"
+      }
+    ],
+    "escala": 50000,
+    "camadas_desenhadas": [
+      {
+        "id": "car_atp",
+        "nome": "CAR - Area Total da Propriedade (ATP)",
+        "feicoes": 411
+      },
+      {
+        "id": "car_app",
+        "nome": "CAR - Area de Preservacao Permanente (APP)",
+        "feicoes": 500
+      },
+      {
+        "id": "car_arl",
+        "nome": "CAR - Area de Reserva Legal (ARL)",
+        "feicoes": 500
+      },
+      {
+        "id": "embargos_siga",
+        "nome": "Embargos SIGA (poligonos)",
+        "feicoes": 1
+      },
+      {
+        "id": "embargos_ibama",
+        "nome": "Embargos IBAMA",
+        "feicoes": 12
+      }
+    ],
+    "render_warnings": [
+      "layout.elementos.escala: ponto fora do quadro do mapa; ajustado"
+    ]
+  },
+  "warnings": [
+    "layout.elementos.escala: ponto fora do quadro do mapa; ajustado"
+  ]
+}
