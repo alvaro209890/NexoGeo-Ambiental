@@ -77,7 +77,8 @@ POST /api/nexomap/chat-tools           # quando o plano 00 estiver pronto
 - [ ] `/generate` e `/edit` continuam passando com MapSpec padrão IMAP.
 
 **UI/build**
-- [ ] `npm run build` gera `dist/` (CSS/JS) sem erro.
+- [x] `npm run build` gera `dist/` (CSS/JS) sem erro.
+- [x] Chat UI + auth + deploy Vercel/Tunnel (2026-07-09). Docs em HANDOFF_NEXOGEO_2026-07-09.md
 - [ ] Smoke manual: abrir projeto → gerar → editar "remova o título preto" → ver v2 sem a caixa.
 
 ## Critérios de aceite

@@ -84,7 +84,10 @@ validar(mapspec); render(mapspec)
 - [x] Adicionar `run_tools()` em `nexomap_ai.py` (campo `tools`, `tool_choice:"auto"`). (2026-07-08)
 - [x] Fallback sem IA: `run_rule_based` reusa `apply_rule_based_edit` como pseudo-tool_call auditável. (2026-07-08)
 - [x] Registrar cada tool_call no `chat_history.jsonl` e na linhagem de versões (`chat_tools` no generator). (2026-07-08)
-- [ ] Endpoint `POST /api/nexomap/chat-tools` (ver plano 05).
+- [x] Endpoint `POST /api/nexomap/chat-tools` com SSE streaming. (2026-07-09)
+- [x] Tool `sugerir_opcoes` para clarificação com botões no chat. (2026-07-09)
+- [x] Sistema de auth + persistência de chats por usuário. (2026-07-09)
+- [x] Guia de estilos no system prompt (hachuras, preenchimento, opacidade). (2026-07-09)
 
 ## Plano de testes
 
