@@ -100,6 +100,23 @@ def _system_prompt() -> str:
         "minimapa, titulo_caixa (a caixa preta do titulo), inset_tipologia, tabela, "
         "metadados_imagem, logo. Para 'remover o titulo preto' use titulo_caixa=false; "
         "para 'sem tabela' use tabela=false; e assim por diante. "
+        "POSICAO DOS ELEMENTOS (opcional): layout.elementos e um objeto "
+        "{id: {ancora, x, y, largura, altura}} que REPOSICIONA cada peca. "
+        "ids posicionaveis: titulo, legenda, tabela, inset_tipologia, minimapa, "
+        "rosa_dos_ventos, escala, metadados, metadados_imagem, logo. "
+        "x,y em fracao da pagina [0..1], origem inferior-esquerda; ancora = ponto do "
+        "elemento que fica em (x,y): top-left, top-center, top-right, center-left, center, "
+        "center-right, bottom-left, bottom-center, bottom-right; prefixo in-map- ancora no "
+        "quadro do mapa (ex.: in-map-bottom-right para tabela flutuante). "
+        "titulo aceita tambem estilo {fundo, cor, tamanho} — o padrao IMAP recente e caixa "
+        "branca com texto preto no topo-centro (fundo='white', cor='#111827', "
+        "ancora='top-center', x=0.5). "
+        "LEGENDA EDITAVEL (opcional): legenda {modo: auto|manual|misto, titulo, colunas, "
+        "fonte_tamanho, posicao {ancora,x,y,largura}, itens[]}. Cada item: {rotulo, tipo "
+        "(linha|poligono|ponto|imagem), cor, preenchimento, hachura, opacidade, largura, "
+        "camada (opcional: vincula ao estilo/contagem de uma camada do mapa)}. "
+        "modo=auto deriva das camadas (padrao); manual usa so os itens; misto aplica "
+        "overrides por 'camada' sobre a legenda automatica. "
         "Voce e responsavel pelo layout: escolha cores legiveis sobre o satelite e nao "
         "sobreponha legenda, metadados ou tabela ao conteudo essencial do mapa."
     )
@@ -227,5 +244,9 @@ def spec_edit_from_prompt(current: MapSpec, instruction: str, project: NexoMapPr
         spec.marca = current.marca
     if not spec.metadados_imagem:
         spec.metadados_imagem = current.metadados_imagem
+    if not spec.layout:
+        spec.layout = current.layout
+    if not spec.legenda:
+        spec.legenda = current.legenda
     warnings.extend(validate_mapspec(spec, catalog, manifest, secrets))
     return ChatSpecResult(spec=spec, provider=provider, raw=raw, warnings=warnings)

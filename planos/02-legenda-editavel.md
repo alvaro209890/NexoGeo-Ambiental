@@ -50,21 +50,21 @@ Hoje a legenda é **derivada automaticamente** das camadas e não pode ser ajust
 
 ## Checklist de implementação
 
-- [ ] Adicionar `legenda{}` ao MapSpec (dataclass + serialização), opcional.
-- [ ] `nexomap_renderer`: função `_montar_legenda(spec, drawn_layers)` que resolve `auto`/`manual`/`misto`.
-- [ ] Suporte a `tipo` linha/polígono/ponto/imagem nos swatches (Patch/Line2D/marker/mini-imshow).
-- [ ] Respeitar `colunas`, `titulo`, `fonte_tamanho`, `posicao`.
+- [x] Adicionar `legenda{}` ao MapSpec (dataclass + serialização), opcional. (2026-07-08)
+- [x] `nexomap_renderer`: função `_montar_legenda(spec, drawn_layers)` que resolve `auto`/`manual`/`misto`. (2026-07-08)
+- [x] Suporte a `tipo` linha/polígono/ponto/imagem nos swatches. *(imagem = bloco sólido com borda; mini-imshow fica como evolução)* (2026-07-08)
+- [x] Respeitar `colunas`, `titulo`, `fonte_tamanho`, `posicao`. (2026-07-08)
 - [ ] Tool `editar_legenda` (adicionar/remover/renomear/reordenar item, mudar título/colunas/posição).
-- [ ] Vincular item↔camada (`camada`) e auto-símbolo a partir do estilo da camada.
-- [ ] Documentar no prompt do sistema como editar a legenda.
+- [x] Vincular item↔camada (`camada`) e auto-símbolo a partir do estilo da camada. (2026-07-08)
+- [x] Documentar no prompt do sistema como editar a legenda. (2026-07-08)
 
 ## Plano de testes
 
 **Unit (`tests/test_legenda.py`)**
-- [ ] `modo:auto` reproduz a legenda atual (baseline).
-- [ ] `modo:manual` respeita itens/ordem/rótulos.
-- [ ] Renomear item via `editar_legenda` altera só aquele rótulo.
-- [ ] Remover item some da legenda mas mantém a camada no mapa.
+- [x] `modo:auto` reproduz a legenda atual (baseline). (2026-07-08)
+- [x] `modo:manual` respeita itens/ordem/rótulos. (2026-07-08)
+- [x] Renomear item (modo `misto`, vinculado por `camada`) altera só aquele rótulo. (2026-07-08)
+- [x] Remover item some da legenda mas mantém a camada no mapa. (2026-07-08)
 
 **Visual/manual**
 - [ ] Gerar flagship, renomear "Area desmatada (AUAS)" → "Desmatamento" e reordenar; conferir PNG.

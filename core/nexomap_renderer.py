@@ -25,6 +25,7 @@ from core.geo import abrir_shape_zip
 from core.mapspec import MapSpec
 from core.nexomap_catalog import template_index
 from core.nexomap_geo import iter_polygons
+from core.nexomap_layout import element_rect, element_text_anchor
 from core.nexomap_project import NexoMapProject
 from core.nexomap_validation import validate_pdf, write_validation_report
 
@@ -267,8 +268,7 @@ def _draw_perimeter(ax, area, style: dict, rotulo: bool):
                 txt.set_path_effects([patheffects.withStroke(linewidth=2.2, foreground="#111827")])
 
 
-def _draw_north(ax):
-    x, y = 0.962, 0.935
+def _draw_north(ax, x: float = 0.962, y: float = 0.935):
     ax.annotate("", xy=(x, y), xytext=(x, y - 0.075), xycoords="axes fraction",
                 arrowprops=dict(arrowstyle="fancy,head_width=0.55,head_length=0.9",
                                 facecolor=_INK, edgecolor="white", linewidth=0.8),
@@ -278,14 +278,26 @@ def _draw_north(ax):
     txt.set_path_effects([patheffects.withStroke(linewidth=2.5, foreground="white")])
 
 
-def _draw_scale_bar(ax, extent: tuple, scale: int):
+def _draw_scale_bar(ax, extent: tuple, scale: int, pos: tuple | None = None):
+    """Barra de escala segmentada. ``pos`` = (x_axes, y_axes, ha, va) opcional."""
     minx, maxx, miny, maxy = extent
     width = maxx - minx
     height = maxy - miny
     total = _nice_length(width * 0.28)
     seg = total / 4.0
-    x0 = minx + width * 0.035
-    y0 = miny + height * 0.035
+    xf, yf, ha, va = pos or (0.035, 0.035, "left", "bottom")
+    x0 = minx + width * xf
+    if ha == "right":
+        x0 -= total
+    elif ha == "center":
+        x0 -= total / 2.0
+    y0 = miny + height * yf
+    if va == "top":
+        y0 -= height * 0.030
+    elif va == "center":
+        y0 -= height * 0.015
+    x0 = min(max(x0, minx + width * 0.01), maxx - total - width * 0.01)
+    y0 = min(max(y0, miny + height * 0.012), maxy - height * 0.04)
     bar_h = height * 0.010
 
     ax.add_patch(patches.Rectangle((x0 - width * 0.008, y0 - bar_h * 2.2),
@@ -359,15 +371,23 @@ def _draw_compass_rose(fig, rect):
     axc.plot(0, 0, marker="o", ms=2.2, color=_INK, zorder=4)
 
 
-def _draw_title_box(ax, titulo: str, subtitulo: str, x: float = 0.985, y: float = 0.97):
-    """Caixa de titulo escura no canto superior direito (padrao IMAP)."""
+def _draw_title_box(ax, titulo: str, subtitulo: str, x: float = 0.985, y: float = 0.97,
+                    ha: str = "right", va: str = "top", fundo: str = "#2b2b2b",
+                    cor: str = "white", tamanho: float = 16.0, borda: str | None = None):
+    """Caixa de titulo (padrao IMAP). Estilo editavel: fundo/cor/tamanho/borda.
+
+    O padrao historico e a caixa escura; o modelo IMAP recente usa caixa branca
+    com texto preto no topo-centro (layout.elementos.titulo.estilo).
+    """
     texto = titulo + (("\n" + subtitulo) if subtitulo else "")
-    ax.text(x, y, texto, transform=ax.transAxes, ha="right", va="top",
-            fontsize=16, fontweight="bold", color="white", linespacing=1.25, zorder=26,
-            bbox=dict(boxstyle="round,pad=0.55", fc="#2b2b2b", ec="white", lw=1.3, alpha=0.93))
+    if borda is None:
+        borda = "white" if fundo not in ("white", "#fff", "#ffffff") else "#111827"
+    ax.text(x, y, texto, transform=ax.transAxes, ha=ha, va=va,
+            fontsize=tamanho, fontweight="bold", color=cor, linespacing=1.25, zorder=26,
+            bbox=dict(boxstyle="round,pad=0.55", fc=fundo, ec=borda, lw=1.3, alpha=0.93))
 
 
-def _draw_legend_swatches(fig, rect, entries, titulo="Legenda"):
+def _draw_legend_swatches(fig, rect, entries, titulo="Legenda", ncols=1, fontsize=8.0):
     """Legenda com swatches (patches/linhas) — usada na faixa inferior do flagship."""
     axl = fig.add_axes(rect)
     axl.axis("off")
@@ -375,7 +395,107 @@ def _draw_legend_swatches(fig, rect, entries, titulo="Legenda"):
              transform=axl.transAxes)
     if entries:
         axl.legend(handles=entries, loc="upper left", bbox_to_anchor=(0.0, 0.84),
-                   frameon=False, fontsize=8, handlelength=1.9, handleheight=1.4, borderaxespad=0)
+                   frameon=False, fontsize=fontsize, ncols=max(1, int(ncols)),
+                   handlelength=1.9, handleheight=1.4, borderaxespad=0)
+
+
+# --------------------------------------------------------------------------- #
+# Legenda editavel (plano 02): modos auto / manual / misto
+# --------------------------------------------------------------------------- #
+
+def _legend_swatch(item: dict, label: str):
+    """Artista matplotlib para um item de legenda ({tipo, cor, preenchimento, ...})."""
+    tipo = str(item.get("tipo") or "poligono").lower()
+    cor = item.get("cor") or "#64748b"
+    largura = float(item.get("largura", 2.0) or 2.0)
+    opacidade = float(item.get("opacidade", 0.85) or 0.85)
+    hachura = item.get("hachura") or item.get("hatch") or ""
+    fill = item.get("preenchimento")
+    if tipo == "linha":
+        return Line2D([0], [0], color=cor, lw=largura, label=label)
+    if tipo == "ponto":
+        return Line2D([0], [0], marker="o", linestyle="none", markerfacecolor=cor,
+                      markeredgecolor="white", markersize=7, label=label)
+    if tipo == "imagem":
+        # swatch de raster: bloco solido com borda discreta
+        return patches.Patch(facecolor=cor, edgecolor="#6b7280", alpha=1.0, label=label)
+    if fill in (None, "", "transparente"):
+        fill_final = "none" if hachura else cor
+    else:
+        fill_final = fill
+    return patches.Patch(facecolor=fill_final, edgecolor=cor, alpha=max(opacidade, 0.35),
+                         hatch=hachura or None, label=label)
+
+
+def _linked_item_swatch(item: dict, layer):
+    """Swatch de item vinculado a uma camada: herda o estilo dela (com overrides)."""
+    line, fill, alpha, hatch = _layer_color(layer.estilo, layer.tema)
+    merged = {
+        "tipo": item.get("tipo") or "poligono",
+        "cor": item.get("cor") or line,
+        "preenchimento": item.get("preenchimento", fill),
+        "hachura": item.get("hachura", hatch),
+        "opacidade": item.get("opacidade", max(alpha, 0.35)),
+        "largura": item.get("largura", 2.0),
+    }
+    label = str(item.get("rotulo") or layer.nome)
+    if item.get("contagem", True) is not False:
+        label += f" ({layer.feature_count})" if layer.features else " (sem feicoes no recorte)"
+    return _legend_swatch(merged, label)
+
+
+def _montar_legenda(legenda_cfg: dict, auto_entries: list, drawn_by_id: dict) -> tuple[list, list]:
+    """Resolve os modos da legenda (plano 02) -> (entries, avisos).
+
+    ``auto_entries`` = lista de (camada_id, artista) na ordem do desenho (com o
+    perimetro em primeiro). ``modo``: 'auto' (padrao sem itens), 'manual' (usa
+    so os itens) e 'misto' (auto + overrides por ``camada``). Quando ha ``itens``
+    e o modo nao foi dito, assume 'manual'.
+    """
+    cfg = legenda_cfg or {}
+    itens = cfg.get("itens") or []
+    modo = str(cfg.get("modo") or ("manual" if itens else "auto")).lower()
+    avisos: list[str] = []
+
+    if modo == "auto" or not itens:
+        return [artist for _, artist in auto_entries], avisos
+
+    if modo == "manual":
+        entries = []
+        for item in itens:
+            if not isinstance(item, dict):
+                continue
+            cid = item.get("camada")
+            layer = drawn_by_id.get(cid) if cid else None
+            if cid and layer is None:
+                avisos.append(f"legenda: item vinculado a camada inexistente '{cid}'; "
+                              "usado o simbolo do proprio item")
+            if layer is not None:
+                entries.append(_linked_item_swatch(item, layer))
+            else:
+                entries.append(_legend_swatch(item, str(item.get("rotulo") or cid or "item")))
+        return entries, avisos
+
+    # misto: comeca do auto e aplica overrides por camada; itens soltos sao anexados
+    entries_por_id = {cid: artist for cid, artist in auto_entries}
+    ordem = [cid for cid, _ in auto_entries]
+    extras = []
+    for item in itens:
+        if not isinstance(item, dict):
+            continue
+        cid = item.get("camada")
+        layer = drawn_by_id.get(cid) if cid else None
+        if cid and cid in entries_por_id and layer is not None:
+            entries_por_id[cid] = _linked_item_swatch(item, layer)
+        elif cid and cid in entries_por_id:  # perimetro ou entrada sem DrawnLayer
+            artist = entries_por_id[cid]
+            if item.get("rotulo"):
+                artist.set_label(str(item["rotulo"]))
+        else:
+            if cid:
+                avisos.append(f"legenda: item vinculado a camada inexistente '{cid}'; anexado")
+            extras.append(_legend_swatch(item, str(item.get("rotulo") or cid or "item")))
+    return [entries_por_id[cid] for cid in ordem] + extras, avisos
 
 
 def _draw_tipologia_inset(fig, rect, area, tipo_layers, base_color="#c9c15a"):
@@ -505,8 +625,12 @@ def _rects_overlap(a: tuple, b: tuple) -> float:
     return ix * iy
 
 
-def _layout_report(fig, regions: dict) -> dict:
-    """Detecta sobreposicao entre regioes de topo e texto cortado nas bordas."""
+def _layout_report(fig, regions: dict, element_regions: dict | None = None) -> dict:
+    """Detecta sobreposicao entre regioes de topo e texto cortado nas bordas.
+
+    ``element_regions`` (plano 01): rects dos elementos do mobiliario — sao
+    comparados apenas entre si (elementos in-map flutuam sobre o mapa por design).
+    """
     from itertools import combinations
     from matplotlib.text import Text
 
@@ -514,6 +638,10 @@ def _layout_report(fig, regions: dict) -> dict:
     itens = [(k, v) for k, v in regions.items() if v is not None]
     for (na, ra), (nb, rb) in combinations(itens, 2):
         if _rects_overlap(ra, rb) > 0.0008:  # ~0.08% da pagina de folga
+            report["sobreposicoes"].append(f"{na} x {nb}")
+    elems = [(k, v) for k, v in (element_regions or {}).items() if v is not None]
+    for (na, ra), (nb, rb) in combinations(elems, 2):
+        if _rects_overlap(ra, rb) > 0.0008:
             report["sobreposicoes"].append(f"{na} x {nb}")
 
     fig.canvas.draw()
@@ -538,57 +666,112 @@ def _layout_report(fig, regions: dict) -> dict:
 
 
 def _flagship_furniture(fig, ax, spec, project, area, scale, extent,
-                        drawn_layers, legend_entries, map_rect, band_rect, on):
-    """Mobiliario full-bleed padrao IMAP. Cada peca respeita spec.elementos_layout."""
+                        drawn_layers, legend_entries, map_rect, band_rect, on,
+                        avisos: list | None = None, regioes: dict | None = None):
+    """Mobiliario full-bleed padrao IMAP. Cada peca respeita spec.elementos_layout
+    (visibilidade) e spec.layout.elementos (posicao/tamanho, plano 01)."""
     mx, my, mw, mh = map_rect
+    layout = spec.layout or {}
+
+    def rect_de(elemento: str, default_rect: tuple) -> tuple:
+        r = element_rect(layout, elemento, default_rect, map_rect=map_rect, avisos=avisos)
+        if regioes is not None:
+            regioes[elemento] = r
+        return r
 
     # rosa-dos-ventos no canto superior direito extremo
     if on("norte"):
         if on("rosa_dos_ventos", True):
-            _draw_compass_rose(fig, (mx + mw - 0.043, my + mh - 0.058, 0.038, 0.055))
+            _draw_compass_rose(fig, rect_de("rosa_dos_ventos",
+                                            (mx + mw - 0.043, my + mh - 0.058, 0.038, 0.055)))
         else:
             _draw_north(ax)
     # caixa de titulo preta a esquerda da rosa-dos-ventos.
     # Desligar via elementos_layout.titulo_caixa=false ("remova o titulo preto").
     if on("titulo_caixa", True) and spec.titulo:
-        _draw_title_box(ax, spec.titulo, spec.subtitulo, x=(mw - 0.058) / mw, y=0.985)
+        tx, ty, tha, tva = element_text_anchor(layout, "titulo", map_rect,
+                                               ((mw - 0.058) / mw, 0.985, "right", "top"),
+                                               avisos=avisos)
+        est = ((layout.get("elementos") or {}).get("titulo") or {}).get("estilo") or {}
+        _draw_title_box(ax, spec.titulo, spec.subtitulo, x=tx, y=ty, ha=tha, va=tva,
+                        fundo=est.get("fundo", "#2b2b2b"), cor=est.get("cor", "white"),
+                        tamanho=float(est.get("tamanho", 16) or 16))
     if on("escala_grafica"):
-        _draw_scale_bar(ax, extent, scale)
+        pos = None
+        cfg = (layout.get("elementos") or {}).get("escala")
+        if isinstance(cfg, dict) and cfg:
+            ex, ey, eha, eva = element_text_anchor(layout, "escala", map_rect,
+                                                   (0.035, 0.035, "left", "bottom"),
+                                                   avisos=avisos)
+            pos = (ex, ey, eha, eva)
+        _draw_scale_bar(ax, extent, scale, pos=pos)
 
     # inset "Tipologia vegetal" (topo esquerdo)
     if on("inset_tipologia", True):
         tipo_layers = [l for l in drawn_layers if getattr(l, "tema", "") == "tipologia" and l.features]
-        _draw_tipologia_inset(fig, (mx + 0.006, my + mh - 0.232, 0.205, 0.222), area, tipo_layers)
+        _draw_tipologia_inset(fig, rect_de("inset_tipologia",
+                                           (mx + 0.006, my + mh - 0.232, 0.205, 0.222)),
+                              area, tipo_layers)
 
     # tabela flutuando sobre o canto inferior direito do mapa
     if on("tabela", True) and spec.tabela:
         tw, th = 0.46, 0.205
-        _draw_table(fig, (mx + mw - tw - 0.005, my + 0.006, tw, th), spec.tabela)
+        _draw_table(fig, rect_de("tabela", (mx + mw - tw - 0.005, my + 0.006, tw, th)), spec.tabela)
 
     # ---- faixa inferior: [localizacao] [METADADOS IMAGEM] [Legenda] [logo] ----
     bx, by, bw, bh = band_rect
     if on("minimapa", True):
-        _draw_minimap(fig, (0.02, by + 0.012, 0.10, bh - 0.02), area, extent, project.crs.utm, "light")
+        _draw_minimap(fig, rect_de("minimapa", (0.02, by + 0.012, 0.10, bh - 0.02)),
+                      area, extent, project.crs.utm, "light")
     if on("metadados_imagem", True) and spec.metadados_imagem:
-        _draw_metadados_imagem_band(fig, (0.19, by + 0.005, 0.24, bh - 0.01), spec.metadados_imagem, scale)
+        _draw_metadados_imagem_band(fig, rect_de("metadados_imagem",
+                                                 (0.19, by + 0.005, 0.24, bh - 0.01)),
+                                    spec.metadados_imagem, scale)
     if on("legenda") and legend_entries:
-        _draw_legend_swatches(fig, (0.52, by + 0.012, 0.30, bh - 0.02), legend_entries)
+        leg_cfg = spec.legenda or {}
+        leg_rect = rect_de("legenda", (0.52, by + 0.012, 0.30, bh - 0.02))
+        pos_cfg = leg_cfg.get("posicao")
+        if isinstance(pos_cfg, dict) and pos_cfg:  # legenda.posicao > layout.elementos
+            leg_rect = element_rect({"elementos": {"legenda": pos_cfg}}, "legenda",
+                                    leg_rect, map_rect=map_rect, avisos=avisos)
+            if regioes is not None:
+                regioes["legenda"] = leg_rect
+        _draw_legend_swatches(fig, leg_rect, legend_entries, titulo=_legend_title(spec),
+                              ncols=int(leg_cfg.get("colunas", 1) or 1),
+                              fontsize=float(leg_cfg.get("fonte_tamanho", 8.0) or 8.0))
     if on("logo", True) and spec.marca:
+        logo_rect = rect_de("logo", (0.85, by + 0.01, 0.12, bh - 0.02))
         logo_path = _resolver_caminho(project, str(spec.marca.get("logo", "")))
-        logo_ok = _draw_logo(fig, (0.85, by + 0.01, 0.12, bh - 0.02), logo_path) if logo_path else False
+        logo_ok = _draw_logo(fig, logo_rect, logo_path) if logo_path else False
         if not logo_ok and spec.marca.get("texto"):
-            fig.text(0.91, by + bh / 2, str(spec.marca.get("texto")), ha="center", va="center",
+            fig.text(logo_rect[0] + logo_rect[2] / 2, logo_rect[1] + logo_rect[3] / 2,
+                     str(spec.marca.get("texto")), ha="center", va="center",
                      fontsize=13, fontweight="bold", color="#17324d")
+
+
+def _legend_title(spec) -> str:
+    return str(((getattr(spec, "legenda", None) or {}).get("titulo")) or "Legenda")
 
 
 def _standard_furniture(fig, ax, spec, project, area, scale, extent,
                         drawn_layers, legend_entries, map_rect, panel_rect,
-                        band_rect, landscape, on):
+                        band_rect, landscape, on, avisos: list | None = None,
+                        regioes: dict | None = None):
     """Mobiliario com painel lateral/inferior (mapas simples, retrato, sem satelite)."""
+    layout = spec.layout or {}
     if on("norte"):
-        _draw_north(ax)
+        nx, ny, _, _ = element_text_anchor(layout, "rosa_dos_ventos", map_rect,
+                                           (0.962, 0.935, "center", "center"), avisos=avisos)
+        _draw_north(ax, x=nx, y=ny)
     if on("escala_grafica"):
-        _draw_scale_bar(ax, extent, scale)
+        pos = None
+        cfg = (layout.get("elementos") or {}).get("escala")
+        if isinstance(cfg, dict) and cfg:
+            ex, ey, eha, eva = element_text_anchor(layout, "escala", map_rect,
+                                                   (0.035, 0.035, "left", "bottom"),
+                                                   avisos=avisos)
+            pos = (ex, ey, eha, eva)
+        _draw_scale_bar(ax, extent, scale, pos=pos)
 
     cx_map = map_rect[0] + map_rect[2] / 2
     top_map = map_rect[1] + map_rect[3]
@@ -609,16 +792,23 @@ def _standard_furniture(fig, ax, spec, project, area, scale, extent,
     panel.add_patch(patches.FancyBboxPatch((0, 0), 1, 1, transform=panel.transAxes,
                                            boxstyle="round,pad=0.008,rounding_size=0.015",
                                            facecolor="#f8fafc", edgecolor="#d1d5db", linewidth=0.8))
+    leg_cfg = spec.legenda or {}
+    leg_fs = float(leg_cfg.get("fonte_tamanho", 0) or 0)
     if landscape:
-        panel.text(0.07, 0.975, "Legenda", fontsize=11, fontweight="bold", color=_INK, va="top")
+        panel.text(0.07, 0.975, _legend_title(spec), fontsize=11, fontweight="bold",
+                   color=_INK, va="top")
         if legend_entries and on("legenda"):
             panel.legend(handles=legend_entries, loc="upper left", bbox_to_anchor=(0.04, 0.955),
-                         frameon=False, fontsize=7.4, handlelength=1.6, borderaxespad=0)
+                         frameon=False, fontsize=leg_fs or 7.4,
+                         ncols=int(leg_cfg.get("colunas", 1) or 1),
+                         handlelength=1.6, borderaxespad=0)
         meta_y = 0.60
     else:
         if legend_entries and on("legenda"):
             panel.legend(handles=legend_entries, loc="upper left", bbox_to_anchor=(0.03, 0.97),
-                         frameon=False, fontsize=7.2, ncols=2, handlelength=1.5, borderaxespad=0)
+                         frameon=False, fontsize=leg_fs or 7.2,
+                         ncols=int(leg_cfg.get("colunas", 2) or 2),
+                         handlelength=1.5, borderaxespad=0)
         meta_y = 0.50
 
     if on("metadados"):
@@ -641,6 +831,9 @@ def _standard_furniture(fig, ax, spec, project, area, scale, extent,
         else:
             mini_rect = (panel_rect[0] + panel_rect[2] - 0.20, panel_rect[1] + 0.015,
                          0.185, panel_rect[3] * 0.62)
+        mini_rect = element_rect(layout, "minimapa", mini_rect, map_rect=map_rect, avisos=avisos)
+        if regioes is not None:
+            regioes["minimapa"] = mini_rect
         _draw_minimap(fig, mini_rect, area, extent, project.crs.utm, "light")
 
 
@@ -726,22 +919,28 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
         fundo_escuro = fundo_desenhado  # imagem/satelite => rotulos claros
 
         # camadas do catalogo (dados reais via WFS)
-        legend_entries: list = []
+        auto_entries: list[tuple[str, object]] = []
         for layer in drawn_layers:
             line, fill, alpha, hatch = _layer_color(layer.estilo, layer.tema)
             if layer.features:
                 _draw_geoms(ax, layer.features, line, fill, alpha, hatch=hatch)
             suffix = f" ({layer.feature_count})" if layer.features else " (sem feicoes no recorte)"
-            legend_entries.append(patches.Patch(facecolor=(fill if fill != "none" else "white"),
-                                                edgecolor=line, alpha=max(alpha, 0.35),
-                                                hatch=hatch or None, label=layer.nome + suffix))
+            auto_entries.append((layer.id,
+                                 patches.Patch(facecolor=(fill if fill != "none" else "white"),
+                                               edgecolor=line, alpha=max(alpha, 0.35),
+                                               hatch=hatch or None, label=layer.nome + suffix)))
 
         # perimetro da area base
         perimeter_layer = next((l for l in spec.camadas if l.fonte == "area_base"), None)
         peri_style = perimeter_layer.estilo if perimeter_layer else {}
         _draw_perimeter(ax, area, peri_style, bool(perimeter_layer.rotulo) if perimeter_layer else False)
-        legend_entries.insert(0, Line2D([0], [0], color=peri_style.get("linha", "#ff3b30"),
-                                        lw=2.4, label=f"Perimetro do imovel ({area.feature_count})"))
+        auto_entries.insert(0, ("perimetro", Line2D([0], [0], color=peri_style.get("linha", "#ff3b30"),
+                                                    lw=2.4, label=f"Perimetro do imovel ({area.feature_count})")))
+
+        # legenda editavel (plano 02): auto (atual) / manual / misto
+        legend_entries, legend_avisos = _montar_legenda(
+            spec.legenda or {}, auto_entries, {l.id: l for l in drawn_layers})
+        render_warnings.extend(legend_avisos)
 
         # grade de coordenadas: DMS (padrao IMAP) ou UTM
         mostrar_grade = bool(spec.elementos_layout.get("grade", True))
@@ -771,13 +970,16 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
         def on(chave: str, padrao: bool = True) -> bool:
             return bool(el.get(chave, padrao))
 
+        regioes_elementos: dict = {}
         if flagship:
             _flagship_furniture(fig, ax, spec, project, area, scale, extent,
-                                drawn_layers, legend_entries, map_rect, band_rect, on)
+                                drawn_layers, legend_entries, map_rect, band_rect, on,
+                                avisos=render_warnings, regioes=regioes_elementos)
         else:
             _standard_furniture(fig, ax, spec, project, area, scale, extent,
                                  drawn_layers, legend_entries, map_rect, panel_rect,
-                                 band_rect, landscape, on)
+                                 band_rect, landscape, on,
+                                 avisos=render_warnings, regioes=regioes_elementos)
 
         # rodape de creditos
         fontes = sorted({layer.nome for layer in drawn_layers})
@@ -790,7 +992,7 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
 
         # relatorio de layout (sobreposicao/corte de texto) antes de salvar
         regioes = {"mapa": map_rect, "painel": panel_rect, "faixa": band_rect}
-        layout_report = _layout_report(fig, regioes)
+        layout_report = _layout_report(fig, regioes, regioes_elementos)
 
         fig.savefig(pdf_path, dpi=200)
         fig.savefig(preview_path, dpi=130)

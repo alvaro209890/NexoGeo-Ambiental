@@ -64,6 +64,10 @@ class MapSpec:
     metadados_imagem: dict[str, Any] = field(default_factory=dict)  # satelite/sensor/data/orbita_ponto/datum
     tabela: dict[str, Any] = field(default_factory=dict)            # {titulo, colunas[], linhas[[]]}
     marca: dict[str, Any] = field(default_factory=dict)            # {logo, texto}
+    # posicao/tamanho por elemento (plano 01): {"elementos": {id: {ancora, x, y, largura, altura}}}
+    layout: dict[str, Any] = field(default_factory=dict)
+    # legenda editavel (plano 02): {modo, titulo, itens[], colunas, fonte_tamanho, posicao}
+    legenda: dict[str, Any] = field(default_factory=dict)
     # --- versionamento (edicao com MapSpec como fonte de verdade) ---
     versao: int = 1
     parent_job_id: str = ""
@@ -93,6 +97,8 @@ class MapSpec:
             "metadados_imagem": self.metadados_imagem,
             "tabela": self.tabela,
             "marca": self.marca,
+            "layout": self.layout,
+            "legenda": self.legenda,
             "saidas": self.saidas,
             "versao": self.versao,
             "parent_job_id": self.parent_job_id,
@@ -129,6 +135,8 @@ def mapspec_from_dict(data: dict) -> MapSpec:
         metadados_imagem=data.get("metadados_imagem") or {},
         tabela=data.get("tabela") or {},
         marca=data.get("marca") or {},
+        layout=data.get("layout") or {},
+        legenda=data.get("legenda") or {},
         saidas=_normalize_outputs(data.get("saidas") or ["pdf", "png_validacao", "geojson"]),
         versao=int(data.get("versao", 1) or 1),
         parent_job_id=str(data.get("parent_job_id", "") or ""),

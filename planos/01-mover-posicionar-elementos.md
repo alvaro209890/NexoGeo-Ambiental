@@ -68,20 +68,20 @@ Cada elemento posicionável ganha um objeto:
 
 ## Checklist de implementação
 
-- [ ] Adicionar `layout.elementos{}` ao `MapSpec` (dataclass + `to_dict`/`from_dict`), opcional.
-- [ ] `core/nexomap_layout.py`: âncoras (`top-left`…`bottom-right`, `*-center`, `in-map-*`) → rect.
-- [ ] Refatorar as peças do renderer para consultar `layout.elementos[id]` com defaults atuais.
+- [x] Adicionar `layout.elementos{}` ao `MapSpec` (dataclass + `to_dict`/`from_dict`), opcional. (2026-07-08)
+- [x] `core/nexomap_layout.py`: âncoras (`top-left`…`bottom-right`, `*-center`, `in-map-*`) → rect. (2026-07-08)
+- [x] Refatorar as peças do renderer para consultar `layout.elementos[id]` com defaults atuais. (2026-07-08)
 - [ ] Tool `mover_elemento(elemento, posicao, tamanho?)` (plano 00) escreve em `layout.elementos`.
-- [ ] Tool `editar_estilo_elemento(elemento, props)` (fonte, cor, fundo, borda).
-- [ ] Clamping: manter elemento dentro da página; avisar se sair.
-- [ ] Documentar ids e âncoras no prompt do sistema (`nexomap_ai._system_prompt`).
+- [ ] Tool `editar_estilo_elemento(elemento, props)` (fonte, cor, fundo, borda). *(renderer já lê `titulo.estilo {fundo,cor,tamanho}` — caixa branca IMAP)*
+- [x] Clamping: manter elemento dentro da página; avisar se sair. (2026-07-08)
+- [x] Documentar ids e âncoras no prompt do sistema (`nexomap_ai._system_prompt`). (2026-07-08)
 
 ## Plano de testes
 
 **Unit (`tests/test_layout.py`)**
-- [ ] `resolve_rect` para cada âncora devolve retângulo esperado.
-- [ ] MapSpec sem `layout` renderiza idêntico ao atual (retrocompatível).
-- [ ] Mover legenda de `bottom-right` para `bottom-left` muda o rect e não sobrepõe o logo.
+- [x] `resolve_rect` para cada âncora devolve retângulo esperado. (2026-07-08)
+- [x] MapSpec sem `layout` renderiza idêntico ao atual (retrocompatível). (2026-07-08)
+- [x] Mover legenda de `bottom-right` para `bottom-left` muda o rect e não sobrepõe o logo. (2026-07-08)
 
 **Visual/manual**
 - [ ] Gerar o flagship, mover título para `top-left`, conferir PNG.
