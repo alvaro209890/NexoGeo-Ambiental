@@ -185,11 +185,11 @@
       "id": "prodes_inpe",
       "nome": "PRODES INPE",
       "tema": "desmatamento",
-      "tipo": "wms_wfs",
-      "endpoint": "http://terrabrasilis.dpi.inpe.br/geoserver/prodes-legal-amz/wms",
-      "layer": "prodes-legal-amz",
+      "tipo": "wms_raster",
+      "endpoint": "https://terrabrasilis.dpi.inpe.br/geoserver/prodes-legal-amz/ows",
+      "layer": "accumulated_deforestation_2007",
       "auth": null,
-      "descricao": "Desmatamento consolidado PRODES/INPE (Amazonia Legal)."
+      "descricao": "Desmatamento consolidado PRODES/INPE (Amazonia Legal) — acumulado ate 2007+."
     },
     {
       "id": "tipologia_sema",

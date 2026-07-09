@@ -34,9 +34,20 @@ Acessar: http://localhost:5173 → aba "Mapas IA"
 
 ## Deploy
 
-- **Frontend:** [Vercel](https://ui-pabbrtunn-alvaro209890s-projects.vercel.app) (auto-deploy do `main`)
+- **Frontend:** [Vercel](https://ui-kappa-eight-82.vercel.app) (auto-deploy do `main`)
+  - Domínio principal: https://nexogeo-cursar.vercel.app (a configurar)
 - **Backend:** Cloudflare Tunnel → `https://nexogeo-api.cursar.space` (roda neste PC)
 - **Domínio:** `cursar.space` gerenciado via Cloudflare
+
+## Correções aplicadas (2026-07-09)
+
+- **Chat hardcoded:** endpoint `/api/chats/mensagem` agora aceita `path` opcional
+  (antes usava sempre `querencia_teste`; fallback mantido se não informado).
+- **PRODES/INPE:** corrigido `tipo` de `wms_wfs` para `wms_raster`, endpoint HTTP→HTTPS
+  e layer de `prodes-legal-amz` para `accumulated_deforestation_2007`.
+- **SEMA authkey:** presente em `secrets.local.json`; busca de CAR funcionando ao vivo
+  (testado com `MT313839/2025` — Fazenda Boa Vista V, 253.97 ha).
+- **117 testes offline passando**, 9 skip de rede.
 
 ## Estrutura
 

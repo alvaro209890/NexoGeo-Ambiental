@@ -159,6 +159,7 @@ class ChatMessageBody(BaseModel):
     chat_id: str
     prompt: str
     max_steps: int = 12
+    path: str = ""  # caminho do projeto nexomap (opcional)
 
 
 # ----------------------------- config global -----------------------------
@@ -327,8 +328,10 @@ async def chats_mensagem(body: ChatMessageBody):
         prompt_final = f"[HISTORICO]\n{contexto}\n\n[NOVO PEDIDO]\n{body.prompt}"
 
     async def stream():
+        # Usa o path do body se fornecido, senão fallback pro projeto de teste
+        projeto_path = body.path or "projetos/querencia_teste/projeto.json"
         for event in nexomap_generator.chat_tools_stream(
-            "projetos/querencia_teste/projeto.json", prompt_final,
+            projeto_path, prompt_final,
             parent_job_id=None,
             allow_local_ai_fallback=True,
             max_steps=body.max_steps,
