@@ -67,11 +67,13 @@ def _user_context(prompt: str, spec: dict | None, ctx: ToolContext) -> str:
 
 def run_tool_loop(prompt: str, ctx: ToolContext, call_provider,
                   spec_dict: dict | None = None, max_steps: int = MAX_STEPS_DEFAULT,
-                  timeout_s: float = TIMEOUT_S_DEFAULT) -> AgentResult:
+                  timeout_s: float = TIMEOUT_S_DEFAULT,
+                  on_tool_call = None) -> AgentResult:
     """Roda o loop IA<->tools ate ``finalizar``/resposta final/limites.
 
     ``call_provider(messages, tools) -> dict`` no formato chat completions.
     ``spec_dict=None`` significa mapa novo (a IA deve chamar ``criar_mapa``).
+    ``on_tool_call(nome, args, resultado)`` callback opcional p/ streaming.
     """
     messages: list[dict] = [
         {"role": "system", "content": _system_prompt_tools()},
@@ -118,6 +120,11 @@ def run_tool_loop(prompt: str, ctx: ToolContext, call_provider,
             tool_log.append({"tool": nome, "args": args, "resultado": resultado})
             messages.append({"role": "tool", "tool_call_id": call.get("id", ""),
                              "content": resultado})
+            if on_tool_call:
+                try:
+                    on_tool_call(nome, args, resultado)
+                except Exception:
+                    pass
             if done:
                 finalizou = True
                 resumo = args.get("resumo") or resultado

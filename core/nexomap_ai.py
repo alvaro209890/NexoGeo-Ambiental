@@ -222,12 +222,13 @@ def _call_edit_provider(current: dict, instruction: str, project: NexoMapProject
 
 def run_tools(prompt: str, project: NexoMapProject, catalog: dict, manifest: dict,
               secrets: dict, spec_dict: dict | None = None, timeout: int = 90,
-              max_steps: int = 12):
+              max_steps: int = 12, on_tool_call=None):
     """Opera o mapa via function calling (plano 00): loop IA<->tools.
 
     Usa o campo ``tools``/``tool_choice`` da API OpenAI-compativel (DeepSeek).
     ``thinking`` fica desligado no modo tools (JSON estruturado confiavel).
     Sem chave configurada: levanta NexoMapError (o chamador decide o fallback).
+    ``on_tool_call(nome, args, resultado)`` callback opcional p/ streaming.
     """
     from core.nexomap_agent import run_tool_loop
     from core.nexomap_tools import ToolContext
@@ -257,7 +258,7 @@ def run_tools(prompt: str, project: NexoMapProject, catalog: dict, manifest: dic
     ctx = ToolContext(catalog=catalog, manifest=manifest, secrets=secrets,
                       project_name=project.nome)
     result = run_tool_loop(prompt, ctx, call_provider, spec_dict=spec_dict,
-                           max_steps=max_steps)
+                           max_steps=max_steps, on_tool_call=on_tool_call)
     result.provider = cfg.get("provider", "ai")
     return result
 

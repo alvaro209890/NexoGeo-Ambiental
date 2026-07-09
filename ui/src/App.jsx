@@ -33,6 +33,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import './index.css'
+import { ChatView } from './ChatView.jsx'
 
 const API = ''
 
@@ -1005,15 +1006,11 @@ export default function App() {
             />
           ) : null}
           {activeView === 'maps_ai' ? (
-            <MapsAiView
+            <ChatView
               analysisPath={path}
               preShape={preShape}
               mapProject={mapProject}
               setMapProject={setMapProject}
-              chatResult={chatResult}
-              setChatResult={setChatResult}
-              mapResult={mapResult}
-              setMapResult={setMapResult}
               mapResults={mapResults}
               setMapResults={setMapResults}
             />

@@ -12,7 +12,7 @@ from core import secrets as secrets_loader
 from core import nexomap_layers
 from core.geo import abrir_shape_zip
 from core.mapspec import MapSpec, mapspec_from_dict, validate_mapspec
-from core.nexomap_ai import spec_edit_from_prompt, spec_from_prompt
+from core.nexomap_ai import spec_edit_from_prompt, spec_from_prompt, run_tools
 from core.nexomap_catalog import load_layer_catalog, load_template_manifest
 from core.nexomap_geo import summarize_area
 from core.nexomap_project import NexoMapError, load_nexomap_project
@@ -293,3 +293,89 @@ def list_results(project_path: str) -> list[dict]:
             "warnings": result.get("warnings", []),
         })
     return out
+
+def chat_tools_stream(project_path: str, prompt: str,
+                      parent_job_id: str | None = None,
+                      allow_local_ai_fallback: bool = True,
+                      use_basemap: bool = False,
+                      max_steps: int = 12) -> Iterator[dict]:
+    """Versao streaming de chat_tools: emite eventos SSE a cada tool_call.
+
+    Yields: {"status":"started"} -> {"tool": nome, "args": {...}} para cada
+    tool -> {"status":"done", "result": {...}} ou {"status":"error", "erro": ...}
+    """
+    yield {"status": "started", "stage": "tools"}
+    project = load_nexomap_project(project_path)
+    catalog = load_layer_catalog(project.catalog_path())
+    manifest = load_template_manifest(project.template_manifest_path())
+    secrets = secrets_loader.load_secrets(project)
+
+    parent_dict = None
+    if parent_job_id:
+        yield {"status": "progress", "stage": "carregar_mapa_pai"}
+        parent_dict = _load_job_mapspec(project, parent_job_id)
+
+    tool_events = []
+    def _on_tool(nome, args, resultado):
+        ev = {"status": "tool", "tool": nome, "args": args, "resultado": resultado}
+        tool_events.append(ev)
+
+    try:
+        yield {"status": "progress", "stage": "ia_pensando"}
+        agent = run_tools(prompt, project, catalog, manifest, secrets,
+                          spec_dict=parent_dict, max_steps=max_steps,
+                          on_tool_call=_on_tool)
+    except Exception as e:
+        if not allow_local_ai_fallback:
+            yield {"status": "error", "erro": str(e)}
+            return
+        if parent_dict is None:
+            yield {"status": "progress", "stage": "fallback_local"}
+            result = generate(project_path, prompt=prompt,
+                              allow_local_ai_fallback=True, use_basemap=use_basemap)
+            yield {"status": "done", "result": result, "tool_calls": []}
+            return
+        from core.nexomap_tools import ToolContext
+        ctx = ToolContext(catalog=catalog, manifest=manifest, secrets=secrets,
+                          project_name=project.nome)
+        agent = run_rule_based(prompt, ctx, parent_dict)
+        agent.warnings.append(f"tools indisponiveis: {e}")
+
+    # Emite cada tool call para o frontend
+    for ev in tool_events:
+        yield ev
+
+    spec = agent.spec
+    if parent_job_id:
+        spec.parent_job_id = parent_job_id
+        spec.versao = int((parent_dict or {}).get("versao", 1) or 1) + 1
+
+    warnings = list(agent.warnings)
+    warnings.extend(validate_mapspec(spec, catalog, manifest, secrets))
+
+    yield {"status": "progress", "stage": "renderizando"}
+    result = _run_pipeline(project, catalog, manifest, secrets, spec,
+                           prompt=prompt, provider=agent.provider or "tools",
+                           ai_raw=json.dumps(agent.tool_log, ensure_ascii=False),
+                           ai_warnings=warnings, use_basemap=use_basemap)
+    result["tool_calls"] = agent.tool_log
+    result["resumo"] = agent.resumo
+    _append_history(project, {
+        "ts": datetime.now().isoformat(timespec="seconds"),
+        "job_id": result["job_id"],
+        "modo": "tools",
+        "prompt": prompt,
+        "provider": agent.provider or "tools",
+        "tool_calls": agent.tool_log,
+    })
+    if parent_job_id:
+        _append_versions(project, {
+            "ts": datetime.now().isoformat(timespec="seconds"),
+            "job_id": result["job_id"], "parent_job_id": parent_job_id,
+            "versao": spec.versao, "prompt": prompt,
+            "provider": agent.provider or "tools",
+            "tool_calls": [t["tool"] for t in agent.tool_log],
+        })
+    with open(os.path.join(result["job_dir"], "resultado.json"), "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2, ensure_ascii=False)
+    yield {"status": "done", "result": result}

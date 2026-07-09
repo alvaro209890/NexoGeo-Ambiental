@@ -97,6 +97,14 @@ class NexoMapChatBody(BaseModel):
     allow_local_fallback: bool = True
 
 
+class NexoMapChatToolsBody(BaseModel):
+    path: str
+    prompt: str
+    parent_job_id: str | None = None
+    allow_local_fallback: bool = True
+    max_steps: int = 12
+
+
 class NexoMapGenerateBody(BaseModel):
     path: str
     prompt: str | None = None
@@ -429,6 +437,22 @@ def nexomap_chat(body: NexoMapChatBody):
         return result.to_dict()
     except NexoMapError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/nexomap/chat-tools")
+async def nexomap_chat_tools(body: NexoMapChatToolsBody):
+    """Chat com IA via function calling (tools). SSE streaming: cada tool_call
+    vira um evento, depois o resultado final com PDF e preview."""
+    async def stream():
+        for event in nexomap_generator.chat_tools_stream(
+            body.path, body.prompt,
+            parent_job_id=body.parent_job_id,
+            allow_local_ai_fallback=body.allow_local_fallback,
+            max_steps=body.max_steps,
+        ):
+            yield _sse(event)
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
 
 
 @app.post("/api/nexomap/generate")
