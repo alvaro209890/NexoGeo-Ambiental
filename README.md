@@ -43,7 +43,9 @@ Acessar: http://localhost:5173 → aba "Mapas IA"
 ## Paridade visual IMAP (2026-07-09)
 
 O layout flagship foi calibrado **contra os PDFs-modelo reais do cliente** (ArcMap, A4
-paisagem) — guia completo em [`docs/PADRAO_IMAP_RENDERER.md`](docs/PADRAO_IMAP_RENDERER.md):
+paisagem) — guia completo em [`docs/PADRAO_IMAP_RENDERER.md`](docs/PADRAO_IMAP_RENDERER.md).
+Os 26 PDFs-modelo estão versionados em
+[`referencias/pdf_modelo_imap/`](referencias/pdf_modelo_imap/README.md) (gabarito visual):
 
 - Grade DMS só com rótulos (`52°15'0"W`) + ticks pretos, sem linhas internas; moldura preta.
 - Seta de norte estilo ArcMap; sem barra de escala nem rodapé "Fontes:" por padrão.

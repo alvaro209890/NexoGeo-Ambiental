@@ -5,6 +5,11 @@ Referência do layout "flagship" (padrão IMAP oficial do cliente) produzido pel
 no ArcMap (série Dinâmica, Tipologia, Embargos, Alertas — A4 paisagem). O objetivo é que um
 mapa gerado pelo NexoGeo seja visualmente indistinguível do mapa feito à mão no ArcMap.
 
+Os PDFs-modelo estão **versionados no repo** em
+[`referencias/pdf_modelo_imap/`](../referencias/pdf_modelo_imap/README.md) (26 mapas, com
+índice comentado) — use-os como gabarito em qualquer ajuste de layout. O modelo principal da
+calibração foi `Dinamica_2026.pdf` (+ `Dinamica_2026_quantitativos.pdf` para a tabela).
+
 O layout flagship é ativado automaticamente quando o MapSpec traz `metadados_imagem`,
 `tabela` ou `marca`.
 

@@ -204,6 +204,10 @@ Embargos feitos no ArcMap, A4 paisagem) até ficar visualmente indistinguível. 
   `editar_camada` + `editar_legenda` + `validar_mapa` → nova versão do job com linhagem.
 - **Verificação:** série completa regenerada (Dinâmica/Uso Consolidado/Tipologia) a 1:20.000;
   comparação lado a lado com o PDF-modelo; `pytest` 117 passed, 9 skipped.
+- **PDFs-modelo versionados:** os 26 mapas reais do cliente (ArcMap) entraram em
+  `referencias/pdf_modelo_imap/` com README-índice — gabarito visual permanente do renderer
+  (os `Mapas_unidos*.pdf` de origem não foram duplicados; a junção já existe em
+  `referencias/Mapas_unidos.pdf`).
 
 ## Pendências/decisões registradas
 
