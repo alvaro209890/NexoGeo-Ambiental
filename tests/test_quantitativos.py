@@ -179,3 +179,45 @@ def test_resolver_tabela_sem_classes():
     }
     resolved = resolver_tabela_calculada(tabela, [], box(0, 0, 1, 1), 31982)
     assert resolved == tabela
+
+
+# ── dedup (uniao) em calcular_area_utm ──────────────────────────────────────
+
+def test_area_dedup_sobreposicao():
+    """Feicoes sobrepostas nao devem contar 2x (uniao, nao soma)."""
+    feats = [_feat(box(0, 0, 1000, 1000)), _feat(box(500, 0, 1500, 1000))]
+    # soma seria 2.000.000; a uniao real = 1.500 x 1.000 = 1.500.000
+    assert calcular_area_utm(feats) == pytest.approx(1_500_000, rel=0.001)
+
+
+# ── matriz propriedade x classe ─────────────────────────────────────────────
+
+def test_quantitativos_matriz_por_propriedade():
+    from core.nexomap_quantitativos import quantitativos_matriz
+    lote_a = _drawn_layer("lote_a", [_feat(box(0, 0, 1000, 1000))])       # 100 ha
+    lote_b = _drawn_layer("lote_b", [_feat(box(1000, 0, 2000, 1000))])    # 100 ha
+    # classe que cobre metade de cada lote
+    veg = _drawn_layer("veg", [_feat(box(0, 0, 500, 1000)), _feat(box(1000, 0, 1500, 1000))])
+    q = quantitativos_matriz(
+        [{"rotulo": "A", "camada": "lote_a"}, {"rotulo": "B", "camada": "lote_b"}],
+        [{"rotulo": "Veg", "camada": "veg"}],
+        [lote_a, lote_b, veg], 31982)
+    assert q["linhas"][0]["area_total_ha"] == pytest.approx(100, rel=0.001)
+    assert q["linhas"][0]["classes_ha"][0] == pytest.approx(50, rel=0.001)   # metade do lote A
+    assert q["linhas"][1]["classes_ha"][0] == pytest.approx(50, rel=0.001)   # metade do lote B
+    assert q["total_classes_ha"][0] == pytest.approx(100, rel=0.001)
+
+
+def test_resolver_tabela_matriz():
+    from core.nexomap_quantitativos import resolver_tabela_calculada
+    lote_a = _drawn_layer("lote_a", [_feat(box(0, 0, 1000, 1000))])
+    veg = _drawn_layer("veg", [_feat(box(0, 0, 500, 1000))])
+    tabela = {"fonte": "quantitativos_matriz", "config": {
+        "propriedades": [{"rotulo": "Lote A", "camada": "lote_a"}],
+        "classes": [{"rotulo": "Veg", "camada": "veg"}],
+        "area_total_col": True, "linha_total": True}}
+    resolved = resolver_tabela_calculada(tabela, [lote_a, veg], box(0, 0, 1, 1), 31982)
+    assert resolved["colunas"][0] == "Propriedade"
+    assert "Veg (ha)" in resolved["colunas"]
+    assert resolved["linhas"][0][0] == "Lote A"
+    assert resolved["linhas"][-1][0] == "TOTAL"

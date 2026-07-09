@@ -265,10 +265,30 @@ def _label_features(ax, layer, max_labels: int = 30):
         txt.set_path_effects([patheffects.withStroke(linewidth=1.8, foreground="#111827")])
 
 
+def _label_layer_static(ax, layer, cor: str = "white"):
+    """Rotulo estatico (1 texto) no centroide das feicoes da camada (padrao IMAP:
+    nome do imovel + matricula em branco com contorno escuro)."""
+    texto = getattr(layer, "rotulo_texto", "") or ""
+    if not texto or not layer.features:
+        return
+    from shapely.ops import unary_union
+    try:
+        uni = unary_union([f.geom for f in layer.features])
+        rp = uni.representative_point()
+    except Exception:
+        return
+    txt = ax.text(rp.x, rp.y, texto, fontsize=8.0, color=cor, ha="center", va="center",
+                  zorder=13, fontweight="bold", linespacing=1.15)
+    txt.set_path_effects([patheffects.withStroke(linewidth=2.4, foreground="#111827")])
+
+
 def _draw_perimeter(ax, area, style: dict, rotulo: bool):
     line = style.get("linha", "#ff3b30")
     fill = style.get("preenchimento")
-    width = float(style.get("largura", 2.4) or 2.4)
+    raw_w = style.get("largura", 2.4)
+    width = 2.4 if raw_w in (None, "") else float(raw_w)
+    if width <= 0:
+        return  # perimetro invisivel (so define o extent; os lotes vem como camadas)
     for geom, rec in area.features_utm:
         for poly in iter_polygons(geom):
             xs, ys = poly.exterior.xy
@@ -524,8 +544,8 @@ def _draw_tipologia_inset(fig, rect, area, tipo_layers, base_color="#c9c15a"):
     axi.add_patch(patches.FancyBboxPatch((0, 0), 1, 1, transform=axi.transAxes,
                                          boxstyle="round,pad=0.005,rounding_size=0.02",
                                          facecolor="white", edgecolor="#9ca3af", linewidth=0.9, zorder=0))
-    inner = fig.add_axes((rect[0] + rect[2] * 0.40, rect[1] + rect[3] * 0.10,
-                          rect[2] * 0.56, rect[3] * 0.62))
+    inner = fig.add_axes((rect[0] + rect[2] * 0.58, rect[1] + rect[3] * 0.30,
+                          rect[2] * 0.39, rect[3] * 0.60))
     inner.set_aspect("equal")
     inner.axis("off")
     for poly in iter_polygons(area.union_utm):
@@ -588,6 +608,16 @@ def _draw_metadados_imagem_band(fig, rect, meta: dict, scale: int):
         axm.text(0.51, y, str(v), ha="left", va="top", fontsize=7.4, color=_INK,
                  transform=axm.transAxes)
         y -= 0.165
+
+
+def _default_logo_path(project) -> str:
+    """Logo IMAP empacotado no repo (assets/logo_imap.png) — usado quando o
+    MapSpec nao traz marca.logo. Garante que TODO mapa flagship sai com o logo."""
+    try:
+        cand = os.path.join(project.repo_root(), "assets", "logo_imap.png")
+        return cand if os.path.exists(cand) else ""
+    except Exception:
+        return ""
 
 
 def _draw_logo(fig, rect, logo_path: str) -> bool:
@@ -854,13 +884,16 @@ def _flagship_furniture(fig, ax, spec, project, area, scale, extent,
             _draw_legend_swatches(fig, leg_rect, legend_entries, titulo=_legend_title(spec),
                                   ncols=int(leg_cfg.get("colunas", 1) or 1),
                                   fontsize=float(leg_cfg.get("fonte_tamanho", 8.0) or 8.0))
-        if on("logo", True) and spec.marca:
+        if on("logo", True):
             logo_rect = rect_de("logo", (0.85, by + 0.01, 0.12, bh - 0.02))
-            logo_path = _resolver_caminho(project, str(spec.marca.get("logo", "")))
+            marca = spec.marca or {}
+            logo_path = _resolver_caminho(project, str(marca.get("logo", "")))
+            if not (logo_path and os.path.exists(logo_path)):
+                logo_path = _default_logo_path(project)  # logo IMAP empacotado (padrao)
             logo_ok = _draw_logo(fig, logo_rect, logo_path) if logo_path else False
-            if not logo_ok and spec.marca.get("texto"):
+            if not logo_ok and marca.get("texto"):
                 fig.text(logo_rect[0] + logo_rect[2] / 2, logo_rect[1] + logo_rect[3] / 2,
-                         str(spec.marca.get("texto")), ha="center", va="center",
+                         str(marca.get("texto")), ha="center", va="center",
                          fontsize=13, fontweight="bold", color="#17324d")
 
 
@@ -1046,8 +1079,14 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
                                                    alpha=max(alpha, 0.5), label=layer.nome)))
                 continue
             if layer.features:
-                _draw_geoms(ax, layer.features, line, fill, alpha, hatch=hatch)
-                if layer.rotulo:
+                lw = float(layer.estilo.get("largura", 1.1) or 1.1)
+                # camadas com rotulo_texto (lotes/perimetros rotulados) desenham por
+                # cima das sub-areas (AVN/AC/AUAS), independentemente da ordem de adicao.
+                zo = 9 if getattr(layer, "rotulo_texto", "") else 6
+                _draw_geoms(ax, layer.features, line, fill, alpha, lw=lw, zorder=zo, hatch=hatch)
+                if getattr(layer, "rotulo_texto", ""):
+                    _label_layer_static(ax, layer, cor=layer.estilo.get("rotulo_cor", "white"))
+                elif layer.rotulo:
                     _label_features(ax, layer)
             suffix = f" ({layer.feature_count})" if layer.features else " (sem feicoes no recorte)"
             auto_entries.append((layer.id,
@@ -1059,8 +1098,14 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
         perimeter_layer = next((l for l in spec.camadas if l.fonte == "area_base"), None)
         peri_style = perimeter_layer.estilo if perimeter_layer else {}
         _draw_perimeter(ax, area, peri_style, bool(perimeter_layer.rotulo) if perimeter_layer else False)
-        auto_entries.insert(0, ("perimetro", Line2D([0], [0], color=peri_style.get("linha", "#ff3b30"),
-                                                    lw=2.4, label=f"Perimetro do imovel ({area.feature_count})")))
+        raw_pw = peri_style.get("largura", 2.4)
+        peri_w = 2.4 if raw_pw in (None, "") else float(raw_pw)
+        peri_line = peri_style.get("linha") or "#ff3b30"
+        # perimetro invisivel (largura 0 ou cor transparente): nao entra na legenda
+        # e nao vira cor invalida no Line2D (os lotes vem como camadas separadas).
+        if peri_w > 0 and peri_line not in ("transparente", "none"):
+            auto_entries.insert(0, ("perimetro", Line2D([0], [0], color=peri_line,
+                                                        lw=2.4, label=f"Perimetro do imovel ({area.feature_count})")))
 
         # legenda editavel (plano 02): auto (atual) / manual / misto
         legend_entries, legend_avisos = _montar_legenda(

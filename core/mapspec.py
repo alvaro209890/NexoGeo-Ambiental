@@ -179,6 +179,8 @@ def validate_mapspec(spec: MapSpec, catalog: dict, manifest: dict, secrets: dict
             continue
         if layer.fonte == "area_base":
             continue
+        if layer.fonte.startswith("arquivo:"):
+            continue  # shapefile/geojson local (resolvido no fetch_layers)
         if not layer.fonte.startswith("catalogo."):
             errors.append(f"fonte invalida em {layer.id}: {layer.fonte}")
             continue

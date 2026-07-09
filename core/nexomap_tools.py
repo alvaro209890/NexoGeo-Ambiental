@@ -10,6 +10,7 @@ loop: argumento invalido vira mensagem de erro devolvida a IA (role ``tool``).
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -36,6 +37,8 @@ class ToolContext:
     manifest: dict
     secrets: dict = field(default_factory=dict)
     project_name: str = ""
+    # camadas de arquivo LOCAL do imovel (id -> cfg), para a IA usar 'local.<id>'
+    camadas_locais: dict = field(default_factory=dict)
 
 
 def _copia(spec: dict) -> dict:
@@ -184,29 +187,69 @@ def _layer_ids(spec: dict) -> list[str]:
     return [c.get("id") for c in spec.get("camadas") or []]
 
 
+def tool_listar_camadas_locais(spec: dict, ctx: ToolContext) -> tuple[dict, str]:
+    """Lista as camadas de SHAPEFILE LOCAL do imovel (lotes, AVN, AC, AUAS...),
+    com o estilo/rotulo ja sugerido. Adicione-as com adicionar_camada('local.<id>')."""
+    linhas = []
+    for cid, cfg in (ctx.camadas_locais or {}).items():
+        est = cfg.get("estilo") or {}
+        linhas.append({
+            "id": cid, "nome": cfg.get("nome", cid), "tema": cfg.get("tema", ""),
+            "estilo_sugerido": est, "rotulo_texto": est.get("rotulo_texto", ""),
+            "descricao": cfg.get("descricao", ""),
+        })
+    if not linhas:
+        return spec, json.dumps({"camadas_locais": [], "nota":
+                                 "este projeto nao declara camadas locais"}, ensure_ascii=False)
+    return spec, json.dumps({"camadas_locais": linhas}, ensure_ascii=False)
+
+
+def _slug(texto: str) -> str:
+    import re
+    s = re.sub(r"[^a-z0-9]+", "_", str(texto).lower()).strip("_")
+    return s or "camada"
+
+
 def tool_adicionar_camada(spec: dict, ctx: ToolContext, fonte: str,
                           estilo: dict | None = None, rotulo: bool = False) -> tuple[dict, str]:
     layers = layer_index(ctx.catalog)
+    fonte_real = fonte
+    estilo_final = dict(estilo or {})
+    aviso = ""
     if fonte == "area_base":
         cid = "perimetro"
     elif isinstance(fonte, str) and fonte.startswith("catalogo."):
         cid = fonte.split(".", 1)[1]
         if cid not in layers:
             raise ToolError(f"camada inexistente no catalogo: {cid}; use listar_camadas")
+        auth = layers.get(cid, {}).get("auth")
+        if auth and not ctx.secrets.get(auth):
+            aviso = f" [aviso: requer segredo '{auth}' — sem ele a camada sai do mapa com aviso]"
+    elif isinstance(fonte, str) and fonte.startswith("local."):
+        lid = fonte.split(".", 1)[1]
+        cfg = (ctx.camadas_locais or {}).get(lid)
+        if not cfg:
+            raise ToolError(f"camada local inexistente: {lid}; use listar_camadas_locais")
+        cid = lid
+        fonte_real = "arquivo:" + str(cfg.get("arquivo", ""))
+        est = dict(cfg.get("estilo") or {})
+        est.update(estilo_final)           # overrides do usuario vencem
+        estilo_final = est
+        if "nome" not in estilo_final and cfg.get("nome"):
+            estilo_final["nome"] = cfg["nome"]
+    elif isinstance(fonte, str) and fonte.startswith("arquivo:"):
+        cid = _slug(estilo_final.get("nome") or os.path.basename(fonte.split(":", 1)[1]).rsplit(".", 1)[0])
     else:
-        raise ToolError("fonte deve ser 'area_base' ou 'catalogo.<id>'")
+        raise ToolError("fonte deve ser 'area_base', 'catalogo.<id>', 'local.<id>' (shapefile "
+                        "local do imovel — veja listar_camadas_locais) ou 'arquivo:<caminho>'")
     novo = _copia(spec)
     if cid in _layer_ids(novo):
         return novo, f"camada '{cid}' ja esta no mapa"
     novo.setdefault("camadas", []).append({
-        "id": cid, "fonte": fonte,
+        "id": cid, "fonte": fonte_real,
         "filtro": "intersecta_area_base" if cid != "perimetro" else "",
-        "estilo": estilo or {}, "rotulo": bool(rotulo),
+        "estilo": estilo_final, "rotulo": bool(rotulo),
     })
-    aviso = ""
-    auth = layers.get(cid, {}).get("auth")
-    if auth and not ctx.secrets.get(auth):
-        aviso = f" [aviso: requer segredo '{auth}' — sem ele a camada sai do mapa com aviso]"
     return _validar(novo), f"camada '{cid}' adicionada{aviso}"
 
 
@@ -388,6 +431,7 @@ def tool_finalizar(spec: dict, ctx: ToolContext, resumo: str = "") -> tuple[dict
 TOOLS: dict[str, Callable] = {
     "estado_atual": tool_estado_atual,
     "listar_camadas": tool_listar_camadas,
+    "listar_camadas_locais": tool_listar_camadas_locais,
     "criar_mapa": tool_criar_mapa,
     "definir_titulo": tool_definir_titulo,
     "mover_elemento": tool_mover_elemento,
@@ -421,10 +465,13 @@ _ESTILO_CAMADA_SCHEMA = {
     "type": "object",
     "properties": {
         "linha": {"type": "string", "description": "cor da linha (hex)"},
-        "preenchimento": {"type": "string", "description": "cor de preenchimento (hex), 'transparente' ou 'none'"},
+        "preenchimento": {"type": "string", "description": "cor de preenchimento (hex), 'transparente' ou 'none' (so contorno)"},
         "opacidade": {"type": "number", "minimum": 0, "maximum": 1},
         "largura": {"type": "number"},
-        "hachura": {"type": "string", "description": "padrao matplotlib: ////, ----, ...."},
+        "hachura": {"type": "string", "description": "padrao matplotlib: ////, ----, ...., xxx"},
+        "nome": {"type": "string", "description": "rotulo da camada na legenda"},
+        "rotulo_texto": {"type": "string", "description": "texto fixo desenhado no centroide da camada (ex.: nome do lote + matricula)"},
+        "rotulo_cor": {"type": "string", "description": "cor do rotulo_texto (padrao 'white')"},
     },
 }
 
@@ -457,6 +504,9 @@ def _schema(nome: str, descricao: str, props: dict, required: list[str] | None =
 TOOL_SCHEMAS: list[dict] = [
     _schema("estado_atual", "Le o MapSpec atual, os elementos posicionaveis e as ancoras validas.", {}),
     _schema("listar_camadas", "Lista as camadas disponiveis no catalogo (id, nome, tema, auth, descricao).", {}),
+    _schema("listar_camadas_locais", "Lista as camadas de SHAPEFILE LOCAL do imovel (lotes, AVN, "
+            "AC, AUAS...) com estilo/rotulo ja sugeridos. Sao os dados reais do imovel — prefira-as "
+            "para mapas fieis. Adicione com adicionar_camada(fonte='local.<id>').", {}),
     _schema("criar_mapa", "Cria um MapSpec base novo (perimetro + elementos padrao).", {
         "titulo": {"type": "string"},
         "tipo": {"type": "string"},
@@ -488,8 +538,10 @@ TOOL_SCHEMAS: list[dict] = [
             "tamanho": {"type": "number"}, "fonte": {"type": "string"},
             "borda": {"type": "string"}}},
     }, ["elemento", "props"]),
-    _schema("adicionar_camada", "Adiciona uma camada ao mapa. fonte = 'catalogo.<id>' (use "
-            "listar_camadas) ou 'area_base' (perimetro).", {
+    _schema("adicionar_camada", "Adiciona uma camada ao mapa. fonte = 'local.<id>' (shapefile "
+            "LOCAL do imovel — veja listar_camadas_locais; traz estilo/rotulo prontos), "
+            "'catalogo.<id>' (WFS/WMS — veja listar_camadas), 'area_base' (perimetro) ou "
+            "'arquivo:<caminho>' (shapefile/geojson avulso). O estilo passado sobrescreve o sugerido.", {
         "fonte": {"type": "string"},
         "estilo": _ESTILO_CAMADA_SCHEMA,
         "rotulo": {"type": "boolean"},

@@ -124,6 +124,13 @@ class NexoMapCarMapaBody(BaseModel):
     use_basemap: bool = True
 
 
+class NexoMapCarSerieBody(BaseModel):
+    numero_car: str
+    modelos: list[str] | None = None   # None = série padrão completa
+    use_basemap: bool = True
+    data_imagem: str = ""
+
+
 class NexoMapFromAnalysisBody(BaseModel):
     analysis_path: str
     area_path: str | None = None
@@ -588,6 +595,20 @@ async def nexomap_car_mapa(body: NexoMapCarMapaBody):
     async def stream():
         for event in nexomap_generator.gerar_mapa_por_car_stream(
             body.numero_car, body.modelo, use_basemap=body.use_basemap,
+        ):
+            yield _sse(event)
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+@app.post("/api/nexomap/car-serie")
+async def nexomap_car_serie(body: NexoMapCarSerieBody):
+    """Gera a SERIE COMPLETA de mapas IMAP a partir do numero do CAR (100% WFS).
+    SSE streaming: um evento por mapa concluido."""
+    async def stream():
+        for event in nexomap_generator.gerar_serie_por_car_stream(
+            body.numero_car, modelos=body.modelos, use_basemap=body.use_basemap,
+            data_imagem=body.data_imagem,
         ):
             yield _sse(event)
 

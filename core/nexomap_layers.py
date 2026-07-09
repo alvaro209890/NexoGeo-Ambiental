@@ -49,6 +49,7 @@ class DrawnLayer:
     features: list  # list[overlay.FeatureGeo] em UTM
     geojson: dict = field(default_factory=dict)
     rotulo_atributo: str = ""
+    rotulo_texto: str = ""          # rotulo estatico (1 por camada), no centroide
     image: object = None            # numpy array RGBA (wms_raster)
     image_extent: tuple | None = None  # (minx, maxx, miny, maxy) em UTM
 
@@ -285,13 +286,58 @@ def _expand_bbox_geo(bbox: tuple, fraction: float = 0.25) -> tuple:
     return (minx - dx, miny - dy, maxx + dx, maxy + dy)
 
 
+def _read_local_layer(layer, dst_epsg: int, project=None) -> tuple[DrawnLayer | None, str | None]:
+    """Le uma camada de arquivo LOCAL (``fonte='arquivo:<path>'``) e devolve um
+    DrawnLayer com as feicoes em UTM. Path absoluto ou relativo a raiz de dados/repo.
+
+    Aceita .shp/.zip/.geojson/.kml/.kmz (via core.geo). Rotulo estatico e por
+    atributo vem de ``estilo.rotulo_texto`` / ``estilo.rotulo_atributo``.
+    """
+    from core import geo as geo_mod
+    from core import overlay as overlay_mod
+
+    raw = layer.fonte.split(":", 1)[1].strip()
+    path = raw
+    if not os.path.isabs(path) and project is not None:
+        try:
+            path = project.resolve_repo_or_data_path(raw)
+        except Exception:
+            path = raw
+    if not os.path.exists(path):
+        return None, f"camada {layer.id}: arquivo local nao encontrado: {raw}"
+    try:
+        ext = os.path.splitext(path)[1].lower()
+        if ext == ".shp":
+            pares = geo_mod.ler_geometria(path, dst_epsg)  # [(geom_utm, rec), ...]
+        else:
+            with geo_mod.abrir_shape_zip(path, dst_epsg) as sh:
+                pares = list(sh.features_utm)
+    except Exception as e:  # leitura/reprojecao
+        return None, f"camada {layer.id}: falha ao ler arquivo local ({type(e).__name__}): {e}"
+    estilo = layer.estilo or {}
+    feats = [overlay_mod.FeatureGeo(geom=g, props=(rec or {}), fonte=layer.id, layer=layer.id)
+             for g, rec in pares]
+    dl = DrawnLayer(
+        id=layer.id,
+        nome=str(estilo.get("nome") or layer.id),
+        tema=str(estilo.get("tema") or ""),
+        estilo=estilo,
+        rotulo=bool(layer.rotulo),
+        rotulo_atributo=str(estilo.get("rotulo_atributo") or ""),
+        rotulo_texto=str(estilo.get("rotulo_texto") or ""),
+        features=feats,
+    )
+    return dl, (None if feats else f"camada {layer.id}: arquivo local sem feicoes")
+
+
 def fetch_layers(spec: MapSpec, catalog: dict, bbox_geo: tuple, dst_epsg: int,
                  secrets: dict | None = None,
-                 cache_dir: str | None = None) -> tuple[list[DrawnLayer], list[str]]:
-    """Busca as camadas ``catalogo.*`` do spec no bbox (expandido) da area.
+                 cache_dir: str | None = None, project=None) -> tuple[list[DrawnLayer], list[str]]:
+    """Busca as camadas do spec no bbox (expandido) da area.
 
-    ``cache_dir`` (opcional): respostas cacheadas por (id, bbox) — re-render
-    sem rede reusa o cache; falha de rede tambem cai no cache se existir.
+    ``catalogo.<id>`` = WFS/REST/WMS (rede, com cache). ``arquivo:<path>`` =
+    shapefile/geojson LOCAL (sem rede). ``cache_dir`` (opcional): respostas
+    cacheadas por (id, bbox); falha de rede cai no cache se existir.
     """
     layers_cfg = layer_index(catalog)
     secrets = secrets or {}
@@ -300,6 +346,13 @@ def fetch_layers(spec: MapSpec, catalog: dict, bbox_geo: tuple, dst_epsg: int,
     warnings: list[str] = []
 
     for layer in spec.camadas:
+        if layer.fonte.startswith("arquivo:"):
+            dl, aviso = _read_local_layer(layer, dst_epsg, project=project)
+            if aviso:
+                warnings.append(aviso)
+            if dl is not None:
+                drawn.append(dl)
+            continue
         if not layer.fonte.startswith("catalogo."):
             continue
         cid = layer.fonte.split(".", 1)[1]

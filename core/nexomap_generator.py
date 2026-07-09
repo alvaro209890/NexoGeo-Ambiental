@@ -84,12 +84,12 @@ def _run_pipeline(project, catalog, manifest, secrets, spec,
     # camadas reais do catalogo (WFS/GML/REST/WMS) — desenhadas e exportadas
     drawn_layers, layer_warnings = nexomap_layers.fetch_layers(
         spec, catalog, area.bbox_geo, project.crs.utm, secrets,
-        cache_dir=os.path.join(project.mapas_dir(), ".cache"),
+        cache_dir=os.path.join(project.mapas_dir(), ".cache"), project=project,
     )
 
     # ── resolver tabela calculada (plano 04) ──
     tabela = spec.tabela or {}
-    if tabela.get("fonte") == "quantitativos":
+    if tabela.get("fonte") in ("quantitativos", "quantitativos_matriz"):
         with abrir_shape_zip(
             project.area_base_path(), project.crs.utm, project.crs.geografico
         ) as area_shape:
@@ -258,38 +258,36 @@ CAR_WEB_PROJECT = os.path.join(
     "projetos", "car_web", "projeto.json")
 
 
-def gerar_mapa_por_car(numero_car: str, modelo_id: str,
-                       project_path: str | None = None,
-                       use_basemap: bool = True, data_imagem: str = "") -> dict:
-    """Gera um mapa a partir do numero do CAR + um modelo (card).
+# série padrão de mapas gerada por número do CAR (ordem = ordem de saída)
+SERIE_CAR_PADRAO = ["car", "uso_consolidado", "tipologia", "dinamica",
+                    "areas_protegidas", "embargos", "alertas"]
 
-    Busca a ATP do imovel na SEMA (WFS), grava como area_base, aplica o modelo
-    (cruzando a ATP com as camadas SIMCAR digital via o pipeline) e renderiza.
-    """
-    from core import nexomap_car
-    from core.nexomap_modelos import aplicar_modelo, modelos_index
 
+def _car_project_secrets(project_path: str | None):
+    """Carrega o projeto CAR + secrets (cai no secrets da raiz do repo se preciso)."""
     project_path = project_path or CAR_WEB_PROJECT
     project = load_nexomap_project(project_path)
     catalog = load_layer_catalog(project.catalog_path())
     manifest = load_template_manifest(project.template_manifest_path())
     secrets = secrets_loader.load_secrets(project)
     if not secrets.get("sema_authkey"):
-        # o projeto car_web nao tem secrets locais; usa o da raiz do repo
         repo_secrets = os.path.join(project.repo_root(), "secrets.local.json")
         if os.path.exists(repo_secrets):
             with open(repo_secrets, "r", encoding="utf-8") as f:
                 secrets = json.load(f)
+    return project, catalog, manifest, secrets
 
-    modelos = modelos_index()
-    if modelo_id not in modelos:
-        raise NexoMapError(f"modelo '{modelo_id}' inexistente; use {sorted(modelos)}")
 
+def _preparar_area_por_car(numero_car: str, project, secrets: dict) -> dict:
+    """Busca a ATP do imovel na SEMA (WFS) pelo numero do CAR, grava como
+    area_base do projeto e ajusta o CRS UTM. Devolve o dict ``busca``.
+
+    Feito UMA vez por CAR — a serie inteira reusa a mesma area_base.
+    """
+    from core import nexomap_car
     busca = nexomap_car.buscar_car(numero_car, secrets)
     if not busca.get("ok"):
         raise NexoMapError(busca.get("erro", "CAR nao encontrado"))
-
-    # area_base = ATP do imovel; nome unico p/ nao colidir entre requisicoes
     epsg_utm = nexomap_car.utm_epsg_from_bbox(busca["bbox_geo"])
     shapes_dir = os.path.join(project.raiz_abs(), "Shapes")
     zip_name = "area_" + _job_id() + ".zip"
@@ -298,21 +296,30 @@ def gerar_mapa_por_car(numero_car: str, modelo_id: str,
     project.area_base.path = os.path.join("Shapes", zip_name)
     project.area_base.tipo = "shapefile_zip"
     project.crs.utm = epsg_utm
+    busca["epsg_utm"] = epsg_utm
+    return busca
 
+
+def _gerar_modelo(project, catalog, manifest, secrets, busca: dict, modelo_id: str,
+                  use_basemap: bool, data_imagem: str) -> dict:
+    """Aplica um modelo sobre a area_base ja preparada (ATP) e renderiza."""
+    from core.nexomap_modelos import aplicar_modelo, modelos_index
+    modelos = modelos_index()
+    if modelo_id not in modelos:
+        raise NexoMapError(f"modelo '{modelo_id}' inexistente; use {sorted(modelos)}")
     car_info = {"nome": busca.get("nome"), "numero": busca.get("numero")}
     spec_dict, avisos = aplicar_modelo(modelos[modelo_id], catalog, car_info=car_info,
-                                       epsg_utm=epsg_utm, data_imagem=data_imagem)
+                                       epsg_utm=busca["epsg_utm"], data_imagem=data_imagem)
     spec = mapspec_from_dict(spec_dict)
-
     result = _run_pipeline(project, catalog, manifest, secrets, spec,
                            prompt=f"[CAR {busca.get('numero')}] modelo {modelo_id}",
                            provider="car_modelo", ai_raw="",
                            ai_warnings=avisos, use_basemap=use_basemap)
     result["car"] = {
         "numero": busca.get("numero"), "campo": busca.get("campo"),
-        "origem": busca.get("origem"),
-        "nome": busca.get("nome"), "area_ha": busca.get("area_ha"),
-        "situacao": busca.get("situacao"), "epsg_utm": epsg_utm,
+        "origem": busca.get("origem"), "nome": busca.get("nome"),
+        "area_ha": busca.get("area_ha"), "situacao": busca.get("situacao"),
+        "epsg_utm": busca["epsg_utm"],
     }
     result["modelo"] = modelo_id
     try:
@@ -321,6 +328,54 @@ def gerar_mapa_por_car(numero_car: str, modelo_id: str,
     except Exception:
         pass
     return result
+
+
+def gerar_mapa_por_car(numero_car: str, modelo_id: str,
+                       project_path: str | None = None,
+                       use_basemap: bool = True, data_imagem: str = "") -> dict:
+    """Gera UM mapa a partir do numero do CAR + um modelo (card).
+
+    Busca a ATP do imovel na SEMA (WFS), grava como area_base, aplica o modelo
+    (cruzando a ATP com as camadas SIMCAR digital via o pipeline) e renderiza.
+    """
+    project, catalog, manifest, secrets = _car_project_secrets(project_path)
+    busca = _preparar_area_por_car(numero_car, project, secrets)
+    return _gerar_modelo(project, catalog, manifest, secrets, busca, modelo_id,
+                         use_basemap, data_imagem)
+
+
+def gerar_serie_por_car(numero_car: str, modelos: list[str] | None = None,
+                        project_path: str | None = None, use_basemap: bool = True,
+                        data_imagem: str = "") -> dict:
+    """Gera a SERIE COMPLETA de mapas IMAP a partir do numero do CAR (100% WFS).
+
+    Busca a ATP UMA vez e gera cada modelo (car, uso consolidado, tipologia,
+    dinamica, areas protegidas, embargos, alertas). Camadas que exigem segredo
+    ausente saem do mapa com aviso — os demais mapas continuam. Devolve
+    ``{car, mapas:[{modelo, ok, job_id, pdf, preview, warnings}], erros:[...]}``.
+    """
+    modelos = modelos or SERIE_CAR_PADRAO
+    project, catalog, manifest, secrets = _car_project_secrets(project_path)
+    busca = _preparar_area_por_car(numero_car, project, secrets)
+    mapas, erros = [], []
+    for modelo_id in modelos:
+        try:
+            r = _gerar_modelo(project, catalog, manifest, secrets, busca, modelo_id,
+                              use_basemap, data_imagem)
+            mapas.append({
+                "modelo": modelo_id, "ok": r.get("ok"), "job_id": r.get("job_id"),
+                "pdf": r["outputs"]["pdf"], "preview": r["outputs"]["preview_png"],
+                "camadas": [c["nome"] for c in r["validacao"].get("camadas_desenhadas", [])],
+                "warnings": r.get("warnings", []),
+            })
+        except Exception as e:  # um modelo falho nao derruba a serie
+            erros.append({"modelo": modelo_id, "erro": f"{type(e).__name__}: {e}"})
+    return {
+        "car": {"numero": busca.get("numero"), "nome": busca.get("nome"),
+                "area_ha": busca.get("area_ha"), "origem": busca.get("origem"),
+                "situacao": busca.get("situacao"), "epsg_utm": busca["epsg_utm"]},
+        "mapas": mapas, "erros": erros,
+    }
 
 
 def gerar_mapa_por_car_stream(numero_car: str, modelo_id: str,
@@ -376,6 +431,45 @@ def gerar_mapa_por_car_stream(numero_car: str, modelo_id: str,
     else:
         yield {"status": "progress", "stage": "renderizado"}
         yield {"status": "done", "result": box["result"]}
+
+
+def gerar_serie_por_car_stream(numero_car: str, modelos: list[str] | None = None,
+                               project_path: str | None = None, use_basemap: bool = True,
+                               data_imagem: str = "") -> Iterator[dict]:
+    """Versao SSE de gerar_serie_por_car: emite um evento por mapa concluido."""
+    modelos = modelos or SERIE_CAR_PADRAO
+    yield {"status": "started", "stage": "buscar_car", "total": len(modelos)}
+    try:
+        project, catalog, manifest, secrets = _car_project_secrets(project_path)
+        busca = _preparar_area_por_car(numero_car, project, secrets)
+    except NexoMapError as e:
+        yield {"status": "error", "erro": str(e)}
+        return
+    except Exception as e:  # pragma: no cover - defensivo
+        yield {"status": "error", "erro": f"{type(e).__name__}: {e}"}
+        return
+
+    car = {"numero": busca.get("numero"), "nome": busca.get("nome"),
+           "area_ha": busca.get("area_ha"), "origem": busca.get("origem"),
+           "situacao": busca.get("situacao")}
+    yield {"status": "progress", "stage": "car_ok", "car": car}
+
+    mapas, erros = [], []
+    for i, modelo_id in enumerate(modelos, 1):
+        yield {"status": "progress", "stage": "renderizando", "modelo": modelo_id,
+               "i": i, "total": len(modelos)}
+        try:
+            r = _gerar_modelo(project, catalog, manifest, secrets, busca, modelo_id,
+                              use_basemap, data_imagem)
+            item = {"modelo": modelo_id, "ok": r.get("ok"), "job_id": r.get("job_id"),
+                    "pdf": r["outputs"]["pdf"], "preview": r["outputs"]["preview_png"],
+                    "warnings": r.get("warnings", [])}
+            mapas.append(item)
+            yield {"status": "mapa", **item}
+        except Exception as e:
+            erros.append({"modelo": modelo_id, "erro": f"{type(e).__name__}: {e}"})
+            yield {"status": "mapa_erro", "modelo": modelo_id, "erro": f"{type(e).__name__}: {e}"}
+    yield {"status": "done", "car": car, "mapas": mapas, "erros": erros}
 
 
 def generate_stream(project_path: str, prompt: str | None = None,

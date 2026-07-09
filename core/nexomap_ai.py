@@ -256,7 +256,8 @@ def run_tools(prompt: str, project: NexoMapProject, catalog: dict, manifest: dic
         return response.json()
 
     ctx = ToolContext(catalog=catalog, manifest=manifest, secrets=secrets,
-                      project_name=project.nome)
+                      project_name=project.nome,
+                      camadas_locais=project.camadas_locais_index())
     result = run_tool_loop(prompt, ctx, call_provider, spec_dict=spec_dict,
                            max_steps=max_steps, on_tool_call=on_tool_call)
     result.provider = cfg.get("provider", "ai")

@@ -66,7 +66,13 @@ class NexoMapProject:
     templates_layouts: str
     data_consulta: str = "auto"
     metadata: dict[str, Any] = field(default_factory=dict)
+    # camadas de shapefile LOCAL do imovel (lotes, AVN, AC, AUAS...) que a IA pode
+    # adicionar por 'local.<id>'. Cada item: {id, arquivo, nome, tema, estilo, rotulo}.
+    camadas_locais: list[dict] = field(default_factory=list)
     _arquivo: str = ""
+
+    def camadas_locais_index(self) -> dict[str, dict]:
+        return {str(c.get("id")): c for c in (self.camadas_locais or []) if c.get("id")}
 
     def data_consulta_efetiva(self) -> str:
         if str(self.data_consulta).strip().lower() == "auto":
@@ -183,6 +189,7 @@ def load_nexomap_project(path: str) -> NexoMapProject:
         templates_layouts=str(data.get("templates_layouts") or data.get("templates_mxd") or DEFAULT_LAYOUTS_MANIFEST),
         data_consulta=str(data.get("data_consulta", "auto")),
         metadata=data.get("metadata") or {},
+        camadas_locais=data.get("camadas_locais") or [],
         _arquivo=os.path.abspath(path),
     )
 
