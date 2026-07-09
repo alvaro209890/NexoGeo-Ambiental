@@ -23,8 +23,25 @@ from urllib.request import urlopen
 import json as _json
 
 SEMA_OWS = "https://geo.sema.mt.gov.br/geoserver/ows"
-CAR_TYPENAME = "Geoportal:CAR_ATP"
 EPSG_GEO = 4674  # SIRGAS 2000 geografico
+
+# Fontes da ATP no WFS da SEMA, em ordem de prioridade:
+# 1) CAR digital validado (CAR_ATP); 2) requerimento do SIMCAR (ainda nao validado).
+# Cada fonte mapeia o campo LOGICO -> nome real do atributo naquela camada.
+FONTES_ATP = [
+    {
+        "typename": "Geoportal:CAR_ATP",
+        "origem": "car_digital",
+        "campos": {"CAR_FEDERAL": "CAR_FEDERAL", "NUMEROESTADUAL": "NUMEROESTADUAL"},
+        "situacao": "SITUACAO_CAR",
+    },
+    {
+        "typename": "Geoportal:MVW_REQUERIMENTO_ATP",
+        "origem": "requerimento",
+        "campos": {"CAR_FEDERAL": "CODIGO_CAR_FEDERAL", "NUMEROESTADUAL": "NUMEROESTADUAL"},
+        "situacao": "SITUACAO",
+    },
+]
 
 # CAR federal (SICAR): MT-<ibge7>-<hash hex de 32>. Estadual: MT<numero>/<ano>.
 _RE_FEDERAL = re.compile(r"^[A-Z]{2}-\d{6,7}-[0-9A-F]{20,40}$", re.I)
@@ -56,16 +73,17 @@ def _cql_escape(valor: str) -> str:
     return valor.replace("'", "''")
 
 
-def _get_features(campo: str, numero: str, authkey: str, timeout: float = 40.0) -> list[dict]:
+def _get_features(typename: str, attr: str, numero: str, authkey: str,
+                  timeout: float = 40.0) -> list[dict]:
     params = {
         "service": "WFS",
         "version": "2.0.0",
         "request": "GetFeature",
-        "typeName": CAR_TYPENAME,
+        "typeName": typename,
         "outputFormat": "application/json",
         "srsName": f"EPSG:{EPSG_GEO}",
         "count": "5",
-        "CQL_FILTER": f"{campo}='{_cql_escape(numero)}'",
+        "CQL_FILTER": f"{attr}='{_cql_escape(numero)}'",
         "authkey": authkey,
     }
     url = SEMA_OWS + "?" + urlencode(params)
@@ -75,10 +93,14 @@ def _get_features(campo: str, numero: str, authkey: str, timeout: float = 40.0) 
 
 
 def buscar_car(numero: str, secrets: dict, timeout: float = 40.0) -> dict:
-    """Busca o imovel no CAR_ATP pelo numero. Devolve dict com resultado.
+    """Busca a ATP do imovel pelo numero do CAR no WFS da SEMA.
 
-    ``{ok, numero, campo, propriedades, geometry, bbox_geo, epsg, area_ha, nome}``
-    ou ``{ok: False, erro}``. Se o formato for ambiguo, tenta os dois campos.
+    Consulta, em ordem: (1) CAR digital validado (``CAR_ATP``); (2) requerimento
+    do SIMCAR (``MVW_REQUERIMENTO_ATP``) — muitos CARs recentes so existem como
+    requerimento. Em cada fonte tenta o campo detectado e depois o outro.
+
+    Devolve ``{ok, numero, campo, origem, propriedades, geometry, bbox_geo, epsg,
+    area_ha, nome, situacao}`` ou ``{ok: False, erro}``.
     """
     authkey = (secrets or {}).get("sema_authkey")
     if not authkey:
@@ -95,36 +117,41 @@ def buscar_car(numero: str, secrets: dict, timeout: float = 40.0) -> dict:
             ordem.append(c)
 
     ultimo_erro = None
-    for campo in ordem:
-        try:
-            feats = _get_features(campo, n, authkey, timeout=timeout)
-        except Exception as e:  # rede/timeout/parse
-            ultimo_erro = f"{type(e).__name__}: {e}"
-            continue
-        if feats:
+    for fonte in FONTES_ATP:
+        for campo in ordem:
+            attr = fonte["campos"].get(campo)
+            if not attr:
+                continue
+            try:
+                feats = _get_features(fonte["typename"], attr, n, authkey, timeout=timeout)
+            except Exception as e:  # rede/timeout/parse
+                ultimo_erro = f"{type(e).__name__}: {e}"
+                continue
+            if not feats:
+                continue
             f = feats[0]
             props = f.get("properties") or {}
             geom = f.get("geometry")
             if not geom:
-                return {"ok": False, "erro": "CAR encontrado, mas sem geometria"}
-            bbox = _bbox_geojson(geom)
+                continue
             return {
                 "ok": True,
                 "numero": n,
                 "campo": campo,
+                "origem": fonte["origem"],
                 "propriedades": props,
                 "geometry": geom,
-                "bbox_geo": bbox,
+                "bbox_geo": _bbox_geojson(geom),
                 "epsg": EPSG_GEO,
                 "area_ha": props.get("AREA_HA"),
                 "nome": props.get("NOMEPROPRIEDADE") or n,
                 "municipio_codigo": props.get("MUNICIPIO_CODIGO"),
-                "situacao": props.get("SITUACAO_CAR"),
+                "situacao": props.get(fonte["situacao"]) or props.get("SITUACAO_CAR") or props.get("SITUACAO"),
                 "n_feicoes": len(feats),
             }
     if ultimo_erro:
         return {"ok": False, "erro": f"falha ao consultar a SEMA: {ultimo_erro}"}
-    return {"ok": False, "erro": f"CAR '{n}' nao encontrado no CAR_ATP da SEMA-MT"}
+    return {"ok": False, "erro": f"CAR '{n}' nao encontrado no CAR digital nem no requerimento (SIMCAR) da SEMA-MT"}
 
 
 def _bbox_geojson(geom: dict) -> tuple[float, float, float, float]:

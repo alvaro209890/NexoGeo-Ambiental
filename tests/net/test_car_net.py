@@ -25,8 +25,16 @@ class CarNetTests(unittest.TestCase):
         r = car.buscar_car(CAR_ESTADUAL, self.secrets)
         self.assertTrue(r["ok"], r.get("erro"))
         self.assertEqual(r["campo"], "NUMEROESTADUAL")
+        self.assertIn(r["origem"], ("car_digital", "requerimento"))
         self.assertIn(r["geometry"]["type"], ("Polygon", "MultiPolygon"))
         self.assertGreater(float(r["area_ha"]), 0)
+
+    @unittest.skipUnless(os.environ.get("SEMA_AUTHKEY"), "sem SEMA_AUTHKEY")
+    def test_busca_no_requerimento_ao_vivo(self):
+        # forca a fonte de requerimento diretamente (mesma numeracao existe la)
+        feats = car._get_features("Geoportal:MVW_REQUERIMENTO_ATP", "NUMEROESTADUAL",
+                                  CAR_ESTADUAL, self.secrets["sema_authkey"])
+        self.assertTrue(feats and feats[0].get("geometry"))
 
     @unittest.skipUnless(os.environ.get("SEMA_AUTHKEY"), "sem SEMA_AUTHKEY")
     def test_car_inexistente(self):

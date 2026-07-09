@@ -61,6 +61,18 @@ ARL, AVN, AUAS...) e monta o mapa no padrao IMAP — sem precisar de shapefile.
 - **UX resiliente**: CarMapaView mostra erro amigável + "Tentar novamente" ao falhar o fetch dos
   modelos; `authError()` traduz "Load failed"/"Failed to fetch" para PT.
 
+## Ajustes 2026-07-09 (3ª rodada)
+
+- **Busca da ATP no requerimento do SIMCAR**: `buscar_car` agora consulta `CAR_ATP` (validado) E
+  `MVW_REQUERIMENTO_ATP` (requerimento — campo federal e `CODIGO_CAR_FEDERAL`, situacao `SITUACAO`).
+  Muitos CARs recentes so existem como requerimento. Resultado traz `origem` (car_digital|requerimento),
+  exibido no front.
+- **Fix "nao conectou no servidor"**: o render bloqueava o SSE por 30-90s sem enviar bytes → o
+  Cloudflare cortava a conexao ociosa (~100s). Agora `gerar_mapa_por_car_stream` roda o render numa
+  thread e emite **heartbeats** a cada 4s (`stage=renderizando`, com segundos decorridos); teto de 240s.
+  Front mostra "Cruzando camadas e montando o mapa… (Ns)". Validado: modelo `car`+basemap via tunnel,
+  4 heartbeats, `ok:True`.
+
 ## Proximos passos
 - Tipologia por **classe de vegetacao** (atributo), nao a camada inteira como 1 classe.
 - Cache da ATP por numero de CAR; desambiguacao quando ha >1 registro (PRA antigo + atual).

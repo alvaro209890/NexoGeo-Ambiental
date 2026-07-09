@@ -90,8 +90,9 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
           if (!linha) continue
           let ev
           try { ev = JSON.parse(linha.slice(5).trim()) } catch { continue }
-          if (ev.status === 'progress' && ev.stage === 'consultando_sema') setEtapa('Buscando o imovel no CAR…')
-          else if (ev.status === 'progress' && ev.stage === 'renderizado') setEtapa('Montando o mapa…')
+          if (ev.status === 'progress' && ev.stage === 'consultando_sema') setEtapa('Buscando o imovel no CAR (SIMCAR)…')
+          else if (ev.status === 'progress' && ev.stage === 'renderizando') setEtapa(`Cruzando camadas e montando o mapa… (${ev.aguardando_s || 0}s)`)
+          else if (ev.status === 'progress' && ev.stage === 'renderizado') setEtapa('Finalizando…')
           else if (ev.status === 'error') { setErro(ev.erro || 'Falha ao gerar o mapa'); setEtapa('') }
           else if (ev.status === 'done') { setResultado(ev.result); setEtapa('') }
         }
@@ -191,7 +192,8 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
           <div className="carmap-result-head">
             <div>
               <strong>{resultado.mapspec?.titulo}</strong>
-              <span>{resultado.car?.nome} · CAR {resultado.car?.numero} · {fmtHa(resultado.car?.area_ha)}</span>
+              <span>{resultado.car?.nome} · CAR {resultado.car?.numero} · {fmtHa(resultado.car?.area_ha)}
+                {resultado.car?.origem === 'requerimento' ? ' · requerimento SIMCAR' : resultado.car?.origem === 'car_digital' ? ' · CAR validado' : ''}</span>
             </div>
             <div className="carmap-badges">
               {resultado.validacao?.conformidade_modelo?.ok

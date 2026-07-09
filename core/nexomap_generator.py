@@ -310,6 +310,7 @@ def gerar_mapa_por_car(numero_car: str, modelo_id: str,
                            ai_warnings=avisos, use_basemap=use_basemap)
     result["car"] = {
         "numero": busca.get("numero"), "campo": busca.get("campo"),
+        "origem": busca.get("origem"),
         "nome": busca.get("nome"), "area_ha": busca.get("area_ha"),
         "situacao": busca.get("situacao"), "epsg_utm": epsg_utm,
     }
@@ -324,19 +325,57 @@ def gerar_mapa_por_car(numero_car: str, modelo_id: str,
 
 def gerar_mapa_por_car_stream(numero_car: str, modelo_id: str,
                               project_path: str | None = None,
-                              use_basemap: bool = True) -> Iterator[dict]:
-    """Versao SSE de gerar_mapa_por_car (eventos de progresso p/ o frontend)."""
+                              use_basemap: bool = True,
+                              heartbeat_s: float = 4.0,
+                              timeout_s: float = 240.0) -> Iterator[dict]:
+    """Versao SSE de gerar_mapa_por_car.
+
+    O render (busca + camadas + matplotlib) roda numa thread; enquanto isso o
+    gerador emite HEARTBEATS a cada ``heartbeat_s`` segundos para manter a conexao
+    viva — sem eles, o proxy/Cloudflare corta o SSE ocioso (~100s) e o frontend
+    mostra "nao conectou no servidor".
+    """
+    import queue
+    import threading
+
     yield {"status": "started", "stage": "buscar_car"}
-    try:
-        yield {"status": "progress", "stage": "consultando_sema", "numero": numero_car}
-        result = gerar_mapa_por_car(numero_car, modelo_id, project_path=project_path,
-                                    use_basemap=use_basemap)
+    yield {"status": "progress", "stage": "consultando_sema", "numero": numero_car}
+
+    box: dict = {}
+    fim = queue.Queue()
+
+    def _worker():
+        try:
+            box["result"] = gerar_mapa_por_car(numero_car, modelo_id,
+                                               project_path=project_path, use_basemap=use_basemap)
+        except NexoMapError as e:
+            box["erro"] = str(e)
+        except Exception as e:  # pragma: no cover - defensivo
+            box["erro"] = f"{type(e).__name__}: {e}"
+        finally:
+            fim.put(True)
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+    esperado = 0.0
+    while True:
+        try:
+            fim.get(timeout=heartbeat_s)
+            break
+        except queue.Empty:
+            esperado += heartbeat_s
+            if esperado >= timeout_s:
+                yield {"status": "error", "erro": "tempo excedido ao gerar o mapa (a SEMA pode "
+                                                  "estar lenta). Tente novamente."}
+                return
+            yield {"status": "progress", "stage": "renderizando", "aguardando_s": int(esperado)}
+
+    if "erro" in box:
+        yield {"status": "error", "erro": box["erro"]}
+    else:
         yield {"status": "progress", "stage": "renderizado"}
-        yield {"status": "done", "result": result}
-    except NexoMapError as e:
-        yield {"status": "error", "erro": str(e)}
-    except Exception as e:  # pragma: no cover - defensivo
-        yield {"status": "error", "erro": f"{type(e).__name__}: {e}"}
+        yield {"status": "done", "result": box["result"]}
 
 
 def generate_stream(project_path: str, prompt: str | None = None,
