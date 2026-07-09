@@ -16,6 +16,7 @@ from core.nexomap_ai import spec_edit_from_prompt, spec_from_prompt
 from core.nexomap_catalog import load_layer_catalog, load_template_manifest
 from core.nexomap_geo import summarize_area
 from core.nexomap_project import NexoMapError, load_nexomap_project
+from core.nexomap_quantitativos import resolver_tabela_calculada
 from core.nexomap_renderer import render_pdf_map
 
 
@@ -80,10 +81,21 @@ def _run_pipeline(project, catalog, manifest, secrets, spec,
         "mapspec": spec.to_dict(),
     })
 
-    # camadas reais do catalogo (WFS) — desenhadas no mapa e exportadas em GeoJSON
+    # camadas reais do catalogo (WFS/GML/REST/WMS) — desenhadas e exportadas
     drawn_layers, layer_warnings = nexomap_layers.fetch_layers(
         spec, catalog, area.bbox_geo, project.crs.utm, secrets,
+        cache_dir=os.path.join(project.mapas_dir(), ".cache"),
     )
+
+    # ── resolver tabela calculada (plano 04) ──
+    tabela = spec.tabela or {}
+    if tabela.get("fonte") == "quantitativos":
+        with abrir_shape_zip(
+            project.area_base_path(), project.crs.utm, project.crs.geografico
+        ) as area_shape:
+            recorte = area_shape.union_utm
+        resolved = resolver_tabela_calculada(tabela, drawn_layers, recorte, project.crs.utm)
+        spec.tabela = resolved
 
     outputs = render_pdf_map(project, spec, catalog, job_dir,
                              manifest=manifest, drawn_layers=drawn_layers,

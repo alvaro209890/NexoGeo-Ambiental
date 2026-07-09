@@ -247,6 +247,23 @@ def _feature_label(rec: dict) -> str:
     return ""
 
 
+def _label_features(ax, layer, max_labels: int = 30):
+    """Rotula as feicoes de uma camada (atributo configuravel no catalogo)."""
+    attr = getattr(layer, "rotulo_atributo", "") or ""
+    for feat in layer.features[:max_labels]:
+        props = getattr(feat, "props", {}) or {}
+        label = str(props.get(attr) or "") if attr else _feature_label(props)
+        if not label:
+            continue
+        try:
+            rp = feat.geom.representative_point()
+        except Exception:
+            continue
+        txt = ax.text(rp.x, rp.y, label, fontsize=6.4, color="#ffe27a",
+                      ha="center", va="center", zorder=11, fontweight="bold")
+        txt.set_path_effects([patheffects.withStroke(linewidth=1.8, foreground="#111827")])
+
+
 def _draw_perimeter(ax, area, style: dict, rotulo: bool):
     line = style.get("linha", "#ff3b30")
     fill = style.get("preenchimento")
@@ -588,7 +605,13 @@ def _draw_logo(fig, rect, logo_path: str) -> bool:
 
 
 def _draw_table(fig, rect, tabela: dict):
-    """Tabela de dados no padrao IMAP (cabecalho azul, zebra). ``tabela`` = {titulo, colunas, linhas}."""
+    """Tabela de dados no padrao IMAP (cabecalho azul, zebra).
+
+    ``tabela`` = {titulo, colunas[], linhas[[]], colunas_grupos?[]}.
+
+    Com ``colunas_grupos`` (multinivel): cada grupo = {titulo, sub[]}.
+    O renderer desenha duas linhas de cabecalho com celulas mescladas.
+    """
     colunas = tabela.get("colunas") or []
     linhas = tabela.get("linhas") or []
     if not colunas or not linhas:
@@ -600,19 +623,97 @@ def _draw_table(fig, rect, tabela: dict):
         axt.text(0.5, 1.03, titulo, ha="center", va="bottom", fontsize=8.5,
                  fontweight="bold", color=_INK, transform=axt.transAxes,
                  bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="#9ca3af", lw=0.6, alpha=0.95))
-    t = axt.table(cellText=[[str(c) for c in row] for row in linhas],
-                  colLabels=[str(c) for c in colunas], loc="center", cellLoc="center")
-    t.auto_set_font_size(False)
-    t.set_fontsize(6.6)
-    t.scale(1, 1.35)
-    for (r, c), cell in t.get_celld().items():
-        cell.set_edgecolor("#9ca3af")
-        cell.set_linewidth(0.5)
-        if r == 0:
-            cell.set_facecolor("#1f4e78")
-            cell.set_text_props(color="white", weight="bold")
-        else:
-            cell.set_facecolor("#eef3f8" if r % 2 else "white")
+
+    grupos = tabela.get("colunas_grupos")
+    if grupos:
+        # ── cabeçalho multinível ──
+        # linha 0: subcolunas, linha 1: grupos (acima, mesclados)
+        sub_labels = []
+        for g in grupos:
+            sub_labels.extend(g.get("sub", []))
+        # build rowLabels + cellText (matplotlib puts rowLabels as the topmost header row)
+        # Usamos duas linhas de cabecalho custom: grupos como row 0, subs como row 1.
+        # matplotlib.table: row 0 = colLabels (se passado), row 1+ = cellText.
+        # Para 2 niveis de cabecalho, passamos os grupos como primeira linha de cellText
+        # e tratamos visualmente.
+        cell_text = [[str(c) for c in row] for row in linhas]
+        # Prepend grupo labels as first data row (will be styled blue)
+        grupo_row = []
+        for g in grupos:
+            tit = g.get("titulo", "")
+            nsub = len(g.get("sub", []))
+            grupo_row.append(tit)
+            # fill remaining sub-columns of this group with empty (merged visually)
+            grupo_row.extend([""] * (nsub - 1))
+        # Also add the sub-labels as a second header row
+        header_rows = [grupo_row, sub_labels]
+        full_text = [list(map(str, sub_labels))] + cell_text
+        t = axt.table(cellText=full_text, loc="center", cellLoc="center")
+        # Style: first row (sub_labels) = blue header, data rows = zebra
+        t.auto_set_font_size(False)
+        t.set_fontsize(6.6)
+        t.scale(1, 1.35)
+        n_data_rows = len(cell_text)
+        for (r, c), cell in t.get_celld().items():
+            cell.set_edgecolor("#9ca3af")
+            cell.set_linewidth(0.5)
+            if r == 0:
+                # sub-label header row
+                cell.set_facecolor("#1f4e78")
+                cell.set_text_props(color="white", weight="bold", fontsize=6.2)
+            else:
+                # zebra for data rows
+                cell.set_facecolor("#eef3f8" if r % 2 else "white")
+
+        # ── Mesclar células dos grupos (row acima dos sub-labels) ──
+        # As células de grupo são desenhadas como um texto extra acima da tabela
+        # porque matplotlib.table não suporta merged header cells nativamente.
+        # Desenhamos os rótulos dos grupos acima das subcolunas.
+        col_offset = 0
+        # Get table bbox for positioning
+        try:
+            fig.canvas.draw()
+            tbbox = t.get_window_extent()
+            # Convert to axes coords
+            inv = axt.transAxes.inverted()
+            tbbox_ax = inv.transform(tbbox)
+            tx0, ty0 = tbbox_ax[0]
+            tx1, ty1 = tbbox_ax[1]
+            tw = tx1 - tx0
+        except Exception:
+            tw = 1.0
+            tx0 = 0.0
+            ty1 = 1.0
+
+        total_subs = len(sub_labels)
+        for g in grupos:
+            tit = g.get("titulo", "")
+            nsub = len(g.get("sub", []))
+            if nsub == 0:
+                continue
+            frac = nsub / max(total_subs, 1)
+            cx = tx0 + (col_offset + nsub / 2) / total_subs * tw
+            # acima da tabela
+            axt.text(cx / tw if tw else 0.5, ty1 + 0.02, tit,
+                     ha="center", va="bottom", fontsize=7.2,
+                     fontweight="bold", color="#1f4e78",
+                     transform=axt.transAxes)
+            col_offset += nsub
+    else:
+        # ── cabeçalho simples (retrocompatível) ──
+        t = axt.table(cellText=[[str(c) for c in row] for row in linhas],
+                      colLabels=[str(c) for c in colunas], loc="center", cellLoc="center")
+        t.auto_set_font_size(False)
+        t.set_fontsize(6.6)
+        t.scale(1, 1.35)
+        for (r, c), cell in t.get_celld().items():
+            cell.set_edgecolor("#9ca3af")
+            cell.set_linewidth(0.5)
+            if r == 0:
+                cell.set_facecolor("#1f4e78")
+                cell.set_text_props(color="white", weight="bold")
+            else:
+                cell.set_facecolor("#eef3f8" if r % 2 else "white")
     return axt
 
 
@@ -918,12 +1019,22 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
                 render_warnings.append("basemap indisponivel (sem internet ou provedor fora do ar); fundo neutro usado")
         fundo_escuro = fundo_desenhado  # imagem/satelite => rotulos claros
 
-        # camadas do catalogo (dados reais via WFS)
+        # camadas do catalogo (dados reais via WFS/GML/REST/WMS)
         auto_entries: list[tuple[str, object]] = []
         for layer in drawn_layers:
             line, fill, alpha, hatch = _layer_color(layer.estilo, layer.tema)
+            if getattr(layer, "image", None) is not None:
+                # camada raster (WMS GetMap): overlay de imagem com opacidade
+                ax.imshow(layer.image, extent=layer.image_extent, origin="upper",
+                          interpolation="bilinear", alpha=alpha, zorder=4)
+                auto_entries.append((layer.id,
+                                     patches.Patch(facecolor=line, edgecolor="#6b7280",
+                                                   alpha=max(alpha, 0.5), label=layer.nome)))
+                continue
             if layer.features:
                 _draw_geoms(ax, layer.features, line, fill, alpha, hatch=hatch)
+                if layer.rotulo:
+                    _label_features(ax, layer)
             suffix = f" ({layer.feature_count})" if layer.features else " (sem feicoes no recorte)"
             auto_entries.append((layer.id,
                                  patches.Patch(facecolor=(fill if fill != "none" else "white"),

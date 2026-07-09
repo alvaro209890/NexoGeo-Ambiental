@@ -66,6 +66,7 @@ def public_context(catalog: dict, manifest: dict) -> dict:
                 "tipo": layer.get("tipo"),
                 "tema": layer.get("tema"),
                 "auth": layer.get("auth"),
+                "descricao": layer.get("descricao", ""),
             }
             for layer in catalog.get("camadas", [])
         ],

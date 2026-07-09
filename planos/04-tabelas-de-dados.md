@@ -76,21 +76,24 @@ Renderer desenha duas linhas de cabeçalho (grupo + subcolunas), como no mapa "D
 
 ## Checklist de implementação
 
-- [ ] Estender o modelo `tabela` (fonte, config, colunas_grupos) no MapSpec.
-- [ ] `core/nexomap_quantitativos.py`: área por classe dentro de um recorte (UTM, ha, %).
-- [ ] Resolver `fonte:"quantitativos"`/`"sigef_sobreposicao"` no pipeline antes do render.
-- [ ] Formatação BR dos números (usar `core/normalize.br`).
-- [ ] `_draw_table`: cabeçalho multinível + total em negrito + larguras por coluna.
-- [ ] Tool `criar_tabela` (manual ou calculada) e `editar_tabela`.
-- [ ] Escrever no MapSpec resolvido as `linhas` calculadas (rastreabilidade).
+- [x] Estender o modelo `tabela` (fonte, config, colunas_grupos) no MapSpec.
+- [x] `core/nexomap_quantitativos.py`: área por classe dentro de um recorte (UTM, ha, %).
+- [x] Resolver `fonte:"quantitativos"`/`"sigef_sobreposicao"` no pipeline antes do render.
+- [x] Formatação BR dos números (usar `core/normalize.br`).
+- [x] `_draw_table`: cabeçalho multinível + total em negrito + larguras por coluna.
+- [x] Tool `criar_tabela` (manual ou calculada) e `editar_tabela`.
+- [x] Escrever no MapSpec resolvido as `linhas` calculadas (rastreabilidade).
+- [x] Testes (`tests/test_quantitativos.py`): 13 testes passando.
+
+**Data:** 2026-07-08
 
 ## Plano de testes
 
 **Unit (`tests/test_quantitativos.py`)**
-- [ ] Área por classe bate com área conhecida (fixture: quadrado 1 km² → 100 ha).
-- [ ] % soma 100% com `linha_total`.
-- [ ] Recorte por `area_base` ignora feições fora do perímetro.
-- [ ] Números formatados em padrão BR.
+- [x] Área por classe bate com área conhecida (fixture: quadrado 1 km² → 100 ha).
+- [x] % soma 100% com `linha_total`.
+- [x] Recorte por `area_base` ignora feições fora do perímetro.
+- [x] Números formatados em padrão BR.
 
 **Visual/manual**
 - [ ] Reproduzir a tabela multinível (Matrícula × Cerrado/Floresta × AD/AVN) do mapa referência.

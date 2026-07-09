@@ -232,6 +232,7 @@ def build_rule_based_spec(prompt: str, project_name: str, catalog: dict, manifes
         titulo = f"Mapa de Embargos Ambientais - {project_name}"
         add("embargos_ibama", "#d93025", 0.45)
         add("embargos_sema", "#f97316", 0.42)
+        add("embargos_siga", "#ea580c", 0.42)
     if "car" in text or "simcar" in text:
         tipo = "car" if tipo == "geral" else tipo
         titulo = f"Mapa de CAR - {project_name}" if tipo == "car" else titulo
