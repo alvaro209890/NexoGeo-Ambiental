@@ -120,9 +120,20 @@ def resolver_tabela_calculada(spec_tabela: dict, drawn_layers: list,
         return spec_tabela  # manual: já vem pronta
 
     config = spec_tabela.get("config") or {}
-    classes = config.get("classes") or []
+    classes_raw = config.get("classes") or []
     percentual = bool(config.get("percentual", True))
     linha_total = bool(config.get("linha_total", True))
+
+    # Normaliza classes: aceita strings simples ou dicts {rotulo, camada}
+    classes = []
+    for c in classes_raw:
+        if isinstance(c, str):
+            classes.append({"rotulo": c, "camada": c})
+        elif isinstance(c, dict):
+            classes.append({
+                "rotulo": c.get("rotulo", c.get("camada", "")),
+                "camada": c.get("camada", ""),
+            })
 
     if not classes:
         return spec_tabela  # sem classes → sem cálculo

@@ -467,12 +467,15 @@ TOOL_SCHEMAS: list[dict] = [
         "fonte_tamanho": {"type": "number"},
     }),
     _schema("criar_tabela", "Cria a tabela do mapa. fonte 'manual' exige colunas+linhas; "
-            "'quantitativos'/'sigef_sobreposicao' calculam as linhas por overlay no render.", {
+            "'quantitativos'/'sigef_sobreposicao' calculam as linhas por overlay no render. "
+            "Para fonte quantitativos, config DEVE ter: classes (array de strings com ids das "
+            "camadas), percentual (bool), linha_total (bool). Ex: "
+            "{classes:['tipologia_sema','car_atp'], percentual:true, linha_total:true}.", {
         "titulo": {"type": "string"},
         "fonte": {"type": "string", "enum": ["manual", "quantitativos", "sigef_sobreposicao"]},
         "colunas": {"type": "array", "items": {"type": "string"}},
         "linhas": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}},
-        "config": {"type": "object"},
+        "config": {"type": "object", "description": "Para quantitativos: {classes:[string], percentual:bool, linha_total:bool}"},
     }, ["titulo"]),
     _schema("definir_metadados_imagem", "Preenche o bloco METADADOS IMAGEM da faixa inferior.", {
         "satelite_sensor": {"type": "string"}, "data_aquisicao": {"type": "string"},
