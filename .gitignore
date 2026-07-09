@@ -21,3 +21,4 @@ templates/mxd/*.mxd
 
 # Temporários de execução
 tmp/
+projetos/*/Resultados/
