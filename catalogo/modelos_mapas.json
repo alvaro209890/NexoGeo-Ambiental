@@ -42,7 +42,7 @@
       "descricao": "Tipologia da vegetacao nativa (SIMCAR digital) recortada ao imovel, com quantitativos por classe.",
       "camadas": [
         {"fonte": "area_base", "estilo": {"linha": "#111827", "largura": 2.4, "preenchimento": "transparente"}, "rotulo": true},
-        {"fonte": "catalogo.tipologia_sema", "estilo": {"opacidade": 0.55}, "rotulo": false}
+        {"fonte": "catalogo.tipologia_sema", "estilo": {"preenchimento": "transparente", "hachura": "----", "linha": "#059669", "largura": 1.2, "opacidade": 0.65}, "rotulo": false}
       ],
       "tabela": {"titulo": "Tipologia vegetal (ha)", "fonte": "quantitativos",
                  "config": {"classes": ["tipologia_sema"], "percentual": true, "linha_total": true}}

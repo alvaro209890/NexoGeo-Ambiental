@@ -1,0 +1,76 @@
+{
+  "versao_schema": 1,
+  "nome": "Fazenda Trevisol (Lote 65) e Lote 66-A - Teste Lauri",
+  "cliente": "Lauri",
+  "municipio": {
+    "nome": "Querência",
+    "uf": "MT",
+    "ibge": "5107065"
+  },
+  "crs": {
+    "utm": 31982,
+    "geografico": 4674
+  },
+  "raiz_dados": ".",
+  "pastas": {
+    "shapes": "Shapes",
+    "resultados": "Resultados",
+    "mapas": "Resultados/Mapas"
+  },
+  "area_base": {
+    "tipo": "shapefile_zip",
+    "path": "Shapes/area.zip"
+  },
+  "catalogo_camadas": "catalogo/camadas.json",
+  "templates_layouts": "templates/layouts/MANIFEST.json",
+  "camadas_locais": [
+    {
+      "id": "lote65",
+      "nome": "Fazenda Trevisol (Lote 65)",
+      "tema": "propriedade",
+      "descricao": "Perímetro do Lote 65 (Matrícula 13.533)",
+      "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\Lote 65.shp",
+      "estilo": {"nome": "Fazenda Trevisol (Lote 65)", "linha": "#ff2d00", "preenchimento": "none", "largura": 2.6, "opacidade": 1.0, "rotulo_texto": "Fazenda Trevisol (Lote 65)\nMatrícula 13.533", "rotulo_cor": "white"}
+    },
+    {
+      "id": "lote66a",
+      "nome": "Lote Rural nº 66-A",
+      "tema": "propriedade",
+      "descricao": "Perímetro do Lote 66-A (Matrícula 3.115)",
+      "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\Lote 66A.shp",
+      "estilo": {"nome": "Lote Rural nº 66-A", "linha": "#00b0f0", "preenchimento": "none", "largura": 2.6, "opacidade": 1.0, "rotulo_texto": "Lote Rural nº 66-A\nMatrícula 3.115", "rotulo_cor": "white"}
+    },
+    {
+      "id": "avn",
+      "nome": "Área de Vegetação Nativa",
+      "tema": "vegetacao",
+      "descricao": "AVN — Área de Vegetação Nativa (SIMCAR)",
+      "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\SIMCAR_Recorte_f74e2290-0236-4276-a679-88842db1faa0\\AVN.shp",
+      "estilo": {"nome": "Área de Vegetação Nativa (AVN)", "linha": "#166534", "preenchimento": "#16a34a", "largura": 1.2, "opacidade": 0.45}
+    },
+    {
+      "id": "ac",
+      "nome": "Área Consolidada Cultivável",
+      "tema": "consolidada",
+      "descricao": "AC — Área Consolidada (SIMCAR)",
+      "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\SIMCAR_Recorte_f74e2290-0236-4276-a679-88842db1faa0\\AREA_CONSOLIDADA.shp",
+      "estilo": {"nome": "Área Consolidada Cultivável (AC)", "linha": "#b45309", "preenchimento": "#f59e0b", "largura": 1.4, "opacidade": 0.4}
+    },
+    {
+      "id": "auas",
+      "nome": "Área de Uso Alternativo do Solo",
+      "tema": "desmate",
+      "descricao": "AUAS — Área de Uso Alternativo do Solo (SIMCAR)",
+      "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\SIMCAR_Recorte_f74e2290-0236-4276-a679-88842db1faa0\\AUAS.shp",
+      "estilo": {"nome": "Área de Uso Alt. do Solo (AUAS)", "linha": "#c2410c", "preenchimento": "transparente", "hachura": "....", "largura": 1.4, "opacidade": 0.95}
+    },
+    {
+      "id": "tipologia",
+      "nome": "Tipologia Vegetal",
+      "tema": "tipologia",
+      "descricao": "TIPOLOGIA_VEGETAL (SIMCAR) — Floresta/Cerrado (campo TIPO)",
+      "arquivo": "C:\\Users\\Usuario\\Downloads\\Analise_de_area\\Lauri_Anlise_2\\SHP\\SIMCAR_Recorte_f74e2290-0236-4276-a679-88842db1faa0\\TIPOLOGIA_VEGETAL.shp",
+      "estilo": {"nome": "Tipologia Vegetal (Floresta/Cerrado)", "linha": "#059669", "preenchimento": "transparente", "hachura": "----", "largura": 1.2, "opacidade": 0.65, "rotulo_atributo": "TIPO"}
+    }
+  ]
+}

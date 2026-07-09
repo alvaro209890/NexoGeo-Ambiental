@@ -55,7 +55,7 @@ def _system_prompt_tools() -> str:
         "tipologia...). Chame listar_camadas_locais e adicione-as com "
         "adicionar_camada(fonte='local.<id>') — elas ja vem com estilo e rotulo_texto (nome do "
         "lote + matricula) prontos. Ex.: Dinamica = lotes (contorno vermelho/azul rotulados) + "
-        "AVN (verde hachurado) + AC (magenta) + AUAS (laranja hachurado), com o perimetro do "
+        "AVN (verde #16a34a preenchido 0.45) + AC (ambar #f59e0b preenchido 0.4) + AUAS (transparente hachura pontilhada '....'), com o perimetro do "
         "area_base invisivel (largura 0). Use listar_camadas (catalogo WFS) so quando o pedido "
         "exigir camadas externas (embargos, terras indigenas etc.). "
         "O LOGO do IMAP entra automaticamente na faixa inferior — nao precisa configurar marca. "
