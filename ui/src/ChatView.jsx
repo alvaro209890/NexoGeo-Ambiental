@@ -5,7 +5,7 @@ import {
   Image as ImageIcon, Loader2, MessageSquareText, Plus, Save, Sparkles, User,
 } from 'lucide-react'
 
-const API = ''
+const API = import.meta.env.VITE_API_URL || ''
 const STORAGE_KEY = 'nexogeo_auth'
 
 async function jget(url) {

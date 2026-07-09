@@ -34,8 +34,11 @@ import {
 } from 'lucide-react'
 import './index.css'
 import { ChatView } from './ChatView.jsx'
+import { CarMapaView } from './CarMapaView.jsx'
 
-const API = ''
+// Em producao (Vercel) aponta para o backend via VITE_API_URL; vazio = mesma
+// origem (dev usa o proxy do vite para 127.0.0.1:8000).
+const API = import.meta.env.VITE_API_URL || ''
 
 const NAV = [
   { id: 'pre', label: 'Pre-Analise', icon: MapPin },
@@ -228,7 +231,7 @@ function NewAnalysisForm({ onCancel, onCreate }) {
   )
 }
 
-function ProjectsLobby({ recentes, onOpen, onNew, erro }) {
+function ProjectsLobby({ recentes, onOpen, onNew, onCar, erro }) {
   return (
     <main className="lobby">
       <section className="lobby-header">
@@ -237,6 +240,11 @@ function ProjectsLobby({ recentes, onOpen, onNew, erro }) {
         <p>Analise fundiaria e ambiental com automacoes, pre-analise e mapas por IA no mesmo projeto.</p>
       </section>
       <section className="recent-grid">
+        <button className="recent-card new-card" type="button" onClick={onCar} style={{ borderColor: '#2563eb' }}>
+          <Map size={28} />
+          <strong>Mapa por CAR</strong>
+          <span style={{ opacity: 0.7, fontSize: '.8rem' }}>Escolha um modelo e informe o CAR</span>
+        </button>
         <button className="recent-card new-card" type="button" onClick={onNew}>
           <Plus size={28} />
           <strong>Criar analise</strong>
@@ -928,13 +936,21 @@ export default function App() {
     refreshDoctor('')
   }, [])
 
+  if (appView === 'car') {
+    return (
+      <div className="app-shell lobby-shell">
+        <CarMapaView onBack={() => setAppView('lobby')} />
+      </div>
+    )
+  }
+
   if (appView === 'lobby') {
     return (
       <div className="app-shell lobby-shell">
         {showNewForm ? (
           <NewAnalysisForm onCancel={() => setShowNewForm(false)} onCreate={carregar} />
         ) : (
-          <ProjectsLobby recentes={recentes} onOpen={carregar} onNew={() => setShowNewForm(true)} erro={erro} />
+          <ProjectsLobby recentes={recentes} onOpen={carregar} onNew={() => setShowNewForm(true)} onCar={() => setAppView('car')} erro={erro} />
         )}
       </div>
     )

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 import matplotlib
 
@@ -753,6 +754,10 @@ def _layout_report(fig, regions: dict, element_regions: dict | None = None) -> d
         s = (t.get_text() or "").strip()
         if not s:
             continue
+        # rotulos de grade (coordenadas UTM/DMS) ficam nas bordas por design —
+        # nao contam como texto cortado.
+        if _e_rotulo_grade(s):
+            continue
         try:
             bb = t.get_window_extent()
         except Exception:
@@ -764,6 +769,14 @@ def _layout_report(fig, regions: dict, element_regions: dict | None = None) -> d
                 report["texto_cortado"].append(s[:24])
                 vistos.add(s)
     return report
+
+
+# rotulo de grade UTM ("440.000", "8.373.000") ou DMS ("51°07'W", "14°30'S")
+_RE_ROTULO_UTM = re.compile(r"^\d{1,4}(\.\d{3})+\s*m?$")
+
+
+def _e_rotulo_grade(s: str) -> bool:
+    return bool(_RE_ROTULO_UTM.match(s)) or "°" in s
 
 
 def _flagship_furniture(fig, ax, spec, project, area, scale, extent,

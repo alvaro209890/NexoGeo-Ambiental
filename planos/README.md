@@ -12,7 +12,15 @@
 | **C** — Dados reais | 03, 04 | ✅ Concluída | `8a3cbf6` |
 | **D** — Integração, UI e QA | 05, 06, 07 | 🚧 Em andamento | `3da5317` |
 | **E** — Extensibilidade | 08 | ⬜ Não iniciado | — |
-| **F** — Inteligência e validação | 09, **10** | 🚧 Plano 10 concluído | — |
+| **F** — Inteligência e validação | 09, **10** | 🚧 Plano 10 ✅ + Plano 09 (validar_mapa/sugerir_melhorias/aplicar_modelo) ✅ | — |
+| **G** — Mapas por CAR (web) | **11** | ✅ Concluído 2026-07-09 | — |
+
+## Fase G — Mapas por CAR (plano 11)
+
+Fluxo web: card de modelo + número do CAR estadual → busca a ATP na SEMA, cruza com o
+SIMCAR digital (uso consolidado, tipologia, APP/ARL/AVN/AUAS) e gera o mapa IMAP.
+Backend (`nexomap_car`, `nexomap_modelos`, endpoints `/modelos` e `/car-mapa`), frontend
+(`CarMapaView` — cards + previa + quantitativos), validado ao vivo. Ver [11](11-mapas-por-car.md).
 
 ## Novos planos (Fase F)
 

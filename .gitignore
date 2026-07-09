@@ -22,3 +22,6 @@ templates/mxd/*.mxd
 # Temporários de execução
 tmp/
 projetos/*/Resultados/
+
+# CAR web: shapefiles gerados sob demanda
+projetos/*/Shapes/*.zip

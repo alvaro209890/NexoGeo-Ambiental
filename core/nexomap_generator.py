@@ -253,6 +253,92 @@ def chat_tools(project_path: str, prompt: str, parent_job_id: str | None = None,
     return result
 
 
+CAR_WEB_PROJECT = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "projetos", "car_web", "projeto.json")
+
+
+def gerar_mapa_por_car(numero_car: str, modelo_id: str,
+                       project_path: str | None = None,
+                       use_basemap: bool = True, data_imagem: str = "") -> dict:
+    """Gera um mapa a partir do numero do CAR + um modelo (card).
+
+    Busca a ATP do imovel na SEMA (WFS), grava como area_base, aplica o modelo
+    (cruzando a ATP com as camadas SIMCAR digital via o pipeline) e renderiza.
+    """
+    from core import nexomap_car
+    from core.nexomap_modelos import aplicar_modelo, modelos_index
+
+    project_path = project_path or CAR_WEB_PROJECT
+    project = load_nexomap_project(project_path)
+    catalog = load_layer_catalog(project.catalog_path())
+    manifest = load_template_manifest(project.template_manifest_path())
+    secrets = secrets_loader.load_secrets(project)
+    if not secrets.get("sema_authkey"):
+        # o projeto car_web nao tem secrets locais; usa o da raiz do repo
+        repo_secrets = os.path.join(project.repo_root(), "secrets.local.json")
+        if os.path.exists(repo_secrets):
+            with open(repo_secrets, "r", encoding="utf-8") as f:
+                secrets = json.load(f)
+
+    modelos = modelos_index()
+    if modelo_id not in modelos:
+        raise NexoMapError(f"modelo '{modelo_id}' inexistente; use {sorted(modelos)}")
+
+    busca = nexomap_car.buscar_car(numero_car, secrets)
+    if not busca.get("ok"):
+        raise NexoMapError(busca.get("erro", "CAR nao encontrado"))
+
+    # area_base = ATP do imovel; nome unico p/ nao colidir entre requisicoes
+    epsg_utm = nexomap_car.utm_epsg_from_bbox(busca["bbox_geo"])
+    shapes_dir = os.path.join(project.raiz_abs(), "Shapes")
+    zip_name = "area_" + _job_id() + ".zip"
+    zip_path = os.path.join(shapes_dir, zip_name)
+    nexomap_car.escrever_area_zip(busca["geometry"], busca["propriedades"], zip_path, epsg=busca["epsg"])
+    project.area_base.path = os.path.join("Shapes", zip_name)
+    project.area_base.tipo = "shapefile_zip"
+    project.crs.utm = epsg_utm
+
+    car_info = {"nome": busca.get("nome"), "numero": busca.get("numero")}
+    spec_dict, avisos = aplicar_modelo(modelos[modelo_id], catalog, car_info=car_info,
+                                       epsg_utm=epsg_utm, data_imagem=data_imagem)
+    spec = mapspec_from_dict(spec_dict)
+
+    result = _run_pipeline(project, catalog, manifest, secrets, spec,
+                           prompt=f"[CAR {busca.get('numero')}] modelo {modelo_id}",
+                           provider="car_modelo", ai_raw="",
+                           ai_warnings=avisos, use_basemap=use_basemap)
+    result["car"] = {
+        "numero": busca.get("numero"), "campo": busca.get("campo"),
+        "nome": busca.get("nome"), "area_ha": busca.get("area_ha"),
+        "situacao": busca.get("situacao"), "epsg_utm": epsg_utm,
+    }
+    result["modelo"] = modelo_id
+    try:
+        with open(os.path.join(result["job_dir"], "resultado.json"), "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+    return result
+
+
+def gerar_mapa_por_car_stream(numero_car: str, modelo_id: str,
+                              project_path: str | None = None,
+                              use_basemap: bool = True) -> Iterator[dict]:
+    """Versao SSE de gerar_mapa_por_car (eventos de progresso p/ o frontend)."""
+    yield {"status": "started", "stage": "buscar_car"}
+    try:
+        yield {"status": "progress", "stage": "consultando_sema", "numero": numero_car}
+        result = gerar_mapa_por_car(numero_car, modelo_id, project_path=project_path,
+                                    use_basemap=use_basemap)
+        yield {"status": "progress", "stage": "renderizado"}
+        yield {"status": "done", "result": result}
+    except NexoMapError as e:
+        yield {"status": "error", "erro": str(e)}
+    except Exception as e:  # pragma: no cover - defensivo
+        yield {"status": "error", "erro": f"{type(e).__name__}: {e}"}
+
+
 def generate_stream(project_path: str, prompt: str | None = None,
                     mapspec: dict | None = None) -> Iterator[dict]:
     yield {"status": "started", "stage": "carregar_projeto"}

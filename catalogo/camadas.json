@@ -246,6 +246,86 @@
       "layer": "assentamento_brasil",
       "auth": null,
       "descricao": "Assentamentos de reforma agraria (acervo INCRA, GML lon/lat)."
+    },
+    {
+      "id": "uso_consolidado",
+      "nome": "Uso Consolidado (SIMCAR)",
+      "tema": "uso_solo",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:USO_CONSOLIDADO",
+      "auth": "sema_authkey",
+      "descricao": "Area de uso consolidado do imovel no SIMCAR digital (ocupacao anterior a 2008). Cruzar com a ATP para o mapa de uso da propriedade."
+    },
+    {
+      "id": "area_consolidada_simcar",
+      "nome": "Area Consolidada (SIMCAR digital)",
+      "tema": "uso_solo",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:SIMCAR_D_AREA_CONSOLIDADA",
+      "auth": "sema_authkey",
+      "descricao": "Area consolidada declarada no SIMCAR digital do imovel."
+    },
+    {
+      "id": "simcar_avn",
+      "nome": "Vegetacao Nativa - SIMCAR digital (AVN)",
+      "tema": "car",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:SIMCAR_D_AVN",
+      "auth": "sema_authkey",
+      "descricao": "Vegetacao nativa remanescente declarada no SIMCAR digital. Use em mapas de dinamica/uso."
+    },
+    {
+      "id": "simcar_app",
+      "nome": "APP - SIMCAR digital",
+      "tema": "car",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:SIMCAR_D_APP",
+      "auth": "sema_authkey",
+      "descricao": "Areas de Preservacao Permanente declaradas no SIMCAR digital do imovel."
+    },
+    {
+      "id": "simcar_arl",
+      "nome": "Reserva Legal - SIMCAR digital (ARL)",
+      "tema": "car",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:SIMCAR_D_ARL",
+      "auth": "sema_authkey",
+      "descricao": "Reserva Legal declarada no SIMCAR digital do imovel."
+    },
+    {
+      "id": "simcar_auas",
+      "nome": "Uso Antropizado - SIMCAR digital (AUAS)",
+      "tema": "car",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:SIMCAR_D_AUAS",
+      "auth": "sema_authkey",
+      "descricao": "Area de uso antropizado/desmatada declarada no SIMCAR digital."
+    },
+    {
+      "id": "simcar_nascente",
+      "nome": "Nascentes - SIMCAR digital",
+      "tema": "car",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:SIMCAR_D_NASCENTE",
+      "auth": "sema_authkey",
+      "descricao": "Nascentes declaradas no SIMCAR digital do imovel (pontos)."
+    },
+    {
+      "id": "areas_uso_restrito",
+      "nome": "Areas de Uso Restrito",
+      "tema": "uso_solo",
+      "tipo": "wms_wfs",
+      "endpoint": "https://geo.sema.mt.gov.br/geoserver/ows",
+      "layer": "Geoportal:AREAS_USO_RESTRITO",
+      "auth": "sema_authkey",
+      "descricao": "Areas de uso restrito (declividade/veredas etc.) do SIMCAR digital."
     }
   ]
 }

@@ -343,6 +343,40 @@ def tool_sugerir_opcoes(spec: dict, ctx: ToolContext, pergunta: str,
     return spec, f"[OPCOES] {pergunta} | {' | '.join(labels)}"
 
 
+def tool_validar_mapa(spec: dict, ctx: ToolContext) -> tuple[dict, str]:
+    """Valida o MapSpec atual contra as convencoes IMAP (predicao, sem render).
+
+    Nao altera o mapa. Use ANTES de finalizar para confirmar que o mapa segue o
+    padrao IMAP; se algum check HARD falhar, corrija com as tools e valide de novo.
+    """
+    from core.nexomap_validation import validar_mapspec_imap
+    rel = validar_mapspec_imap(spec)
+    return spec, json.dumps(rel, ensure_ascii=False)
+
+
+def tool_sugerir_melhorias(spec: dict, ctx: ToolContext) -> tuple[dict, str]:
+    """Analisa o MapSpec e sugere melhorias proativas (nao altera o mapa)."""
+    sugestoes: list[str] = []
+    if not spec.get("metadados_imagem") and not spec.get("tabela") and not spec.get("marca"):
+        sugestoes.append("Ative a faixa inferior IMAP definindo metadados_imagem "
+                         "(satelite/data/datum) — coloca legenda e metadados no rodape.")
+    if not spec.get("metadados_imagem"):
+        sugestoes.append("Preencha os METADADOS IMAGEM (satelite_sensor, data_aquisicao, datum).")
+    template = str(spec.get("layout_template") or "")
+    if "paisagem" not in template.lower():
+        sugestoes.append("Use um template paisagem (A4) — o padrao dos mapas IMAP.")
+    elems = spec.get("elementos_layout") or {}
+    if not elems.get("norte", True):
+        sugestoes.append("Ligue a seta de norte (elemento 'norte').")
+    if not elems.get("escala_grafica", True):
+        sugestoes.append("Ligue a escala grafica.")
+    if len(spec.get("camadas") or []) <= 1:
+        sugestoes.append("Considere adicionar camadas tematicas do catalogo (listar_camadas).")
+    if not sugestoes:
+        sugestoes.append("Mapa ja segue as principais convencoes IMAP; sem sugestoes criticas.")
+    return spec, json.dumps({"sugestoes": sugestoes}, ensure_ascii=False)
+
+
 def tool_finalizar(spec: dict, ctx: ToolContext, resumo: str = "") -> tuple[dict, str]:
     return spec, resumo or "finalizado"
 
@@ -368,6 +402,8 @@ TOOLS: dict[str, Callable] = {
     "definir_metadados_imagem": tool_definir_metadados_imagem,
     "definir_raster_fundo": tool_definir_raster_fundo,
     "definir_escala": tool_definir_escala,
+    "validar_mapa": tool_validar_mapa,
+    "sugerir_melhorias": tool_sugerir_melhorias,
     "finalizar": tool_finalizar,
 }
 
@@ -506,8 +542,13 @@ TOOL_SCHEMAS: list[dict] = [
     _schema("definir_escala", "Define a escala do mapa (inteiro, ex.: 25000) ou 'auto'.", {
         "escala": {"type": ["integer", "string"]},
     }, ["escala"]),
+    _schema("validar_mapa", "Valida o MapSpec atual contra o padrao IMAP (predicao, sem render). "
+            "Retorna um checklist com checks HARD (reprovam) e SOFT (informam). Chame ANTES de "
+            "finalizar; se algum HARD falhar, corrija com as tools e valide de novo (max 2x).", {}),
+    _schema("sugerir_melhorias", "Analisa o mapa e sugere melhorias proativas (faixa inferior, "
+            "metadados, norte, escala, camadas). Nao altera o mapa.", {}),
     _schema("finalizar", "Encerra o turno de edicao e dispara o render. Chame quando o pedido "
-            "do usuario estiver atendido.", {
+            "do usuario estiver atendido e validar_mapa nao acusar falha HARD.", {
         "resumo": {"type": "string", "description": "resumo curto do que foi feito"},
     }),
 ]

@@ -109,11 +109,23 @@ referencias/
 - `tests/test_validacao_modelo.py`: 6 testes. **Suite total: 96 offline + 6 skipped.**
 - Gaps de estilo achados (soft): título nativo ~16pt vs IMAP ~25pt; norte não detectável por texto.
 
-### Imediato
-1. **Tool `validar_mapa`** (plano 09): expor `validar_contra_modelo` como tool da IA + auto-correção
-2. **Schema JSON** (plano 05): adicionar campos novos (subtitulo, grade_tipo, raster_fundo,
-   metadados_imagem, tabela, marca, layout, legenda, versao, parent_job_id)
-3. **Endpoint de edição versionada** (plano 05): `POST /api/nexomap/edit` com SSE
+### ✅ CONCLUÍDO 2026-07-09 — Plano 09 (tools) + Plano 11 (Mapas por CAR)
+- **Plano 09**: tools `validar_mapa` (valida MapSpec vs IMAP, checks HARD/SOFT, `core/nexomap_validation.py::validar_mapspec_imap`)
+  e `sugerir_melhorias`; system prompt manda validar antes de finalizar e auto-corrigir. `tests/test_validar_mapa.py` (10 testes).
+- **Plano 11 — Mapas por CAR (WEB)**: card de modelo + nº do CAR **estadual** → busca ATP na SEMA
+  (`core/nexomap_car.py`), cruza com SIMCAR digital (uso consolidado/tipologia/APP/ARL/AVN/AUAS —
+  novas camadas no catálogo), aplica modelo (`core/nexomap_modelos.py` + `catalogo/modelos_mapas.json`,
+  7 modelos), renderiza IMAP. Endpoints `GET /api/nexomap/modelos` + `POST /api/nexomap/car-mapa` (SSE).
+  Frontend `ui/src/CarMapaView.jsx` (cards + prévia + quantitativos + PDF), acessível no lobby.
+  Projeto scaffold `projetos/car_web/`. **Validado ao vivo**: `MT313839/2025` → Fazenda Boa Vista V.
+- Fix renderer: rótulos de grade UTM/DMS não contam como "texto cortado" (`_e_rotulo_grade`).
+- **Suite: 114 offline + 8 skipped; net 7 (busca CAR ao vivo).**
+- **Deploy**: frontend buildado com `VITE_API_URL=https://nexogeo-api.cursar.space`; backend+tunnel no ar.
+
+### Próximo
+1. **Schema JSON** (plano 05): campos novos (subtitulo, grade_tipo, raster_fundo, metadados_imagem, tabela, marca, layout, legenda, versao, parent_job_id)
+2. **Endpoint de edição versionada** (plano 05): `POST /api/nexomap/edit` com SSE
+3. Tipologia por classe de vegetação (atributo) no fluxo CAR; cache da ATP; basemap Planet (plano 08)
 
 ### Curto prazo
 4. **Novas tools** (plano 09): `comparar_mapspecs`, `validar_mapa`, `sugerir_melhorias`,

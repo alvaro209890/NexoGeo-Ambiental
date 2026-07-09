@@ -321,3 +321,95 @@ def _fmt_pos(pos: dict | None) -> str:
     if not pos:
         return "ausente"
     return f"cx={pos.get('cx_frac', 0):.3f} y0={pos.get('y0_frac', pos.get('cy_frac', 0)):.3f}"
+
+
+# --------------------------------------------------------------------------- #
+# Validacao no nivel do MapSpec (preditiva, sem render) — plano 09
+# --------------------------------------------------------------------------- #
+
+# ancoras que colocam um elemento no rodape (faixa inferior)
+_ANCORAS_RODAPE = ("bottom-left", "bottom-center", "bottom-right", "bottom")
+
+
+def _titulo_no_topo_spec(spec: dict) -> tuple[bool, str]:
+    """Preve se o titulo ficara no topo. Default = topo; so falha se o usuario
+    ancorou o titulo fora de top-*."""
+    el = ((spec.get("layout") or {}).get("elementos") or {}).get("titulo") or {}
+    anc = str(el.get("ancora", ""))
+    if not anc:
+        return True, "titulo no topo (padrao)"
+    return anc.startswith("top-") or anc == "top", f"ancora do titulo = {anc}"
+
+
+def _legenda_no_rodape_spec(spec: dict) -> tuple[bool, str]:
+    """Preve se a legenda ficara na faixa inferior IMAP.
+
+    Verdadeiro quando o mapa e flagship (faixa inferior automatica: tem
+    metadados_imagem/tabela/marca) OU a legenda foi ancorada em bottom-*.
+    """
+    flagship = bool(spec.get("metadados_imagem") or spec.get("tabela") or spec.get("marca"))
+    anc = str(((spec.get("legenda") or {}).get("posicao") or {}).get("ancora", ""))
+    if flagship:
+        return True, "flagship: legenda vai para a faixa inferior"
+    if anc in _ANCORAS_RODAPE:
+        return True, f"legenda ancorada em {anc}"
+    return False, ("mapa nao-flagship e legenda nao ancorada no rodape — a legenda ira "
+                   "para o painel lateral; defina metadados_imagem/tabela/marca (faixa "
+                   "inferior) ou ancore a legenda em bottom-*")
+
+
+def validar_mapspec_imap(spec: dict) -> dict:
+    """Valida um MapSpec (dict) contra as convencoes IMAP — PREDICAO sem render.
+
+    Antecipa o que ``validar_contra_modelo`` diria do PDF, olhando so o MapSpec.
+    Serve para a IA se auto-corrigir dentro do loop de tools ANTES de finalizar.
+    Checks HARD reprovam a conformidade; SOFT so informam.
+
+    Retorna ``{"ok", "checks":[{name, ok, detail, severidade}], "hard_falhos",
+    "soft_falhos", "resumo"}``.
+    """
+    checks: list[dict] = []
+
+    def add(name: str, ok: bool, detail: str = "", severidade: str = "hard"):
+        checks.append({"name": name, "ok": bool(ok), "detail": detail, "severidade": severidade})
+
+    titulo = str(spec.get("titulo") or "").strip()
+    add("titulo_presente", bool(titulo), titulo or "sem titulo")
+
+    camadas = spec.get("camadas") or []
+    add("tem_camadas", len(camadas) >= 1, f"{len(camadas)} camada(s)")
+
+    template = str(spec.get("layout_template") or "")
+    add("template_paisagem", "paisagem" in template.lower(),
+        f"template={template or '(nenhum)'} — o modelo IMAP e paisagem (A4)")
+
+    ok_topo, det_topo = _titulo_no_topo_spec(spec)
+    add("titulo_no_topo", ok_topo, det_topo)
+
+    ok_rod, det_rod = _legenda_no_rodape_spec(spec)
+    add("legenda_no_rodape", ok_rod, det_rod)
+
+    # SOFT — estilo/completude IMAP
+    flagship = bool(spec.get("metadados_imagem") or spec.get("tabela") or spec.get("marca"))
+    add("modo_faixa_inferior", flagship,
+        "flagship (faixa inferior)" if flagship else "sem faixa inferior (painel lateral)",
+        severidade="soft")
+    add("metadados_imagem_definidos", bool(spec.get("metadados_imagem")),
+        "preenchidos" if spec.get("metadados_imagem") else "vazios — bloco METADADOS IMAGEM ficara sem dados",
+        severidade="soft")
+    elems = spec.get("elementos_layout") or {}
+    add("norte_ligado", bool(elems.get("norte", True)), severidade="soft")
+    add("escala_grafica_ligada", bool(elems.get("escala_grafica", True)), severidade="soft")
+
+    hard_falhos = [c["name"] for c in checks if c["severidade"] == "hard" and not c["ok"]]
+    soft_falhos = [c["name"] for c in checks if c["severidade"] == "soft" and not c["ok"]]
+    ok = not hard_falhos
+    partes = [("OK " if c["ok"] else "FALHA ") + c["name"] for c in checks]
+    return {
+        "ok": ok,
+        "checks": checks,
+        "hard_falhos": hard_falhos,
+        "soft_falhos": soft_falhos,
+        "resumo": ("conformidade IMAP (predicao): " + ("APROVADO" if ok else "REPROVADO")
+                   + " | " + " | ".join(partes)),
+    }

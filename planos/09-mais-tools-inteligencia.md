@@ -67,15 +67,19 @@ args: { formato: "docx"|"xlsx" }
 ## Checklist
 
 - [ ] `comparar_mapspecs` — diff entre versões
-- [ ] `validar_mapa` — checklist automático
-- [ ] `sugerir_melhorias` — proatividade
-- [ ] `aplicar_modelo` — templates predefinidos
+- [x] `validar_mapa` — checklist automático (nível-spec, `validar_mapspec_imap`; tool registrada)
+- [x] `sugerir_melhorias` — proatividade (tool registrada)
+- [x] `aplicar_modelo` — templates predefinidos (via `core/nexomap_modelos.py` + `catalogo/modelos_mapas.json`; usado no fluxo CAR, ver plano 11)
 - [ ] `exportar_relatorio` — .docx/.xlsx
-- [ ] Raciocínio multi-step no system prompt
-- [ ] Auto-correção pós-validação (loop)
-- [ ] Memória de preferências do usuário
-- [ ] Testes para cada nova tool
-- [ ] Atualizar schema + documentação
+- [x] Auto-correção no loop — system prompt manda validar antes de finalizar e corrigir HARD (até 2x); testado
+- [ ] `comparar_mapspecs` / memória de preferências / raciocínio multi-step explícito
+- [x] Testes para as novas tools (`tests/test_validar_mapa.py`, 10 testes)
+- [x] Documentação (este plano + plano 11 + handoff)
+
+**Feito 2026-07-09:** `validar_mapa` valida o MapSpec contra o padrão IMAP (checks HARD
+estrutura / SOFT estilo) prevendo o que `validar_contra_modelo` (plano 10) diria do PDF;
+`sugerir_melhorias` dá dicas proativas; a IA chama `validar_mapa` antes de `finalizar` e
+se auto-corrige no próprio loop de tools.
 
 ## Dependências
 

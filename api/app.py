@@ -118,6 +118,12 @@ class NexoMapAreaBaseBody(BaseModel):
     area_path: str
 
 
+class NexoMapCarMapaBody(BaseModel):
+    numero_car: str
+    modelo: str
+    use_basemap: bool = True
+
+
 class NexoMapFromAnalysisBody(BaseModel):
     analysis_path: str
     area_path: str | None = None
@@ -563,6 +569,25 @@ async def nexomap_chat_tools(body: NexoMapChatToolsBody):
             parent_job_id=body.parent_job_id,
             allow_local_ai_fallback=body.allow_local_fallback,
             max_steps=body.max_steps,
+        ):
+            yield _sse(event)
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+@app.get("/api/nexomap/modelos")
+def nexomap_modelos():
+    """Lista os modelos de mapa (cards) para o frontend."""
+    from core.nexomap_modelos import listar_modelos
+    return {"modelos": listar_modelos()}
+
+
+@app.post("/api/nexomap/car-mapa")
+async def nexomap_car_mapa(body: NexoMapCarMapaBody):
+    """Gera um mapa a partir do numero do CAR + um modelo (card). SSE streaming."""
+    async def stream():
+        for event in nexomap_generator.gerar_mapa_por_car_stream(
+            body.numero_car, body.modelo, use_basemap=body.use_basemap,
         ):
             yield _sse(event)
 

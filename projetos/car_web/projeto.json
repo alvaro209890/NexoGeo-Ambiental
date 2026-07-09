@@ -1,0 +1,26 @@
+{
+  "versao_schema": 1,
+  "nome": "NexoGeo Web (CAR)",
+  "cliente": "Web",
+  "municipio": {
+    "nome": "Mato Grosso",
+    "uf": "MT",
+    "ibge": "5100000"
+  },
+  "crs": {
+    "utm": 31982,
+    "geografico": 4674
+  },
+  "raiz_dados": ".",
+  "pastas": {
+    "shapes": "Shapes",
+    "resultados": "Resultados",
+    "mapas": "Resultados/Mapas"
+  },
+  "area_base": {
+    "tipo": "shapefile_zip",
+    "path": "Shapes/area.zip"
+  },
+  "catalogo_camadas": "../../catalogo/camadas.json",
+  "templates_layouts": "../../templates/layouts/MANIFEST.json"
+}
