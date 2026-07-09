@@ -123,6 +123,17 @@ class NexoMapProject:
     def mapas_dir(self) -> str:
         return self.caminho("mapas")
 
+    def save(self):
+        """Persiste alteracoes no projeto JSON (area_base, crs, etc.)."""
+        import json as _json
+        with open(self._arquivo, "r", encoding="utf-8") as f:
+            data = _json.load(f)
+        data.setdefault("area_base", {})["path"] = self.area_base.path
+        data.setdefault("area_base", {})["tipo"] = self.area_base.tipo
+        data["crs_utm"] = self.crs.utm
+        with open(self._arquivo, "w", encoding="utf-8") as f:
+            _json.dump(data, f, indent=2, ensure_ascii=False)
+
 
 def _req(data: dict, key: str, ctx: str):
     if key not in data or data[key] in (None, ""):

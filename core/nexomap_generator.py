@@ -296,6 +296,8 @@ def _preparar_area_por_car(numero_car: str, project, secrets: dict) -> dict:
     project.area_base.path = os.path.join("Shapes", zip_name)
     project.area_base.tipo = "shapefile_zip"
     project.crs.utm = epsg_utm
+    # Persiste no JSON do projeto (necessario para chat_tools_stream reusar)
+    project.save()
     busca["epsg_utm"] = epsg_utm
     return busca
 
@@ -322,6 +324,7 @@ def _gerar_modelo(project, catalog, manifest, secrets, busca: dict, modelo_id: s
         "epsg_utm": busca["epsg_utm"],
     }
     result["modelo"] = modelo_id
+    result["project_path"] = project._arquivo  # para chat-tools editar depois
     try:
         with open(os.path.join(result["job_dir"], "resultado.json"), "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
@@ -555,6 +558,7 @@ def chat_tools_stream(project_path: str, prompt: str,
             yield {"status": "done", "result": result, "tool_calls": []}
             return
         from core.nexomap_tools import ToolContext
+        from core.nexomap_agent import run_rule_based
         ctx = ToolContext(catalog=catalog, manifest=manifest, secrets=secrets,
                           project_name=project.nome)
         agent = run_rule_based(prompt, ctx, parent_dict)

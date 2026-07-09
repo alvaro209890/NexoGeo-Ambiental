@@ -1,10 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
   ArrowLeft,
+  Bot,
   CheckCircle2,
+  ChevronRight,
+  Cpu,
   Download,
+  FileText,
+  FolderOpen,
   Layers,
   Loader2,
   LogOut,
@@ -14,6 +19,8 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  User,
+  XCircle,
 } from 'lucide-react'
 import { API, authError } from './auth.js'
 
@@ -26,6 +33,22 @@ const ICONES = {
   embargos: ShieldCheck,
   alertas: AlertTriangle,
   areas_protegidas: Map,
+}
+
+const TOOL_LABELS = {
+  estado_atual: '🔍 Estado atual', listar_camadas: '📋 Camadas', criar_mapa: '🗺️ Criar mapa',
+  definir_titulo: '✏️ Título', adicionar_camada: '➕ Camada', remover_camada: '➖ Camada',
+  editar_camada: '🎨 Estilo', editar_legenda: '📚 Legenda', criar_tabela: '📊 Tabela',
+  mover_elemento: '📍 Mover', alternar_elemento: '👁️ Visibilidade', editar_estilo_elemento: '🎨 Ajuste',
+  definir_metadados_imagem: '🖼️ Metadados', definir_raster_fundo: '🛰️ Fundo',
+  definir_escala: '📐 Escala', sugerir_opcoes: '❓ Pergunta', finalizar: '✅ Finalizar',
+  validar_mapa: '✅ Validar', sugerir_melhorias: '💡 Melhorias', listar_camadas_locais: '📁 Locais',
+}
+
+const TOOL_COLORS = {
+  criar_mapa: '#35d08a', adicionar_camada: '#48d8c8', editar_camada: '#f2b84b',
+  editar_legenda: '#a78bfa', criar_tabela: '#60a5fa', mover_elemento: '#fb923c',
+  finalizar: '#35d08a', sugerir_opcoes: '#f472b6',
 }
 
 function fileUrl(path) {
@@ -44,6 +67,13 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
   const [resultado, setResultado] = useState(null)
   const [tentativa, setTentativa] = useState(0)
 
+  // ── Chat de edicao ──
+  const [chatMsgs, setChatMsgs] = useState([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatRunning, setChatRunning] = useState(false)
+  const [chatStreaming, setChatStreaming] = useState([])
+  const chatEnd = useRef(null)
+
   useEffect(() => {
     let vivo = true
     setCarregandoModelos(true)
@@ -55,6 +85,10 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
       .finally(() => { if (vivo) setCarregandoModelos(false) })
     return () => { vivo = false }
   }, [tentativa])
+
+  useEffect(() => {
+    chatEnd.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatMsgs, chatStreaming])
 
   const tabela = useMemo(() => {
     const t = resultado?.mapspec?.tabela
@@ -68,6 +102,8 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
     setRodando(true)
     setErro('')
     setResultado(null)
+    setChatMsgs([])
+    setChatInput('')
     setEtapa('Consultando a SEMA…')
     try {
       const resp = await fetch(`${API}/api/nexomap/car-mapa`, {
@@ -90,9 +126,8 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
           if (!linha) continue
           let ev
           try { ev = JSON.parse(linha.slice(5).trim()) } catch { continue }
-          if (ev.status === 'progress' && ev.stage === 'consultando_sema') setEtapa('Buscando o imovel no CAR (SIMCAR)…')
-          else if (ev.status === 'progress' && ev.stage === 'renderizando') setEtapa(`Cruzando camadas e montando o mapa… (${ev.aguardando_s || 0}s)`)
-          else if (ev.status === 'progress' && ev.stage === 'renderizado') setEtapa('Finalizando…')
+          if (ev.status === 'progress' && ev.stage === 'consultando_sema') setEtapa('Buscando o imovel no CAR…')
+          else if (ev.status === 'progress' && ev.stage === 'renderizado') setEtapa('Montando o mapa…')
           else if (ev.status === 'error') { setErro(ev.erro || 'Falha ao gerar o mapa'); setEtapa('') }
           else if (ev.status === 'done') { setResultado(ev.result); setEtapa('') }
         }
@@ -103,6 +138,75 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
       setRodando(false)
       setEtapa('')
     }
+  }
+
+  // ── Chat: envia prompt e edita o mapa via IA ──
+  async function sendChatMessage() {
+    const text = chatInput.trim()
+    if (!text || chatRunning || !resultado?.project_path || !resultado?.job_id) return
+    setChatInput('')
+    setChatRunning(true)
+    setChatStreaming([])
+
+    setChatMsgs(prev => [...prev, { role: 'user', content: text, ts: Date.now() }])
+
+    const tools = []
+    try {
+      const resp = await fetch(`${API}/api/nexomap/chat-tools`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: resultado.project_path,
+          prompt: text,
+          parent_job_id: resultado.job_id,
+          allow_local_fallback: true,
+          max_steps: 10,
+        }),
+      })
+      if (!resp.ok || !resp.body) throw new Error(await resp.text())
+      const reader = resp.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        const chunks = buf.split('\n\n')
+        buf = chunks.pop() || ''
+        for (const chunk of chunks) {
+          const line = chunk.split('\n').find(l => l.startsWith('data: '))
+          if (!line) continue
+          let ev
+          try { ev = JSON.parse(line.slice(6)) } catch { continue }
+          if (ev.status === 'tool') {
+            tools.push(ev)
+            setChatStreaming(prev => [...prev, ev])
+          } else if (ev.status === 'done') {
+            setChatStreaming([])
+            setChatMsgs(prev => [...prev, {
+              role: 'assistant',
+              content: ev.result?.resumo || ev.result?.mapspec?.titulo || '✅ Mapa atualizado!',
+              ts: Date.now(),
+              result: ev.result,
+              tools: [...tools],
+            }])
+            // Atualiza o resultado principal com o novo mapa
+            if (ev.result) setResultado(ev.result)
+          } else if (ev.status === 'error') {
+            setChatMsgs(prev => [...prev, { role: 'assistant', content: ev.erro, ts: Date.now(), error: true }])
+          }
+        }
+      }
+    } catch (e) {
+      setChatMsgs(prev => [...prev, { role: 'assistant', content: authError(e), ts: Date.now(), error: true }])
+    } finally {
+      setChatRunning(false)
+      setChatStreaming([])
+    }
+  }
+
+  const chatKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage() }
   }
 
   return (
@@ -150,7 +254,7 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
               type="button"
               className={`carmap-card${ativo ? ' ativo' : ''}`}
               style={{ '--cor': m.cor }}
-              onClick={() => { setModeloSel(m); setResultado(null); setErro('') }}
+              onClick={() => { setModeloSel(m); setResultado(null); setErro(''); setChatMsgs([]) }}
             >
               <span className="carmap-card-ic"><Icon size={22} /></span>
               <span className="carmap-card-cat">{m.categoria}</span>
@@ -178,7 +282,7 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
             </div>
             <button type="button" className="carmap-gen" onClick={gerar} disabled={rodando || !numeroCar.trim()}>
               {rodando ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
-              {rodando ? 'Gerando…' : `Gerar “${modeloSel.titulo}”`}
+              {rodando ? 'Gerando…' : `Gerar "${modeloSel.titulo}"`}
             </button>
           </div>
           {etapa ? <div className="carmap-etapa"><Loader2 size={15} className="spin" /> {etapa}</div> : null}
@@ -192,8 +296,7 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
           <div className="carmap-result-head">
             <div>
               <strong>{resultado.mapspec?.titulo}</strong>
-              <span>{resultado.car?.nome} · CAR {resultado.car?.numero} · {fmtHa(resultado.car?.area_ha)}
-                {resultado.car?.origem === 'requerimento' ? ' · requerimento SIMCAR' : resultado.car?.origem === 'car_digital' ? ' · CAR validado' : ''}</span>
+              <span>{resultado.car?.nome} · CAR {resultado.car?.numero} · {fmtHa(resultado.car?.area_ha)}</span>
             </div>
             <div className="carmap-badges">
               {resultado.validacao?.conformidade_modelo?.ok
@@ -234,6 +337,95 @@ export function CarMapaView({ onBack, usuario, onLogout }) {
               <ul>{resultado.warnings.slice(0, 8).map((w, i) => <li key={i}>{w}</li>)}</ul>
             </details>
           ) : null}
+
+          {/* ──── Chat de edicao com IA ──── */}
+          <div className="carmap-chat">
+            <div className="carmap-chat-header">
+              <Bot size={16} />
+              <span>Editar mapa com IA</span>
+              <span className="carmap-chat-hint">Peca alteracoes: "mude a cor da legenda pra azul", "adicione camada de embargos", etc.</span>
+            </div>
+
+            <div className="carmap-chat-msgs">
+              {chatMsgs.length === 0 && !chatRunning && (
+                <div className="carmap-chat-empty">
+                  <Sparkles size={22} />
+                  <span>O mapa foi gerado! Agora voce pode pedir para a IA editar, adicionar ou remover elementos.</span>
+                </div>
+              )}
+              {chatMsgs.map((msg, i) => (
+                <div key={i} className={`carmap-chat-msg ${msg.role}`}>
+                  <div className="carmap-chat-avatar">
+                    {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
+                  </div>
+                  <div>
+                    <div className={`carmap-chat-bubble ${msg.error ? 'error' : ''}`}>{msg.content}</div>
+                    {/* Tool cards */}
+                    {msg.tools && msg.tools.length > 0 && (
+                      <div className="carmap-tools-card">
+                        <div className="carmap-tools-header"><Cpu size={11} /> {msg.tools.length} ferramentas usadas</div>
+                        {msg.tools.map((t, j) => (
+                          <div key={j} className="carmap-tool-item" style={{ borderLeftColor: TOOL_COLORS[t.tool] || '#64748b' }}>
+                            <span>{TOOL_LABELS[t.tool]?.split(' ')[0] || '⚙️'}</span>
+                            <span>{TOOL_LABELS[t.tool] || t.tool}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Novo preview depois da edicao */}
+                    {msg.result?.outputs?.png_validacao && (
+                      <div className="carmap-chat-result">
+                        <img src={fileUrl(msg.result.outputs.png_validacao)} alt="Mapa editado" />
+                        <div className="carmap-chat-result-actions">
+                          {msg.result.outputs?.pdf && (
+                            <a href={fileUrl(msg.result.outputs.pdf)} target="_blank" rel="noreferrer">
+                              <FileText size={13} /> PDF
+                            </a>
+                          )}
+                          <span>
+                            <CheckCircle2 size={13} />
+                            {msg.result.validacao?.conformidade_modelo?.ok ? 'Conforme IMAP' : 'Verificar'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {/* Streaming tools */}
+              {chatStreaming.map((t, j) => (
+                <div key={`s-${j}`} className="carmap-chat-msg assistant">
+                  <div className="carmap-chat-avatar"><Loader2 size={14} className="spin" /></div>
+                  <div className="carmap-streaming-tool" style={{ borderLeftColor: TOOL_COLORS[t.tool] || '#64748b' }}>
+                    <span className="carmap-pulse">{TOOL_LABELS[t.tool]?.split(' ')[0] || '⚙️'}</span>
+                    <span>{TOOL_LABELS[t.tool] || t.tool}</span>
+                  </div>
+                </div>
+              ))}
+              {chatRunning && chatStreaming.length === 0 && (
+                <div className="carmap-chat-msg assistant">
+                  <div className="carmap-chat-avatar"><Loader2 size={14} className="spin" /></div>
+                  <div className="carmap-chat-bubble thinking">🤔 Pensando...</div>
+                </div>
+              )}
+              <div ref={chatEnd} />
+            </div>
+
+            <div className="carmap-chat-input-row">
+              <textarea
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={chatKeyDown}
+                rows={1}
+                disabled={chatRunning}
+                placeholder='Ex: "adicione camada de embargos da SEMA" ou "mude a cor do titulo para azul escuro"'
+                className="carmap-chat-textarea"
+              />
+              <button onClick={sendChatMessage} disabled={chatRunning || !chatInput.trim()} className="carmap-chat-send">
+                {chatRunning ? <Loader2 size={16} className="spin" /> : <ChevronRight size={18} />}
+              </button>
+            </div>
+          </div>
         </section>
       ) : null}
     </div>
@@ -297,6 +489,48 @@ function Estilos() {
     .carmap-tabela tr.total td { font-weight:700; border-top:2px solid var(--line,#2b3444); }
     .carmap-avisos { margin-top:14px; font-size:.82rem; opacity:.8; }
     .carmap-avisos summary { cursor:pointer; }
+
+    /* ── Chat de edicao ── */
+    .carmap-chat { margin-top:20px; border-top:1px solid var(--line,#2b3444); padding-top:16px; }
+    .carmap-chat-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; color:#93a1b5; font-size:.85rem; font-weight:600; }
+    .carmap-chat-hint { font-weight:400; opacity:.65; font-size:.78rem; }
+    .carmap-chat-msgs { display:flex; flex-direction:column; gap:10px; max-height:400px; overflow-y:auto; padding:4px 0; margin-bottom:10px; }
+    .carmap-chat-empty { display:flex; align-items:center; gap:10px; padding:16px; background:rgba(37,99,235,.08); border-radius:12px; color:#93a1b5; font-size:.84rem; }
+    .carmap-chat-msg { display:flex; gap:10px; max-width:90%; animation:msgIn .25s ease-out; }
+    .carmap-chat-msg.user { align-self:flex-end; flex-direction:row-reverse; }
+    .carmap-chat-msg.assistant { align-self:flex-start; }
+    .carmap-chat-avatar { width:32px; height:32px; border-radius:8px; background:var(--line,#2b3444); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .carmap-chat-msg.user .carmap-chat-avatar { background:#2563eb; color:#fff; }
+    .carmap-chat-bubble { padding:9px 14px; border-radius:12px; font-size:.86rem; line-height:1.45; }
+    .carmap-chat-msg.user .carmap-chat-bubble { background:#2563eb; color:#fff; border-bottom-right-radius:3px; }
+    .carmap-chat-msg.assistant .carmap-chat-bubble { background:var(--bg,#0d1117); border:1px solid var(--line,#2b3444); border-bottom-left-radius:3px; }
+    .carmap-chat-bubble.error { background:#3b1219!important; color:#f87171!important; border-color:#5c1a24!important; }
+    .carmap-chat-bubble.thinking { background:var(--bg,#0d1117); color:#93a1b5; font-style:italic; }
+
+    .carmap-tools-card { margin-top:8px; background:var(--bg,#0d1117); border:1px solid var(--line,#2b3444); border-radius:10px; overflow:hidden; }
+    .carmap-tools-header { padding:6px 12px; font-size:.72rem; font-weight:600; color:#93a1b5; background:var(--line,#1e293b); display:flex; align-items:center; gap:5px; }
+    .carmap-tool-item { display:flex; align-items:center; gap:8px; padding:7px 12px; border-left:3px solid var(--line,#2b3444); font-size:.8rem; }
+    .carmap-streaming-tool { display:flex; align-items:center; gap:8px; padding:7px 12px; border-left:3px solid #2563eb; background:var(--bg,#0d1117); border-radius:8px; font-size:.8rem; animation:fadeIn .3s ease-out; }
+    .carmap-pulse { animation:pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .carmap-chat-result { margin-top:8px; background:var(--bg,#0d1117); border:1px solid var(--line,#2b3444); border-radius:10px; padding:8px; }
+    .carmap-chat-result img { width:100%; border-radius:6px; display:block; }
+    .carmap-chat-result-actions { display:flex; gap:8px; margin-top:6px; font-size:.78rem; }
+    .carmap-chat-result-actions a, .carmap-chat-result-actions span { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:7px; text-decoration:none; }
+    .carmap-chat-result-actions a { background:#2563eb; color:#fff; }
+    .carmap-chat-result-actions span { background:rgba(34,197,94,.12); color:#22c55e; }
+
+    .carmap-chat-input-row { display:flex; gap:8px; padding:10px 0 0; }
+    .carmap-chat-textarea { flex:1; resize:none; padding:10px 14px; border-radius:10px; border:1px solid var(--line,#2b3444); background:var(--bg,#0d1117); color:inherit; font-size:.85rem; outline:none; line-height:1.4; }
+    .carmap-chat-textarea:focus { border-color:#2563eb; }
+    .carmap-chat-send { width:38px; height:38px; border-radius:10px; border:0; background:#2563eb; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+    .carmap-chat-send:disabled { opacity:.45; cursor:not-allowed; }
+
+    @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     `}</style>
   )
 }
