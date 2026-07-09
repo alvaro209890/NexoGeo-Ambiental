@@ -136,6 +136,7 @@ export function ChatView({ analysisPath, preShape, mapProject, setMapProject, ma
     definir_metadados_imagem: '🖼️ Configurando metadados',
     definir_raster_fundo: '🛰️ Definindo imagem de fundo',
     definir_escala: '📐 Ajustando escala',
+    sugerir_opcoes: '❓ Pedindo esclarecimento',
     finalizar: '✅ Finalizando mapa',
   }
 
@@ -204,6 +205,30 @@ export function ChatView({ analysisPath, preShape, mapProject, setMapProject, ma
               <div className={`chat-bubble ${msg.error ? 'error' : ''}`}>
                 {msg.content}
               </div>
+              {/* Options card (sugerir_opcoes) */}
+              {msg.tools && msg.tools.find(t => t.tool === 'sugerir_opcoes') && (
+                (() => {
+                  const opt = msg.tools.find(t => t.tool === 'sugerir_opcoes')
+                  const resultado = opt.resultado || ''
+                  const match = resultado.match(/\[OPCOES\] (.+?) \| (.+)/)
+                  if (!match) return null
+                  const pergunta = match[1]
+                  const labels = match[2].split(' | ')
+                  return (
+                    <div className="options-card animate-fadeIn">
+                      <p className="text-sm text-ink font-semibold mb-2">{pergunta}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {labels.map((label, i) => (
+                          <button key={i} onClick={() => { setInput(label); setTimeout(() => document.getElementById('chat-input')?.focus(), 50) }}
+                            className="px-4 py-2 rounded-xl border border-brand/40 bg-brand/10 text-brand hover:bg-brand/20 text-sm font-medium transition-all cursor-pointer">
+                            {label.trim()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()
+              )}
               {/* Tool calls card */}
               {msg.tools && msg.tools.length > 0 && (
                 <div className="tool-calls-card">

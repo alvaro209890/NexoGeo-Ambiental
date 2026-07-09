@@ -1523,3 +1523,16 @@ p {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Options Card (sugerir_opcoes) ── */
+.options-card {
+  background: var(--panel-soft);
+  border: 1px solid var(--brand);
+  border-radius: 12px;
+  padding: 14px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.options-card button {
+  cursor: pointer;
+}

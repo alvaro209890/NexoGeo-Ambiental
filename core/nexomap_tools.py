@@ -334,6 +334,15 @@ def tool_definir_escala(spec: dict, ctx: ToolContext, escala) -> tuple[dict, str
     return _validar(novo), f"escala definida: {novo['escala']}"
 
 
+def tool_sugerir_opcoes(spec: dict, ctx: ToolContext, pergunta: str,
+                        opcoes: list[dict]) -> tuple[dict, str]:
+    """Pede esclarecimento ao usuario com opcoes selecionaveis. Nao altera o mapa."""
+    if not opcoes or len(opcoes) < 2:
+        raise ToolError("forneca ao menos 2 opcoes com rotulo e valor")
+    labels = [o.get("rotulo", o.get("label", "?")) for o in opcoes]
+    return spec, f"[OPCOES] {pergunta} | {' | '.join(labels)}"
+
+
 def tool_finalizar(spec: dict, ctx: ToolContext, resumo: str = "") -> tuple[dict, str]:
     return spec, resumo or "finalizado"
 
@@ -355,6 +364,7 @@ TOOLS: dict[str, Callable] = {
     "editar_camada": tool_editar_camada,
     "editar_legenda": tool_editar_legenda,
     "criar_tabela": tool_criar_tabela,
+    "sugerir_opcoes": tool_sugerir_opcoes,
     "definir_metadados_imagem": tool_definir_metadados_imagem,
     "definir_raster_fundo": tool_definir_raster_fundo,
     "definir_escala": tool_definir_escala,
@@ -477,6 +487,15 @@ TOOL_SCHEMAS: list[dict] = [
         "linhas": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}},
         "config": {"type": "object", "description": "Para quantitativos: {classes:[string], percentual:bool, linha_total:bool}"},
     }, ["titulo"]),
+    _schema("sugerir_opcoes", "Pede esclarecimento ao usuario quando ha ambiguidade. "
+            "Use quando precisar que o usuario decida entre opcoes (ex: qual camada, qual cor). "
+            "NAO finaliza — a conversa continua apos a escolha.", {
+        "pergunta": {"type": "string", "description": "Pergunta clara para o usuario"},
+        "opcoes": {"type": "array", "items": {"type": "object", "properties": {
+            "rotulo": {"type": "string", "description": "Texto visivel da opcao"},
+            "valor": {"type": "string", "description": "Valor interno"},
+        }}},
+    }, ["pergunta", "opcoes"]),
     _schema("definir_metadados_imagem", "Preenche o bloco METADADOS IMAGEM da faixa inferior.", {
         "satelite_sensor": {"type": "string"}, "data_aquisicao": {"type": "string"},
         "orbita_ponto": {"type": "string"}, "datum": {"type": "string"},
