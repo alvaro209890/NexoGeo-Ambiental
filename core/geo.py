@@ -168,11 +168,43 @@ def _achar_shp(root: str, prefer_stem: str | None = None) -> str:
     return str(candidatos[0][1])
 
 
+def _codec_cpg(shp_path: str) -> str | None:
+    """Codec declarado no sidecar ``.cpg`` do shapefile (quando reconhecido)."""
+    cpg = os.path.splitext(shp_path)[0] + ".cpg"
+    try:
+        with open(cpg, "r", encoding="ascii", errors="ignore") as f:
+            raw = f.read().strip().upper()
+    except OSError:
+        return None
+    if "UTF" in raw and "8" in raw:
+        return "utf-8"
+    if "1252" in raw:
+        return "cp1252"
+    if "8859" in raw or "LATIN" in raw:
+        return "latin-1"
+    return None
+
+
 def _reader(shp_path: str):
+    """Reader do pyshp com detecção do encoding do ``.dbf``.
+
+    Ordem: ``.cpg`` (quando presente) → utf-8 → cp1252 → latin-1. O pyshp só
+    decodifica ao ler os records, então cada tentativa força ``records()`` —
+    latin-1 fica por último porque aceita qualquer byte (nunca falha), e
+    testá-lo primeiro corrompia acentos de .dbf gravados em UTF-8 (mojibake
+    no rótulo do imóvel).
+    """
+    encs = []
+    cpg = _codec_cpg(shp_path)
+    if cpg:
+        encs.append(cpg)
+    encs += [e for e in ("utf-8", "cp1252", "latin-1") if e not in encs]
     last = None
-    for enc in ("latin-1", "utf-8", "cp1252"):
+    for enc in encs:
         try:
-            return shapefile.Reader(shp_path, encoding=enc)
+            r = shapefile.Reader(shp_path, encoding=enc)
+            r.records()
+            return r
         except Exception as e:
             last = e
     raise last  # type: ignore[misc]

@@ -19,7 +19,9 @@ from core.nexomap_catalog import layer_index
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELOS_PADRAO = os.path.join(ROOT, "catalogo", "modelos_mapas.json")
 
-LAYOUT_PAISAGEM = "dinamica_a3_paisagem"
+# A4 paisagem = padrao IMAP do cliente (docs/PADRAO_IMAP_RENDERER.md); o A3
+# abria demais o enquadramento e fugia dos PDFs-modelo de referencia.
+LAYOUT_PAISAGEM = "dinamica_a4_paisagem"
 
 
 def load_modelos(path: str = MODELOS_PADRAO) -> list[dict]:
@@ -86,7 +88,7 @@ def aplicar_modelo(modelo: dict, catalog: dict, *, car_info: dict | None = None,
             avisos.append(f"fonte invalida '{fonte}' no modelo {modelo.get('id')}")
     if not any(c["id"] == "perimetro" for c in camadas):
         camadas.insert(0, {"id": "perimetro", "fonte": "area_base", "filtro": "",
-                           "estilo": {"linha": "#ff2d00", "largura": 2.6,
+                           "estilo": {"linha": "#c00000", "largura": 2.8,
                                       "preenchimento": "transparente"}, "rotulo": True})
 
     titulo = modelo.get("titulo", modelo.get("id", "Mapa"))
@@ -108,7 +110,9 @@ def aplicar_modelo(modelo: dict, catalog: dict, *, car_info: dict | None = None,
             "datum": _datum_utm(epsg_utm),
         },
         "marca": {"logo": os.path.join("assets", "logo_imap.png"), "texto": "IMAP"},
-        "elementos_layout": {"legenda": True, "escala_grafica": True, "norte": True,
+        # sem escala_grafica: o padrao IMAP nao usa barra de escala (o default
+        # flagship do renderer ja desliga; forcar True aqui quebrava a paridade)
+        "elementos_layout": {"legenda": True, "norte": True,
                              "grade": True, "minimapa": True, "metadados": True},
         "saidas": ["pdf", "png_validacao", "geojson"],
     }

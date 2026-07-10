@@ -1,21 +1,25 @@
 {
-  "_descricao": "Modelos de mapa (cards) do NexoGeo, derivados dos 24 mapas IMAP reais (referencias/Mapas_unidos.pdf). Cada modelo cruza a ATP do CAR com camadas do WFS SIMCAR digital da SEMA. Estilos seguem o guia IMAP (hachuras/preenchimento/opacidade).",
+  "_descricao": "Modelos de mapa (cards) do NexoGeo, derivados dos 24 mapas IMAP reais (referencias/pdf_modelo_imap/). Cada modelo cruza a ATP do CAR com camadas do WFS SIMCAR digital da SEMA. Estilos = paleta oficial IMAP (docs/PADRAO_IMAP_RENDERER.md): perimetro #c00000 2.8, AVN hachura xxx #00b050 vazada, AC magenta vazada, AUAS /// laranja vazada.",
   "modelos": [
     {
       "id": "car",
-      "titulo": "CAR do Imovel",
+      "titulo": "CAR do Imóvel",
       "categoria": "Cadastral",
       "icone": "layers",
       "cor": "#16a34a",
-      "descricao": "Perimetro da propriedade (ATP) cruzado com APP, Reserva Legal e vegetacao nativa do SIMCAR digital.",
+      "descricao": "Perímetro da propriedade (ATP) cruzado com APP, Reserva Legal e vegetação nativa do SIMCAR digital.",
       "camadas": [
-        {"fonte": "area_base", "estilo": {"linha": "#ff2d00", "largura": 2.6, "preenchimento": "transparente"}, "rotulo": true},
-        {"fonte": "catalogo.simcar_avn", "estilo": {"preenchimento": "#16a34a", "opacidade": 0.35, "linha": "#166534"}},
-        {"fonte": "catalogo.simcar_arl", "estilo": {"preenchimento": "transparente", "hachura": "////", "linha": "#15803d", "largura": 1.4}},
-        {"fonte": "catalogo.simcar_app", "estilo": {"preenchimento": "transparente", "hachura": "----", "linha": "#1d4ed8", "largura": 1.4}}
+        {"fonte": "area_base", "estilo": {"linha": "#c00000", "largura": 2.8, "preenchimento": "transparente"}, "rotulo": true},
+        {"fonte": "catalogo.simcar_avn", "estilo": {"linha": "#00b050", "preenchimento": "transparente", "hachura": "xxx", "opacidade": 0.95, "largura": 0.7}},
+        {"fonte": "catalogo.simcar_arl", "estilo": {"linha": "#008000", "preenchimento": "transparente", "hachura": "\\\\", "opacidade": 0.95, "largura": 1.0}},
+        {"fonte": "catalogo.simcar_app", "estilo": {"linha": "#0070c0", "preenchimento": "transparente", "hachura": "|||", "opacidade": 0.95, "largura": 1.0}}
       ],
-      "tabela": {"titulo": "Quantitativos do imovel (ha)", "fonte": "quantitativos",
-                 "config": {"classes": ["simcar_avn", "simcar_arl", "simcar_app"], "percentual": true, "linha_total": true}}
+      "tabela": {"titulo": "Quantitativos do imóvel (ha)", "fonte": "quantitativos",
+                 "config": {"classes": [
+                   {"rotulo": "Vegetação Nativa (AVN)", "camada": "simcar_avn"},
+                   {"rotulo": "Reserva Legal (ARL)", "camada": "simcar_arl"},
+                   {"rotulo": "APP", "camada": "simcar_app"}
+                 ], "percentual": true, "linha_total": true}}
     },
     {
       "id": "uso_consolidado",
@@ -23,15 +27,19 @@
       "categoria": "Uso do solo",
       "icone": "wheat",
       "cor": "#f59e0b",
-      "descricao": "Uso consolidado (ocupacao anterior a 2008) e areas antropizadas cruzados com a ATP.",
+      "descricao": "Uso consolidado (ocupação anterior a 2008) e áreas antropizadas cruzados com a ATP.",
       "camadas": [
-        {"fonte": "area_base", "estilo": {"linha": "#ff2d00", "largura": 2.6, "preenchimento": "transparente"}, "rotulo": true},
-        {"fonte": "catalogo.uso_consolidado", "estilo": {"preenchimento": "#f59e0b", "opacidade": 0.4, "linha": "#b45309"}},
-        {"fonte": "catalogo.simcar_auas", "estilo": {"preenchimento": "transparente", "hachura": "....", "linha": "#c2410c"}},
-        {"fonte": "catalogo.simcar_avn", "estilo": {"preenchimento": "#16a34a", "opacidade": 0.3, "linha": "#166534"}}
+        {"fonte": "area_base", "estilo": {"linha": "#c00000", "largura": 2.8, "preenchimento": "transparente"}, "rotulo": true},
+        {"fonte": "catalogo.uso_consolidado", "estilo": {"linha": "#ff00ff", "preenchimento": "none", "opacidade": 1.0, "largura": 1.6}},
+        {"fonte": "catalogo.simcar_auas", "estilo": {"linha": "#ffa500", "preenchimento": "transparente", "hachura": "///", "opacidade": 0.95, "largura": 0.7}},
+        {"fonte": "catalogo.simcar_avn", "estilo": {"linha": "#00b050", "preenchimento": "transparente", "hachura": "xxx", "opacidade": 0.95, "largura": 0.7}}
       ],
       "tabela": {"titulo": "Uso do solo (ha)", "fonte": "quantitativos",
-                 "config": {"classes": ["uso_consolidado", "simcar_auas", "simcar_avn"], "percentual": true, "linha_total": true}}
+                 "config": {"classes": [
+                   {"rotulo": "Uso Consolidado", "camada": "uso_consolidado"},
+                   {"rotulo": "Uso Antropizado (AUAS)", "camada": "simcar_auas"},
+                   {"rotulo": "Vegetação Nativa (AVN)", "camada": "simcar_avn"}
+                 ], "percentual": true, "linha_total": true}}
     },
     {
       "id": "tipologia",
@@ -39,28 +47,33 @@
       "categoria": "Vegetacao",
       "icone": "trees",
       "cor": "#059669",
-      "descricao": "Tipologia da vegetacao nativa (SIMCAR digital) recortada ao imovel, com quantitativos por classe.",
+      "descricao": "Tipologia da vegetação nativa (SIMCAR digital) recortada ao imóvel, com quantitativos por classe.",
       "camadas": [
-        {"fonte": "area_base", "estilo": {"linha": "#111827", "largura": 2.4, "preenchimento": "transparente"}, "rotulo": true},
-        {"fonte": "catalogo.tipologia_sema", "estilo": {"preenchimento": "transparente", "hachura": "----", "linha": "#059669", "largura": 1.2, "opacidade": 0.65}, "rotulo": false}
+        {"fonte": "area_base", "estilo": {"linha": "#c00000", "largura": 2.8, "preenchimento": "transparente"}, "rotulo": true},
+        {"fonte": "catalogo.tipologia_sema", "estilo": {"linha": "#059669", "preenchimento": "transparente", "hachura": "----", "opacidade": 0.9, "largura": 1.2}, "rotulo": false}
       ],
       "tabela": {"titulo": "Tipologia vegetal (ha)", "fonte": "quantitativos",
-                 "config": {"classes": ["tipologia_sema"], "percentual": true, "linha_total": true}}
+                 "config": {"classes": [
+                   {"rotulo": "Tipologia vegetal", "camada": "tipologia_sema"}
+                 ], "percentual": true, "linha_total": true}}
     },
     {
       "id": "dinamica",
-      "titulo": "Dinamica do Desmatamento",
+      "titulo": "Dinâmica do Desmatamento",
       "categoria": "Desmatamento",
       "icone": "activity",
       "cor": "#dc2626",
-      "descricao": "Vegetacao nativa x uso antropizado do imovel — base para a serie de dinamica (2000-2026).",
+      "descricao": "Vegetação nativa x uso antropizado do imóvel — base para a série de dinâmica (2000-2026).",
       "camadas": [
-        {"fonte": "area_base", "estilo": {"linha": "#111827", "largura": 2.4, "preenchimento": "transparente"}, "rotulo": true},
-        {"fonte": "catalogo.simcar_avn", "estilo": {"preenchimento": "#16a34a", "opacidade": 0.45, "linha": "#166534"}},
-        {"fonte": "catalogo.simcar_auas", "estilo": {"preenchimento": "#f97316", "opacidade": 0.45, "linha": "#c2410c"}}
+        {"fonte": "area_base", "estilo": {"linha": "#c00000", "largura": 2.8, "preenchimento": "transparente"}, "rotulo": true},
+        {"fonte": "catalogo.simcar_avn", "estilo": {"linha": "#00b050", "preenchimento": "transparente", "hachura": "xxx", "opacidade": 0.95, "largura": 0.7}},
+        {"fonte": "catalogo.simcar_auas", "estilo": {"linha": "#ffa500", "preenchimento": "transparente", "hachura": "///", "opacidade": 0.95, "largura": 0.7}}
       ],
-      "tabela": {"titulo": "Vegetacao x uso (ha)", "fonte": "quantitativos",
-                 "config": {"classes": ["simcar_avn", "simcar_auas"], "percentual": true, "linha_total": true}}
+      "tabela": {"titulo": "Vegetação x uso (ha)", "fonte": "quantitativos",
+                 "config": {"classes": [
+                   {"rotulo": "Vegetação Nativa (AVN)", "camada": "simcar_avn"},
+                   {"rotulo": "Uso Antropizado (AUAS)", "camada": "simcar_auas"}
+                 ], "percentual": true, "linha_total": true}}
     },
     {
       "id": "embargos",
@@ -68,13 +81,13 @@
       "categoria": "Fiscalizacao",
       "icone": "octagon-alert",
       "cor": "#b91c1c",
-      "descricao": "Embargos SEMA/SIGA e IBAMA e autos de infracao que incidem sobre o imovel.",
+      "descricao": "Embargos SEMA/SIGA e IBAMA e autos de infração que incidem sobre o imóvel.",
       "camadas": [
-        {"fonte": "area_base", "estilo": {"linha": "#111827", "largura": 2.4, "preenchimento": "transparente"}, "rotulo": true},
-        {"fonte": "catalogo.embargos_sema", "estilo": {"preenchimento": "transparente", "hachura": "xxxx", "linha": "#b91c1c", "largura": 1.6}},
-        {"fonte": "catalogo.embargos_siga", "estilo": {"preenchimento": "transparente", "hachura": "xxxx", "linha": "#dc2626", "largura": 1.4}},
-        {"fonte": "catalogo.autos_siga", "estilo": {"preenchimento": "#7c3aed", "opacidade": 0.3, "linha": "#6d28d9"}},
-        {"fonte": "catalogo.embargos_ibama", "estilo": {"preenchimento": "transparente", "hachura": "\\\\\\\\", "linha": "#9a3412", "largura": 1.4}}
+        {"fonte": "area_base", "estilo": {"linha": "#c00000", "largura": 2.8, "preenchimento": "transparente"}, "rotulo": true},
+        {"fonte": "catalogo.embargos_sema", "estilo": {"linha": "#b91c1c", "preenchimento": "transparente", "hachura": "xx", "opacidade": 0.95, "largura": 1.6}},
+        {"fonte": "catalogo.embargos_siga", "estilo": {"linha": "#dc2626", "preenchimento": "transparente", "hachura": "xx", "opacidade": 0.95, "largura": 1.4}},
+        {"fonte": "catalogo.autos_siga", "estilo": {"linha": "#7030a0", "preenchimento": "transparente", "hachura": "..", "opacidade": 0.95, "largura": 1.4}},
+        {"fonte": "catalogo.embargos_ibama", "estilo": {"linha": "#9a3412", "preenchimento": "transparente", "hachura": "\\\\", "opacidade": 0.95, "largura": 1.4}}
       ]
     },
     {
@@ -83,24 +96,24 @@
       "categoria": "Desmatamento",
       "icone": "satellite",
       "cor": "#ea580c",
-      "descricao": "Alertas MapBiomas e PRODES/INPE que intersectam o imovel.",
+      "descricao": "Alertas MapBiomas e PRODES/INPE que intersectam o imóvel.",
       "camadas": [
-        {"fonte": "area_base", "estilo": {"linha": "#111827", "largura": 2.4, "preenchimento": "transparente"}, "rotulo": true},
-        {"fonte": "catalogo.alertas_mapbiomas", "estilo": {"preenchimento": "#dc2626", "opacidade": 0.4, "linha": "#991b1b"}},
-        {"fonte": "catalogo.prodes_inpe", "estilo": {"preenchimento": "#db2777", "opacidade": 0.35, "linha": "#9d174d"}}
+        {"fonte": "area_base", "estilo": {"linha": "#c00000", "largura": 2.8, "preenchimento": "transparente"}, "rotulo": true},
+        {"fonte": "catalogo.alertas_mapbiomas", "estilo": {"linha": "#991b1b", "preenchimento": "#ff0000", "opacidade": 0.45}},
+        {"fonte": "catalogo.prodes_inpe", "estilo": {"linha": "#9d174d", "preenchimento": "#e6007e", "opacidade": 0.4}}
       ]
     },
     {
       "id": "areas_protegidas",
-      "titulo": "Areas Protegidas no Entorno",
+      "titulo": "Áreas Protegidas no Entorno",
       "categoria": "Territorial",
       "icone": "shield",
       "cor": "#0d9488",
-      "descricao": "Unidades de Conservacao e Terras Indigenas no entorno do imovel.",
+      "descricao": "Unidades de Conservação e Terras Indígenas no entorno do imóvel.",
       "camadas": [
-        {"fonte": "area_base", "estilo": {"linha": "#ff2d00", "largura": 2.6, "preenchimento": "transparente"}, "rotulo": true},
-        {"fonte": "catalogo.unidades_conservacao", "estilo": {"preenchimento": "#0d9488", "opacidade": 0.3, "linha": "#0f766e"}},
-        {"fonte": "catalogo.terras_indigenas_funai", "estilo": {"preenchimento": "#a16207", "opacidade": 0.3, "linha": "#854d0e"}}
+        {"fonte": "area_base", "estilo": {"linha": "#c00000", "largura": 2.8, "preenchimento": "transparente"}, "rotulo": true},
+        {"fonte": "catalogo.unidades_conservacao", "estilo": {"linha": "#0f766e", "preenchimento": "#00b09b", "opacidade": 0.3}},
+        {"fonte": "catalogo.terras_indigenas_funai", "estilo": {"linha": "#854d0e", "preenchimento": "#c8a165", "opacidade": 0.35}}
       ]
     }
   ]

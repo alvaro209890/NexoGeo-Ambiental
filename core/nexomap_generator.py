@@ -296,6 +296,14 @@ def _preparar_area_por_car(numero_car: str, project, secrets: dict) -> dict:
     project.area_base.path = os.path.join("Shapes", zip_name)
     project.area_base.tipo = "shapefile_zip"
     project.crs.utm = epsg_utm
+    # municipio real do imovel (minimapa IMAP destaca/rotula o municipio certo;
+    # sem isso ficava o placeholder do projeto, ex. "Mato Grosso")
+    cod_ibge = nexomap_car.codigo_ibge_do_car(busca)
+    info_mun = nexomap_car.municipio_por_codigo(cod_ibge) if cod_ibge else None
+    if info_mun:
+        project.municipio.nome = info_mun["nome"]
+        project.municipio.uf = info_mun["uf"] or project.municipio.uf
+        project.municipio.ibge = info_mun["ibge"]
     # Persiste no JSON do projeto (necessario para chat_tools_stream reusar)
     project.save()
     busca["epsg_utm"] = epsg_utm

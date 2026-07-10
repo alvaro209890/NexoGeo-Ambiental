@@ -837,11 +837,6 @@ def _draw_table(fig, rect, tabela: dict):
     axt = fig.add_axes(rect)
     axt.axis("off")
     titulo = tabela.get("titulo")
-    if titulo:
-        axt.text(0.5, 1.03, titulo, ha="center", va="bottom", fontsize=8.5,
-                 fontweight="bold", color=_INK, transform=axt.transAxes,
-                 bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="#9ca3af", lw=0.6, alpha=0.95))
-
     grupos = tabela.get("colunas_grupos")
     if grupos:
         # ── cabeçalho multinível ──
@@ -938,6 +933,22 @@ def _draw_table(fig, rect, tabela: dict):
                 cell.set_text_props(color=_INK, weight="bold")
             elif ultima_total and r == n_linhas:
                 cell.set_text_props(color=_INK, weight="bold")
+    if titulo:
+        # titulo colado no topo REAL da tabela (o eixo pode ser mais alto que a
+        # tabela centralizada nele — desenhar em y=1.03 deixava o titulo solto)
+        ty1 = 1.0
+        try:
+            fig.canvas.draw()
+            inv = axt.transAxes.inverted()
+            ty1 = float(inv.transform(t.get_window_extent())[1][1])
+        except Exception:
+            pass
+        if grupos:
+            ty1 += 0.10  # acima dos rotulos de grupo do cabecalho multinivel
+        axt.text(0.5, min(ty1 + 0.03, 1.10), titulo, ha="center", va="bottom",
+                 fontsize=8.5, fontweight="bold", color=_INK, transform=axt.transAxes,
+                 bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="#9ca3af", lw=0.6,
+                           alpha=0.95))
     return axt
 
 
@@ -1301,8 +1312,11 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
         # perimetro invisivel (largura 0 ou cor transparente): nao entra na legenda
         # e nao vira cor invalida no Line2D (os lotes vem como camadas separadas).
         if peri_w > 0 and peri_line not in ("transparente", "none"):
-            auto_entries.insert(0, ("perimetro", Line2D([0], [0], color=peri_line,
-                                                        lw=2.4, label=f"Perimetro do imovel ({area.feature_count})")))
+            # swatch como retangulo vazado grosso (igual ao ArcMap/modelo IMAP),
+            # nao como linha — mesmo tratamento dos lotes na legenda.
+            auto_entries.insert(0, ("perimetro", patches.Patch(
+                facecolor="none", edgecolor=peri_line, linewidth=min(peri_w, 2.8),
+                label=f"Perímetro do imóvel ({area.feature_count})")))
 
         # legenda editavel (plano 02): auto (atual) / manual / misto
         legend_entries, legend_avisos = _montar_legenda(

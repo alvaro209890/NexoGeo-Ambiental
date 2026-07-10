@@ -209,6 +209,34 @@ Embargos feitos no ArcMap, A4 paisagem) até ficar visualmente indistinguível. 
   (os `Mapas_unidos*.pdf` de origem não foram duplicados; a junção já existe em
   `referencias/Mapas_unidos.pdf`).
 
+## 2026-07-09 — Fluxo "Mapas por CAR" alinhado ao padrão IMAP
+
+Os mapas gerados pela aba web (cards por número do CAR) ainda saíam no estilo antigo
+(A3, barra de escala, cores web, tabela com ids crus) — a calibração de paridade tinha
+chegado só aos scripts de exemplo. Divergências corrigidas comparando com
+`referencias/pdf_modelo_imap/`:
+
+- **`core/nexomap_modelos.py`:** template A4 (`dinamica_a4_paisagem`), sem
+  `escala_grafica` forçada (vale o default flagship = off), perímetro fallback
+  `#c00000` 2.8.
+- **`catalogo/modelos_mapas.json`:** estilos oficiais IMAP em todos os cards
+  (perímetro `#c00000` 2.8; AVN `xxx` `#00b050` vazada; AC magenta vazada; AUAS `///`
+  laranja), títulos com acentos ("CAR do Imóvel") e classes da tabela com rótulo
+  amigável (`{rotulo, camada}` — "Vegetação Nativa (AVN)" no lugar de `simcar_avn`).
+- **Mojibake no rótulo do imóvel** ("ARUANÃ�"): `core/geo.py::_reader` testava
+  latin-1 primeiro (nunca falha) e corrompia o `.dbf` UTF-8 do fluxo CAR; agora lê o
+  sidecar `.cpg` e tenta utf-8 → cp1252 → latin-1 **forçando `records()`** (o pyshp só
+  decodifica na leitura). `escrever_area_zip` passou a gravar `area.cpg` (UTF-8).
+- **Minimapa com o município real:** o fluxo CAR preenche `project.municipio` a partir
+  do imóvel (`codigo_ibge_do_car`: MUNICIPIO_CODIGO/COD_IBGE ou o código embutido no
+  CAR federal `MT-<ibge7>-…`; nome/UF pela API de localidades do IBGE com cache — a API
+  devolve gzip sem pedir, tratado). Antes rotulava o placeholder "Mato Grosso".
+- **Renderer:** título da tabela colado no topo real dela (antes flutuava solto);
+  legenda do perímetro como retângulo vazado (igual ArcMap) e com acentos; nomes de
+  exibição do `catalogo/camadas.json` acentuados.
+- **Verificação:** série completa dos 7 cards regenerada ao vivo (CAR MT117775/2017,
+  Ribeirão Cascalheira) e comparada com os PDFs-modelo; `pytest` 117 passed, 9 skipped.
+
 ## Pendências/decisões registradas
 
 - **Matrícula 6350 (817,0640 ha)** — **Resolvido (2026-06-17):** é da *Fazenda Gabriela II*

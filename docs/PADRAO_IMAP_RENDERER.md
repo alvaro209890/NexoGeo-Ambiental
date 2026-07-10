@@ -129,6 +129,13 @@ que funcionam de ponta a ponta (validado ao vivo com DeepSeek):
 
 Cada edição gera **nova versão** do job (`parent_job_id` + `versao`), nunca sobrescreve.
 
+## Fluxo "Mapas por CAR" (web)
+
+Os cards por número do CAR (`core/nexomap_modelos.py` + `catalogo/modelos_mapas.json`)
+seguem estes mesmos padrões desde 2026-07-09: template `dinamica_a4_paisagem`, estilos
+oficiais nas camadas SIMCAR, tabela com rótulos amigáveis e o minimapa destacando o
+município real do imóvel (resolvido do código IBGE do CAR).
+
 ## Exemplos determinísticos
 
 - `projetos/lauri_teste/gerar_dinamica_imap.py` — Dinâmica 2026 fiel ao PDF-modelo.

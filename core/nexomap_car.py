@@ -154,6 +154,65 @@ def buscar_car(numero: str, secrets: dict, timeout: float = 40.0) -> dict:
     return {"ok": False, "erro": f"CAR '{n}' nao encontrado no CAR digital nem no requerimento (SIMCAR) da SEMA-MT"}
 
 
+def codigo_ibge_do_car(busca: dict) -> str:
+    """Codigo IBGE (7 digitos) do municipio do imovel, extraido da busca.
+
+    Ordem: MUNICIPIO_CODIGO/COD_IBGE das propriedades → codigo embutido no
+    CAR federal (``MT-<ibge7>-<hash>``). Vazio quando nada casa.
+    """
+    props = busca.get("propriedades") or {}
+    for key in ("MUNICIPIO_CODIGO", "COD_IBGE", "CODIGO_IBGE", "MUNICIPIO_IBGE"):
+        cod = re.sub(r"\D", "", str(props.get(key) or ""))
+        if len(cod) == 7:
+            return cod
+    federal = str(props.get("CAR_FEDERAL") or props.get("CODIGO_CAR_FEDERAL") or "")
+    m = re.match(r"^[A-Z]{2}-(\d{7})-", federal.strip().upper())
+    return m.group(1) if m else ""
+
+
+def municipio_por_codigo(codigo: str, timeout: float = 15.0) -> dict | None:
+    """Nome/UF do municipio pelo codigo IBGE (API de localidades, cache local).
+
+    Cache em ``~/.nexogeo/malhas/municipios_meta.json`` (mesma pasta das malhas
+    usadas pelo minimapa). Devolve ``{nome, uf, ibge}`` ou None (offline/invalido).
+    """
+    cod = re.sub(r"\D", "", str(codigo or ""))
+    if len(cod) != 7:
+        return None
+    cache_dir = os.path.join(os.path.expanduser("~"), ".nexogeo", "malhas")
+    cache = os.path.join(cache_dir, "municipios_meta.json")
+    meta: dict = {}
+    if os.path.exists(cache):
+        try:
+            with open(cache, encoding="utf-8") as f:
+                meta = _json.load(f)
+        except Exception:
+            meta = {}
+    if cod in meta:
+        return meta[cod]
+    try:
+        url = f"https://servicodados.ibge.gov.br/api/v1/localidades/municipios/{cod}"
+        with urlopen(url, timeout=timeout) as resp:
+            raw = resp.read()
+        if raw[:2] == b"\x1f\x8b":  # a API do IBGE devolve gzip mesmo sem pedir
+            import gzip
+            raw = gzip.decompress(raw)
+        d = _json.loads(raw.decode("utf-8", "replace"))
+        nome = str(d.get("nome") or "")
+        uf = str(((((d.get("microrregiao") or {}).get("mesorregiao") or {})
+                   .get("UF") or {}).get("sigla")) or "")
+        if not nome:
+            return None
+        info = {"nome": nome, "uf": uf, "ibge": cod}
+        meta[cod] = info
+        os.makedirs(cache_dir, exist_ok=True)
+        with open(cache, "w", encoding="utf-8") as f:
+            _json.dump(meta, f, ensure_ascii=False)
+        return info
+    except Exception:
+        return None
+
+
 def _bbox_geojson(geom: dict) -> tuple[float, float, float, float]:
     xs: list[float] = []
     ys: list[float] = []
@@ -221,4 +280,5 @@ def escrever_area_zip(geometry: dict, propriedades: dict, dest_zip: str,
         for ext, buf in buffers.items():
             zf.writestr("area." + ext, buf.getvalue())
         zf.writestr("area.prj", prj)
+        zf.writestr("area.cpg", "UTF-8")  # pyshp grava o .dbf em UTF-8
     return dest_zip
