@@ -12,12 +12,15 @@ import json
 import os
 import re
 
+import functools
+
 import matplotlib
 
 matplotlib.use("Agg")
 from matplotlib import patches  # noqa: E402
 from matplotlib import patheffects  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage  # noqa: E402
 from matplotlib.ticker import FuncFormatter, MaxNLocator  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 
@@ -43,6 +46,18 @@ THEME_COLORS = {
     "areas_protegidas": "#7c3aed",
     "desmatamento": "#f59e0b",
     "tipologia": "#16a34a",
+}
+
+# cores reais do ArcMap do usuario (Favorites.stylx), por camada especifica —
+# tem prioridade sobre THEME_COLORS (que e generico por tema). Todas sao
+# simbolos "vazados": contorno colorido, preenchimento transparente.
+LAYER_ID_COLORS = {
+    "car_avn": "#ffff00",
+    "simcar_avn": "#ffff00",
+    "car_arl": "#55ff00",
+    "simcar_arl": "#55ff00",
+    "area_consolidada_simcar": "#ff00c5",
+    "uso_consolidado": "#ff00c5",
 }
 
 _INK = "#111827"
@@ -222,39 +237,85 @@ def _draw_graticule_dms(ax, extent_utm: tuple, utm_epsg: int, geo_epsg: int,
                         annotation_clip=False, zorder=21)
 
 
-def _layer_color(layer_spec_estilo: dict, tema: str) -> tuple[str, str, float, str]:
+def _parse_dash(raw) -> tuple | None:
+    """Normaliza o campo 'dash' do estilo (lista de segmentos on/off em pontos,
+    ex.: [6, 3] ou [8, 3, 2, 3]) para o formato dashes= do matplotlib."""
+    if not raw:
+        return None
+    try:
+        segs = tuple(float(v) for v in raw)
+    except (TypeError, ValueError):
+        return None
+    return segs or None
+
+
+def _layer_color(layer_spec_estilo: dict, tema: str, layer_id: str = "") -> tuple[str, str, float, str, tuple | None]:
     line = layer_spec_estilo.get("linha")
     fill = layer_spec_estilo.get("preenchimento")
-    base = line or fill or THEME_COLORS.get(tema, "#64748b")
+    base = line or fill or LAYER_ID_COLORS.get(layer_id) or THEME_COLORS.get(tema, "#64748b")
     alpha = float(layer_spec_estilo.get("opacidade", 0.4) or 0.4)
     hatch = layer_spec_estilo.get("hachura") or layer_spec_estilo.get("hatch") or ""
+    dash = _parse_dash(layer_spec_estilo.get("dash"))
     is_transp = fill in (None, "", "transparente")
     # com hachura, o preenchimento em geral e "vazado" (so as linhas da hachura aparecem)
     fill_final = "none" if (is_transp and hatch) else (base if is_transp else fill)
-    return (line or base), fill_final, alpha, hatch
+    return (line or base), fill_final, alpha, hatch, dash
+
+
+@functools.lru_cache(maxsize=64)
+def _load_icon_image(path: str):
+    """Le um PNG de icone de marcador (cacheado). None se o arquivo nao existir/falhar."""
+    if not path or not os.path.exists(path):
+        return None
+    try:
+        import matplotlib.image as mpimg
+        return mpimg.imread(path)
+    except Exception:
+        return None
+
+
+def _draw_icon_markers(ax, xs, ys, icone: str, tamanho: float = 1.0, zorder: int = 7):
+    """Desenha marcadores com imagem (icone PNG) nos pontos dados. Devolve True se
+    conseguiu desenhar ao menos um; False aciona o fallback (circulo simples)."""
+    img = _load_icon_image(icone)
+    if img is None:
+        return False
+    zoom = 0.35 * max(tamanho, 0.1)
+    for x, y in zip(xs, ys):
+        ab = AnnotationBbox(OffsetImage(img, zoom=zoom), (x, y), frameon=False,
+                            zorder=zorder, box_alignment=(0.5, 0.5), pad=0)
+        ax.add_artist(ab)
+    return True
 
 
 def _draw_geoms(ax, feats, line: str, fill: str, alpha: float, lw: float = 1.1,
-                zorder: int = 6, hatch: str = ""):
+                zorder: int = 6, hatch: str = "", dash: tuple | None = None,
+                icone: str | None = None, icone_tamanho: float = 1.0):
     for feat in feats:
         geom = feat.geom
         gtype = geom.geom_type
         if gtype in ("Polygon", "MultiPolygon", "GeometryCollection"):
             for poly in iter_polygons(geom):
                 xs, ys = poly.exterior.xy
-                ax.fill(xs, ys, facecolor=fill, edgecolor=line, linewidth=lw, alpha=alpha,
-                        hatch=hatch or None, zorder=zorder)
+                artists = ax.fill(xs, ys, facecolor=fill, edgecolor=line, linewidth=lw, alpha=alpha,
+                                  hatch=hatch or None, zorder=zorder)
+                if dash:
+                    for artist in artists:
+                        artist.set_linestyle((0, dash))
                 for ring in poly.interiors:
-                    ax.plot(*ring.xy, color=line, linewidth=lw * 0.6, zorder=zorder)
+                    ax.plot(*ring.xy, color=line, linewidth=lw * 0.6, zorder=zorder,
+                            dashes=dash if dash else None)
         elif gtype in ("LineString", "MultiLineString"):
             parts = geom.geoms if hasattr(geom, "geoms") else [geom]
             for part in parts:
-                ax.plot(*part.xy, color=line, linewidth=max(lw, 1.4), alpha=min(1.0, alpha + 0.35), zorder=zorder)
+                ax.plot(*part.xy, color=line, linewidth=max(lw, 1.4), alpha=min(1.0, alpha + 0.35),
+                        zorder=zorder, dashes=dash if dash else None)
         else:  # pontos
             parts = geom.geoms if hasattr(geom, "geoms") else [geom]
             xs = [p.x for p in parts]
             ys = [p.y for p in parts]
-            ax.scatter(xs, ys, s=26, color=line, edgecolor="white", linewidth=0.6, alpha=0.9, zorder=zorder + 1)
+            if not (icone and _draw_icon_markers(ax, xs, ys, icone, icone_tamanho, zorder + 1)):
+                ax.scatter(xs, ys, s=26, color=line, edgecolor="white", linewidth=0.6, alpha=0.9, zorder=zorder + 1)
 
 
 def _feature_label(rec: dict) -> str:
@@ -633,9 +694,15 @@ def _legend_swatch(item: dict, label: str):
     opacidade = float(item.get("opacidade", 0.85) or 0.85)
     hachura = item.get("hachura") or item.get("hatch") or ""
     fill = item.get("preenchimento")
+    dash = _parse_dash(item.get("dash"))
     if tipo == "linha":
-        return Line2D([0], [0], color=cor, lw=largura, label=label)
+        linha = Line2D([0], [0], color=cor, lw=largura, label=label)
+        if dash:
+            linha.set_dashes(dash)
+        return linha
     if tipo == "ponto":
+        # legenda usa sempre o marcador circular (icones de imagem nao tem
+        # handler de legenda no matplotlib); o mapa em si desenha o icone real.
         return Line2D([0], [0], marker="o", linestyle="none", markerfacecolor=cor,
                       markeredgecolor="white", markersize=7, label=label)
     if tipo == "imagem":
@@ -652,7 +719,7 @@ def _legend_swatch(item: dict, label: str):
 
 def _linked_item_swatch(item: dict, layer):
     """Swatch de item vinculado a uma camada: herda o estilo dela (com overrides)."""
-    line, fill, alpha, hatch = _layer_color(layer.estilo, layer.tema)
+    line, fill, alpha, hatch, dash = _layer_color(layer.estilo, layer.tema, layer.id)
     merged = {
         "tipo": item.get("tipo") or "poligono",
         "cor": item.get("cor") or line,
@@ -660,6 +727,7 @@ def _linked_item_swatch(item: dict, layer):
         "hachura": item.get("hachura", hatch),
         "opacidade": item.get("opacidade", max(alpha, 0.35)),
         "largura": item.get("largura", 2.0),
+        "dash": item.get("dash", list(dash) if dash else None),
     }
     label = str(item.get("rotulo") or layer.nome)
     if item.get("contagem", True) is not False:
@@ -1277,7 +1345,7 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
         # camadas do catalogo (dados reais via WFS/GML/REST/WMS)
         auto_entries: list[tuple[str, object]] = []
         for layer in drawn_layers:
-            line, fill, alpha, hatch = _layer_color(layer.estilo, layer.tema)
+            line, fill, alpha, hatch, dash = _layer_color(layer.estilo, layer.tema, layer.id)
             if getattr(layer, "image", None) is not None:
                 # camada raster (WMS GetMap): overlay de imagem com opacidade
                 ax.imshow(layer.image, extent=layer.image_extent, origin="upper",
@@ -1291,7 +1359,10 @@ def render_pdf_map(project: NexoMapProject, spec: MapSpec, catalog: dict, job_di
                 # camadas com rotulo_texto (lotes/perimetros rotulados) desenham por
                 # cima das sub-areas (AVN/AC/AUAS), independentemente da ordem de adicao.
                 zo = 9 if getattr(layer, "rotulo_texto", "") else 6
-                _draw_geoms(ax, layer.features, line, fill, alpha, lw=lw, zorder=zo, hatch=hatch)
+                icone = layer.estilo.get("icone")
+                icone_tam = float(layer.estilo.get("icone_tamanho", 1.0) or 1.0)
+                _draw_geoms(ax, layer.features, line, fill, alpha, lw=lw, zorder=zo, hatch=hatch,
+                           dash=dash, icone=icone, icone_tamanho=icone_tam)
                 if getattr(layer, "rotulo_texto", ""):
                     _label_layer_static(ax, layer, cor=layer.estilo.get("rotulo_cor", "white"))
                 elif layer.rotulo:
