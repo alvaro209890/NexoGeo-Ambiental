@@ -57,6 +57,10 @@ Os 26 PDFs-modelo estão versionados em
   AUAS `///` laranja; legenda com retângulos vazados como no ArcMap.
 - Edição via chat validada ao vivo: "muda a cor da ATP" → `editar_camada` + `editar_legenda`
   + nova versão do job com linhagem.
+- **Fluxo "Mapas por CAR" (web) alinhado ao mesmo padrão** (`f056b88`): os 7 cards saem em
+  A4 com os estilos oficiais, tabela com rótulos amigáveis, rótulo do imóvel sem mojibake
+  (encoding `.cpg`/utf-8 do `.dbf`) e minimapa com o **município real** do CAR (código IBGE
+  → API de localidades). Detalhes: [`docs/HANDOFF_NEXOGEO_2026-07-09_sessao3.md`](docs/HANDOFF_NEXOGEO_2026-07-09_sessao3.md).
 
 ## Correções aplicadas (2026-07-09)
 
